@@ -1,6 +1,6 @@
 # S001-T09 Snapshot Monorepo Migration Design
 
-**Status:** Proposed for Project Owner review
+**Status:** Approved for replacement-plan preparation by the Project Owner
 
 **Date:** 2026-09-24
 
