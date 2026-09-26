@@ -48,9 +48,20 @@ try {
 $commit = '0123456789abcdef0123456789abcdef01234567'
 $root = Join-Path ([System.IO.Path]::GetTempPath()) ('apx-hosted-orchestrator-' + [guid]::NewGuid().ToString('N'))
 $serviceEvidence = Join-Path $PSScriptRoot '..\..\services\identity-profile-service\target\s001-t07-evidence'
+$vulnerabilityInventory = Join-Path $serviceEvidence 'vulnerability-inventory.json'
+$gitleaksInventory = Join-Path $serviceEvidence 'gitleaks-inventory.json'
 $containerInventory = Join-Path $serviceEvidence 'container-vulnerability-inventory.json'
-$containerInventoryExisted = Test-Path -LiteralPath $containerInventory -PathType Leaf
-$containerInventoryBytes = if ($containerInventoryExisted) { [System.IO.File]::ReadAllBytes($containerInventory) } else { $null }
+$inventoryStates = @(
+    foreach ($path in @($vulnerabilityInventory, $gitleaksInventory, $containerInventory)) {
+        $existed = Test-Path -LiteralPath $path -PathType Leaf
+        [pscustomobject]@{
+            Path = $path
+            Existed = $existed
+            Bytes = if ($existed) { [System.IO.File]::ReadAllBytes($path) } else { $null }
+        }
+    }
+)
+$emptyInventory = '[]'
 $fixtureFinding = '[{"scanner":"trivy","findingId":"CVE-2026-0001","source":"ghsa","targetType":"image","target":"auction-promax/identity-profile-service:s001-t07","package/component":"example:component","affectedVersion":"1.0.0","fixedVersion":null,"severity":"HIGH","severitySource":"ghsa","status":"observed","dispositionId":null}]'
 function New-Adapters([hashtable]$Overrides = @{}) {
     $items = @{}
@@ -73,6 +84,10 @@ try {
     Write-Host '[PASS] Failure result line contains only classified state'
 
     [void][System.IO.Directory]::CreateDirectory($serviceEvidence)
+    # These are the exact empty-array formats emitted by the production
+    # vulnerability and Gitleaks inventory writers for zero findings.
+    [System.IO.File]::WriteAllText($vulnerabilityInventory, $emptyInventory, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($gitleaksInventory, $emptyInventory, [System.Text.UTF8Encoding]::new($false))
     [System.IO.File]::WriteAllText($containerInventory, $fixtureFinding, [System.Text.UTF8Encoding]::new($false))
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters) -NoExit
     if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'PASS') { throw 'TEST_PASS_SCENARIO_FAILED' }
@@ -131,7 +146,9 @@ try {
     Write-Host '[PASS] Sanitized hosted evidence is written for failure paths'
 } finally {
     if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }
-    if ($containerInventoryExisted) { [System.IO.File]::WriteAllBytes($containerInventory, $containerInventoryBytes) }
-    elseif (Test-Path -LiteralPath $containerInventory) { Remove-Item -LiteralPath $containerInventory -Force }
+    foreach ($state in $inventoryStates) {
+        if ($state.Existed) { [System.IO.File]::WriteAllBytes($state.Path, $state.Bytes) }
+        elseif (Test-Path -LiteralPath $state.Path -PathType Leaf) { Remove-Item -LiteralPath $state.Path -Force }
+    }
 }
 Write-Host 'Hosted supply-chain orchestration tests: PASS'

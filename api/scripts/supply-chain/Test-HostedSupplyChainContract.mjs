@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import YAML from "../../contracts/node_modules/yaml/dist/index.js";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
+const monorepoRoot = path.resolve(repoRoot, "..");
 const contractPath = path.join(repoRoot, "security/tooling/hosted-supply-chain-contract.json");
 const schemaPath = path.join(repoRoot, "security/schemas/hosted-supply-chain-contract.schema.json");
 const ajvPath = path.join(repoRoot, "contracts/node_modules/ajv/dist/2020.js");
@@ -149,13 +150,13 @@ function runFixtures() {
 }
 function runRepository() {
   const paths = contract.workflowPaths;
-  const readWorkflow = (relativePath) => { assertCode(fs.existsSync(path.join(repoRoot, relativePath)), "HOSTED_WORKFLOW_MISSING"); return parse(fs.readFileSync(path.join(repoRoot, relativePath), "utf8")); };
+  const readWorkflow = (relativePath) => { assertCode(fs.existsSync(path.join(monorepoRoot, relativePath)), "HOSTED_WORKFLOW_MISSING"); return parse(fs.readFileSync(path.join(monorepoRoot, relativePath), "utf8")); };
   validateWorkflowSet({ baseline: readWorkflow(paths.baseline), supplyChain: readWorkflow(paths.supplyChain), freshness: readWorkflow(paths.freshness) });
   process.stdout.write("Hosted workflow repository contract: PASS\n");
 }
 function runRepositorySupplyChain() {
   const paths = contract.workflowPaths;
-  const readWorkflow = (relativePath) => { assertCode(fs.existsSync(path.join(repoRoot, relativePath)), "HOSTED_WORKFLOW_MISSING"); return parse(fs.readFileSync(path.join(repoRoot, relativePath), "utf8")); };
+  const readWorkflow = (relativePath) => { assertCode(fs.existsSync(path.join(monorepoRoot, relativePath)), "HOSTED_WORKFLOW_MISSING"); return parse(fs.readFileSync(path.join(monorepoRoot, relativePath), "utf8")); };
   const fixture = canonical();
   validateWorkflowSet({ baseline: readWorkflow(paths.baseline), supplyChain: readWorkflow(paths.supplyChain), freshness: fixture.freshness });
   process.stdout.write("Hosted supply-chain PR/push workflow contract: PASS\n");

@@ -55,24 +55,24 @@ jobs:
         name: Set up Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version-file: .nvmrc
+          node-version-file: api/.nvmrc
           cache: npm
-          cache-dependency-path: contracts/package-lock.json
+          cache-dependency-path: api/contracts/package-lock.json
 
       - id: install-contract-tools
         name: Install pinned contract tooling
-        working-directory: contracts
+        working-directory: api/contracts
         run: npm ci
 
       - id: validate-contract
         name: Validate hosted workflow contract
-        run: node ./scripts/supply-chain/Test-HostedSupplyChainContract.mjs --repository
+        run: node ./api/scripts/supply-chain/Test-HostedSupplyChainContract.mjs --repository
 
       - id: run-hosted
         name: Run default-branch hosted verification
         shell: pwsh
         run: |
-          ./scripts/supply-chain/Invoke-HostedSupplyChain.ps1 `
+          ./api/scripts/supply-chain/Invoke-HostedSupplyChain.ps1 `
             -WorkflowName security-freshness `
             -CommitSha '${{ steps.resolve-default-commit.outputs.commit }}' `
             -EvidenceRoot (Join-Path $env:RUNNER_TEMP 's001-t07-evidence/hosted') `
@@ -81,7 +81,7 @@ jobs:
       - id: validate-evidence
         name: Validate sanitized evidence
         if: always()
-        run: node ./scripts/supply-chain/Validate-HostedSupplyChainEvidence.mjs "${{ runner.temp }}/s001-t07-evidence/hosted" '${{ steps.resolve-default-commit.outputs.commit }}'
+        run: node ./api/scripts/supply-chain/Validate-HostedSupplyChainEvidence.mjs "${{ runner.temp }}/s001-t07-evidence/hosted" '${{ steps.resolve-default-commit.outputs.commit }}'
 
       - id: upload-evidence
         name: Upload sanitized evidence

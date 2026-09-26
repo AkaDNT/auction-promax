@@ -31,7 +31,7 @@ jobs:
 
       - name: Verify identity-profile-service
         shell: bash
-        working-directory: services/identity-profile-service
+        working-directory: api/services/identity-profile-service
         run: |
           chmod +x mvnw
           ./mvnw -B verify
@@ -49,16 +49,16 @@ jobs:
       - name: Set up Node.js 24.15.0
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version-file: .nvmrc
+          node-version-file: api/.nvmrc
           cache: npm
-          cache-dependency-path: infra/package-lock.json
+          cache-dependency-path: api/infra/package-lock.json
 
       - name: Install pinned CDK dependencies
-        working-directory: infra
+        working-directory: api/infra
         run: npm ci
 
       - name: Verify CDK CLI version
-        working-directory: infra
+        working-directory: api/infra
         run: npm run cdk:version
 
   verify-contract-registry:
@@ -74,26 +74,26 @@ jobs:
       - name: Set up Node.js 24.15.0
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version-file: .nvmrc
+          node-version-file: api/.nvmrc
           cache: npm
-          cache-dependency-path: contracts/package-lock.json
+          cache-dependency-path: api/contracts/package-lock.json
 
       - name: Install pinned contract tooling
-        working-directory: contracts
+        working-directory: api/contracts
         run: npm ci
 
       - name: Reject malformed schema fixture
-        working-directory: contracts
+        working-directory: api/contracts
         run: npm run test:fixtures
 
       - name: Reject governance fixtures
-        working-directory: contracts
+        working-directory: api/contracts
         run: npm run test:governance
 
       - name: Reject prohibited OpenAPI breaking change
         shell: pwsh
-        run: ./scripts/verify-contracts.ps1 -Mode Fixture
+        run: ./api/scripts/verify-contracts.ps1 -Mode Fixture
 
       - name: Verify registered contracts
         shell: pwsh
-        run: ./scripts/verify-contracts.ps1 -Mode Registry
+        run: ./api/scripts/verify-contracts.ps1 -Mode Registry
