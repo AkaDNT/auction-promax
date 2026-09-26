@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/auction-promax/api/security/schemas/container-image-contract.schema.json",
+  "title": "Cycle 5 Container Image Execution Contract",
+  "description": "Fail-closed contract for the Identity service local container image. It fixes the prebuilt-JAR build boundary, linux/amd64 non-root runtime, technical smoke hardening, Trivy image command vector, required OS/Java detection, sanitized evidence, and the existing Critical/High disposition policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "image", "build", "runtime", "technicalSmoke", "scan", "evidence", "policy"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "image": { "$ref": "#/$defs/image" },
+    "build": { "$ref": "#/$defs/build" },
+    "runtime": { "$ref": "#/$defs/runtime" },
+    "technicalSmoke": { "$ref": "#/$defs/technicalSmoke" },
+    "scan": { "$ref": "#/$defs/scan" },
+    "evidence": { "$ref": "#/$defs/evidence" },
+    "policy": { "$ref": "#/$defs/policy" }
+  },
+  "$defs": {
+    "image": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "localReference", "platform", "baseImageManifestId"],
+      "properties": {
+        "id": { "const": "identity-profile-service" },
+        "localReference": { "const": "auction-promax/identity-profile-service:s001-t07" },
+        "platform": { "const": "linux/amd64" },
+        "baseImageManifestId": { "const": "identity-profile-service-runtime" }
+      }
+    },
+    "build": {
+      "type": "object", "additionalProperties": false,
+      "required": ["dockerfileRelativePath", "contextRelativePath", "canonicalJarRelativePath", "mavenBuildLocation", "dependencyResolution", "credentials"],
+      "properties": {
+        "dockerfileRelativePath": { "const": "services/identity-profile-service/Dockerfile" },
+        "contextRelativePath": { "const": "services/identity-profile-service" },
+        "canonicalJarRelativePath": { "const": "services/identity-profile-service/target/identity-profile-service-0.0.1-SNAPSHOT.jar" },
+        "mavenBuildLocation": { "const": "outside-docker" },
+        "dependencyResolution": { "const": "forbidden-in-docker" },
+        "credentials": { "const": "forbidden-in-docker" }
+      }
+    },
+    "runtime": {
+      "type": "object", "additionalProperties": false,
+      "required": ["user", "workingDirectory", "applicationJarPath", "exposedPort", "entrypoint", "healthcheck"],
+      "properties": {
+        "user": { "const": "10001:10001" },
+        "workingDirectory": { "const": "/app" },
+        "applicationJarPath": { "const": "/app/app.jar" },
+        "exposedPort": { "const": "8080/tcp" },
+        "entrypoint": { "const": ["java", "-jar", "/app/app.jar"] },
+        "healthcheck": { "const": "absent" }
+      }
+    },
+    "technicalSmoke": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profile", "readinessPath", "loopbackOnly", "readOnlyRootFilesystem", "tmpfsPath", "dropAllCapabilities", "noNewPrivileges", "pidsLimit", "startupTimeoutSeconds"],
+      "properties": {
+        "profile": { "const": "technical-local" },
+        "readinessPath": { "const": "/actuator/health/readiness" },
+        "loopbackOnly": { "const": true },
+        "readOnlyRootFilesystem": { "const": true },
+        "tmpfsPath": { "const": "/tmp" },
+        "dropAllCapabilities": { "const": true },
+        "noNewPrivileges": { "const": true },
+        "pidsLimit": { "const": 256 },
+        "startupTimeoutSeconds": { "const": 120 }
+      }
+    },
+    "scan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scanner", "command", "targetType", "databaseContractRelativePath", "requiredDetections", "arguments"],
+      "properties": {
+        "scanner": { "$ref": "#/$defs/scanner" },
+        "command": { "const": "image" },
+        "targetType": { "const": "container-image" },
+        "databaseContractRelativePath": { "const": "security/tooling/vulnerability-scan-contract.json" },
+        "requiredDetections": { "const": ["os", "java-library"] },
+        "arguments": { "const": ["--scanners", "vuln", "--image-src", "docker", "--platform", "linux/amd64", "--format", "json", "--quiet", "--exit-code", "0", "--skip-db-update", "--skip-vex-repo-update", "--skip-version-check", "--timeout", "300s"] }
+      }
+    },
+    "scanner": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "version", "installation"],
+      "properties": {
+        "name": { "const": "trivy" },
+        "version": { "const": "0.74.0" },
+        "installation": { "const": "cycle-1-verified-bootstrap" }
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rawReports", "sanitizedInventoryRelativePath", "sanitizedInventoryFields"],
+      "properties": {
+        "rawReports": { "const": "temporary-only" },
+        "sanitizedInventoryRelativePath": { "const": "services/identity-profile-service/target/s001-t07-evidence/container-vulnerability-inventory.json" },
+        "sanitizedInventoryFields": { "const": ["scanner", "findingId", "source", "targetType", "target", "package/component", "affectedVersion", "fixedVersion", "severity", "severitySource", "status", "dispositionId"] }
+      }
+    },
+    "policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mustRun", "highAndCritical", "mediumAndLow", "unknown", "ignoreUnfixed"],
+      "properties": {
+        "mustRun": { "const": true },
+        "highAndCritical": { "const": "fail-unless-exact-valid-disposition" },
+        "mediumAndLow": { "const": "report-non-blocking" },
+        "unknown": { "const": "fail-closed" },
+        "ignoreUnfixed": { "const": false }
+      }
+    }
+  }
+}

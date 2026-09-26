@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.auction-promax.local/realtime/v1/realtime-message.placeholder.schema.json",
+  "title": "Realtime Message Protocol Placeholder",
+  "description": "Versioned placeholder only. No WebSocket runtime is implemented in S001-T04. Payload must remain public and must not contain PII, credentials, tokens, secrets, or business-private data.",
+  "type": "object",
+  "required": [
+    "messageId",
+    "schemaVersion",
+    "auctionId",
+    "aggregateVersion",
+    "serverTimestamp",
+    "eventType",
+    "payload"
+  ],
+  "properties": {
+    "messageId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "auctionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "aggregateVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic aggregate/auction version used by clients to detect a sequence gap."
+    },
+    "serverTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "eventType": {
+      "const": "realtime.placeholder"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Public payload placeholder. Production event types and payloads belong to Phase 7."
+    }
+  },
+  "examples": [
+    {
+      "messageId": "0192f1c0-0000-7000-8000-000000000020",
+      "schemaVersion": 1,
+      "auctionId": "0192f1c0-0000-7000-8000-000000000021",
+      "aggregateVersion": 1,
+      "serverTimestamp": "2026-08-23T00:00:00Z",
+      "eventType": "realtime.placeholder",
+      "payload": {}
+    }
+  ]
+}

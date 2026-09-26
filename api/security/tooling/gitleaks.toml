@@ -1,0 +1,11 @@
+title = "Auction Pro Max API Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "apx-controlled-secret-fixture"
+description = "Detects the Cycle 4 synthetic scanner-integrity fixture."
+regex = '''APX_FIXTURE_SECRET_[A-Z0-9_]{24,}'''
+keywords = ["APX_FIXTURE_SECRET_"]
+tags = ["test", "scanner-integrity"]

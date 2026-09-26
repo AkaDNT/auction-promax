@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/auction-promax/api/security/schemas/gitleaks-scan-contract.schema.json",
+  "title": "Cycle 4 Gitleaks Scan Execution Contract",
+  "description": "Fail-closed contract for direct, verified Gitleaks 8.30.0 working-tree and reachable-Git-history scans. Raw reports and working-tree snapshots are temporary only; retained evidence is strictly sanitized.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "scanner", "workingTree", "scans", "reportHandling", "policy"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "scanner": { "$ref": "#/$defs/scanner" },
+    "workingTree": { "$ref": "#/$defs/workingTree" },
+    "scans": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "$ref": "#/$defs/dirScan" },
+        { "$ref": "#/$defs/gitScan" }
+      ],
+      "items": false
+    },
+    "reportHandling": { "$ref": "#/$defs/reportHandling" },
+    "policy": { "$ref": "#/$defs/policy" }
+  },
+  "$defs": {
+    "scanner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "installation"],
+      "properties": {
+        "name": { "const": "gitleaks" },
+        "version": { "const": "8.30.0" },
+        "installation": { "const": "cycle-1-verified-bootstrap" }
+      }
+    },
+    "workingTree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidateCommand", "snapshot", "neverReadPaths"],
+      "properties": {
+        "candidateCommand": { "const": ["git", "ls-files", "--cached", "--others", "--exclude-standard"] },
+        "snapshot": { "const": "temporary-only" },
+        "neverReadPaths": { "const": [".env.local"] }
+      }
+    },
+    "dirScan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "command", "target", "arguments"],
+      "properties": {
+        "id": { "const": "working-tree" },
+        "command": { "const": "dir" },
+        "target": { "const": "temporary-working-tree-snapshot" },
+        "arguments": { "const": ["--config", "security/tooling/gitleaks.toml", "--gitleaks-ignore-path", "security/tooling/gitleaks-empty-ignore.txt", "--ignore-gitleaks-allow", "--redact=100", "--report-format", "json", "--report-path", "temporary-only", "--exit-code", "3", "--log-level", "error", "--no-banner", "--no-color", "--timeout", "300"] }
+      }
+    },
+    "gitScan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "command", "target", "arguments"],
+      "properties": {
+        "id": { "const": "git-history" },
+        "command": { "const": "git" },
+        "target": { "const": "repository-root" },
+        "arguments": { "const": ["--log-opts", "--full-history --all", "--config", "security/tooling/gitleaks.toml", "--gitleaks-ignore-path", "security/tooling/gitleaks-empty-ignore.txt", "--ignore-gitleaks-allow", "--redact=100", "--report-format", "json", "--report-path", "temporary-only", "--exit-code", "3", "--log-level", "error", "--no-banner", "--no-color", "--timeout", "300"] }
+      }
+    },
+    "reportHandling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rawReports", "sanitizedInventoryFields"],
+      "properties": {
+        "rawReports": { "const": "temporary-only" },
+        "sanitizedInventoryFields": { "const": ["scanMode", "ruleId", "repositoryRelativePath", "scannerFingerprint", "commitId", "status", "remediationReference"] }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["findingExitCode", "otherNonzeroExit", "mustRun", "allowlist", "realSecretDisposition"],
+      "properties": {
+        "findingExitCode": { "const": 3 },
+        "otherNonzeroExit": { "const": "fail-closed" },
+        "mustRun": { "const": true },
+        "allowlist": { "const": "repository-owned-exact-match-only" },
+        "realSecretDisposition": { "const": "incident-only" }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "scanner": "trivy",
+  "findingId": "CVE-2021-23337",
+  "package": "lodash",
+  "affectedVersion": "4.17.20",
+  "fixedVersion": "4.17.21",
+  "source": "ghsa",
+  "severity": "HIGH"
+}

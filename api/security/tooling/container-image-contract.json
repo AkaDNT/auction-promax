@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "image": {
+    "id": "identity-profile-service",
+    "localReference": "auction-promax/identity-profile-service:s001-t07",
+    "platform": "linux/amd64",
+    "baseImageManifestId": "identity-profile-service-runtime"
+  },
+  "build": {
+    "dockerfileRelativePath": "services/identity-profile-service/Dockerfile",
+    "contextRelativePath": "services/identity-profile-service",
+    "canonicalJarRelativePath": "services/identity-profile-service/target/identity-profile-service-0.0.1-SNAPSHOT.jar",
+    "mavenBuildLocation": "outside-docker",
+    "dependencyResolution": "forbidden-in-docker",
+    "credentials": "forbidden-in-docker"
+  },
+  "runtime": {
+    "user": "10001:10001",
+    "workingDirectory": "/app",
+    "applicationJarPath": "/app/app.jar",
+    "exposedPort": "8080/tcp",
+    "entrypoint": ["java", "-jar", "/app/app.jar"],
+    "healthcheck": "absent"
+  },
+  "technicalSmoke": {
+    "profile": "technical-local",
+    "readinessPath": "/actuator/health/readiness",
+    "loopbackOnly": true,
+    "readOnlyRootFilesystem": true,
+    "tmpfsPath": "/tmp",
+    "dropAllCapabilities": true,
+    "noNewPrivileges": true,
+    "pidsLimit": 256,
+    "startupTimeoutSeconds": 120
+  },
+  "scan": {
+    "scanner": {
+      "name": "trivy",
+      "version": "0.74.0",
+      "installation": "cycle-1-verified-bootstrap"
+    },
+    "command": "image",
+    "targetType": "container-image",
+    "databaseContractRelativePath": "security/tooling/vulnerability-scan-contract.json",
+    "requiredDetections": ["os", "java-library"],
+    "arguments": [
+      "--scanners", "vuln",
+      "--image-src", "docker",
+      "--platform", "linux/amd64",
+      "--format", "json",
+      "--quiet",
+      "--exit-code", "0",
+      "--skip-db-update",
+      "--skip-vex-repo-update",
+      "--skip-version-check",
+      "--timeout", "300s"
+    ]
+  },
+  "evidence": {
+    "rawReports": "temporary-only",
+    "sanitizedInventoryRelativePath": "services/identity-profile-service/target/s001-t07-evidence/container-vulnerability-inventory.json",
+    "sanitizedInventoryFields": [
+      "scanner",
+      "findingId",
+      "source",
+      "targetType",
+      "target",
+      "package/component",
+      "affectedVersion",
+      "fixedVersion",
+      "severity",
+      "severitySource",
+      "status",
+      "dispositionId"
+    ]
+  },
+  "policy": {
+    "mustRun": true,
+    "highAndCritical": "fail-unless-exact-valid-disposition",
+    "mediumAndLow": "report-non-blocking",
+    "unknown": "fail-closed",
+    "ignoreUnfixed": false
+  }
+}

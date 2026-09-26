@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>S001-T06 Cycle 14 — Completion Evidence</title>
+  <style>
+    :root { color-scheme: light; --ink:#172033; --muted:#5e687b; --ok:#087443; --line:#dce2eb; --panel:#f7f9fc; }
+    body { margin:0; background:#eef2f7; color:var(--ink); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { max-width:1050px; margin:32px auto; padding:32px; background:white; box-shadow:0 8px 30px #2233  ; }
+    h1,h2 { line-height:1.2; } h1 { margin-top:0; } code,pre { font-family:"Cascadia Code",Consolas,monospace; }
+    pre { overflow:auto; padding:16px; background:#111827; color:#e5edf8; border-radius:8px; }
+    table { width:100%; border-collapse:collapse; margin:16px 0; } th,td { border:1px solid var(--line); padding:10px; text-align:left; vertical-align:top; }
+    th { background:var(--panel); } .ok { color:var(--ok); font-weight:700; } .note { padding:14px 18px; border-left:4px solid var(--ok); background:#ecfdf5; }
+    .muted { color:var(--muted); } ul { padding-left:22px; }
+  </style>
+</head>
+<body><main>
+  <h1>S001-T06 — Cycle 14 completion evidence</h1>
+  <p class="muted">Ngày thực thi: 2026-09-06 · Phạm vi: Phase 0 local technical proof</p>
+  <p class="note"><span class="ok">COMPLETED.</span> Sample flow đã vượt qua canonical PostgreSQL Testcontainers, local-profile integration và contract registry gates. Không triển khai AWS transport, nghiệp vụ profile hay choreography ngoài scope.</p>
+
+  <h2>1. Phần còn thiếu được khép lại</h2>
+  <table>
+    <thead><tr><th>Gap</th><th>Thay đổi</th><th>Kiểm chứng</th></tr></thead>
+    <tbody>
+      <tr><td>Local relay chưa có scheduler</td><td>Thêm adapter scheduled poller; mặc định tắt và chỉ bật rõ trong profile <code>local</code>.</td><td>Unit test delegation; Testcontainers vẫn trigger relay trực tiếp, deterministic.</td></tr>
+      <tr><td>Thiếu outbox state metrics</td><td>Thêm database-backed gauges cho pending, failed hiện tại và processed hiện tại; thêm processed counter.</td><td>Không dùng identifier làm tags; unit và integration assertions đều pass.</td></tr>
+      <tr><td>Thiếu attempt metadata</td><td>Migration V4 thêm <code>locked_by</code>, <code>last_attempt_at</code>; claim/publish/fail cập nhật và giải phóng lease đúng trạng thái.</td><td>PostgreSQL 17 migration và reclaim/retry tests pass.</td></tr>
+      <tr><td>Runtime role đọc được Flyway history sau V2</td><td>Migration V3 thu hồi quyền, không sửa migration đã chạy.</td><td>Least-privilege Testcontainers assertion pass.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2. Flow và transaction boundary</h2>
+  <pre>HTTP POST /api/v1/identity-profile-samples
+  → validate request + Idempotency-Key
+  → [transaction] sample + idempotency stored response + outbox PENDING
+  → COMMIT
+  → scheduled/local relay claims with lease
+  → local delivery
+  → [transaction] inbox receipt + local effect exactly once
+  → outbox PUBLISHED
+
+Failure after commit
+  → outbox FAILED + sanitized error code + next_attempt_at
+  → later claim/retry; original command transaction is unchanged</pre>
+
+  <h2>3. Acceptance evidence</h2>
+  <table>
+    <thead><tr><th>Acceptance criterion</th><th>Evidence</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Same key + same request</td><td>Stored response replay; exactly one sample and one outbox event.</td><td class="ok">PASS</td></tr>
+      <tr><td>Atomic transaction / rollback</td><td>Forced rollback leaves no new sample, idempotency result or outbox row.</td><td class="ok">PASS</td></tr>
+      <tr><td>Concurrent duplicate</td><td>Two concurrent calls resolve to the same sample ID under PostgreSQL uniqueness/locking.</td><td class="ok">PASS</td></tr>
+      <tr><td>Duplicate event delivery</td><td>One inbox receipt/effect; second delivery is recorded as duplicate.</td><td class="ok">PASS</td></tr>
+      <tr><td>Retryable failure</td><td>FAILED row, attempts, sanitized error code and retry time persist; retry reaches PUBLISHED.</td><td class="ok">PASS</td></tr>
+      <tr><td>Observability/security</td><td>Trace/correlation plus safe fingerprint/event/attempt/inbox IDs in logs; low-cardinality metrics; raw key and payload are not logged.</td><td class="ok">PASS</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Commands and actual results</h2>
+  <pre>mvn.cmd verify
+# Surefire: 110/110 PASS
+# Testcontainers/Failsafe: 10/10 PASS
+# BUILD SUCCESS
+
+mvn.cmd -Pit-local verify
+# Local integration: 4/4 PASS
+# BUILD SUCCESS
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass \
+  -File .\scripts\verify-contracts.ps1 -Mode Registry
+# OpenAPI, JSON Schema, governance, N/N-1: PASS</pre>
+  <p>Local evidence dùng PostgreSQL 17 container test-only tạm thời. Container được dừng và tự động xóa sau khi verification hoàn tất. Testcontainers vẫn là canonical integration evidence.</p>
+
+  <h2>5. Metrics được chứng minh</h2>
+  <ul>
+    <li><code>identity.sample.idempotency.replays</code></li>
+    <li><code>identity.sample.outbox.pending</code></li>
+    <li><code>identity.sample.outbox.failed</code> và <code>identity.sample.outbox.failed.current</code></li>
+    <li><code>identity.sample.outbox.processed</code> và <code>identity.sample.outbox.processed.current</code></li>
+    <li><code>identity.sample.outbox.relay.attempts</code></li>
+    <li><code>identity.sample.inbox.processed</code> và <code>identity.sample.inbox.duplicates</code></li>
+  </ul>
+
+  <h2>6. Evidence locations</h2>
+  <ul>
+    <li><code>services/identity-profile-service/target/surefire-reports</code></li>
+    <li><code>services/identity-profile-service/target/failsafe-reports</code></li>
+    <li><code>services/identity-profile-service/target/site/jacoco/index.html</code></li>
+    <li><code>contracts/README.md</code></li>
+    <li><code>docs/sprints/SPRINT_001.md</code></li>
+    <li><code>docs/DELIVERY_STATE.md</code></li>
+  </ul>
+
+  <h2>7. Rollback</h2>
+  <p>Tắt <code>auction.sample-flow.relay.scheduler-enabled</code> để dừng delivery mới nhưng giữ nguyên outbox rows để điều tra/retry. Không rollback database migration; rollback application version vẫn bảo toàn dữ liệu. V3/V4 là additive/security corrective migrations.</p>
+  <footer class="muted">Tài liệu không chứa password, token, connection string, raw idempotency key hay payload nhạy cảm.</footer>
+</main></body></html>

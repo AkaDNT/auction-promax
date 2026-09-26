@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/auction-promax/api/security/schemas/supply-chain-tools.schema.json",
+  "title": "Supply-Chain Tool Bootstrap Manifest",
+  "description": "Cycle 1 fail-closed contract for the reviewed Trivy, Gitleaks, and Cosign release assets. Tool identity, version, release URL, version command, provenance metadata, platform asset mapping, and archive semantics are fixed. SHA-256 values are manifest-owned trust anchors and must be lowercase, non-placeholder digests; their actual values are verified at bootstrap execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tools"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "tools": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "$ref": "#/$defs/trivyTool" },
+        { "$ref": "#/$defs/gitleaksTool" },
+        { "$ref": "#/$defs/cosignTool" }
+      ],
+      "items": false
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "not": { "const": "0000000000000000000000000000000000000000000000000000000000000000" }
+    },
+    "trivyTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "officialReleaseBaseUrl", "versionArguments", "versionPattern", "sigstore", "platforms"],
+      "properties": {
+        "name": { "const": "trivy" },
+        "version": { "const": "0.74.0" },
+        "officialReleaseBaseUrl": { "const": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0" },
+        "versionArguments": { "const": ["--version"] },
+        "versionPattern": { "const": "(?m)^Version:[ \\t]*0\\.74\\.0[ \\t]*\\r?$" },
+        "sigstore": { "$ref": "#/$defs/trivySigstore" },
+        "platforms": { "$ref": "#/$defs/trivyPlatforms" }
+      }
+    },
+    "gitleaksTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "officialReleaseBaseUrl", "versionArguments", "versionPattern", "platforms"],
+      "properties": {
+        "name": { "const": "gitleaks" },
+        "version": { "const": "8.30.0" },
+        "officialReleaseBaseUrl": { "const": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.0" },
+        "versionArguments": { "const": ["version"] },
+        "versionPattern": { "const": "(?m)^8\\.30\\.0[ \\t]*\\r?$" },
+        "platforms": { "$ref": "#/$defs/gitleaksPlatforms" }
+      }
+    },
+    "cosignTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "officialReleaseBaseUrl", "versionArguments", "versionPattern", "purpose", "platforms"],
+      "properties": {
+        "name": { "const": "cosign" },
+        "version": { "const": "3.1.2" },
+        "officialReleaseBaseUrl": { "const": "https://github.com/sigstore/cosign/releases/download/v3.1.2" },
+        "versionArguments": { "const": ["version"] },
+        "versionPattern": { "const": "(?m)^GitVersion:[ \\t]*v3\\.1\\.2[ \\t]*\\r?$" },
+        "purpose": { "const": "release-provenance" },
+        "platforms": { "$ref": "#/$defs/cosignPlatforms" }
+      }
+    },
+    "trivySigstore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bundleAssetSuffix", "certificateOidcIssuer", "certificateIdentity"],
+      "properties": {
+        "bundleAssetSuffix": { "const": ".sigstore.json" },
+        "certificateOidcIssuer": { "const": "https://token.actions.githubusercontent.com" },
+        "certificateIdentity": { "const": "https://github.com/aquasecurity/trivy/.github/workflows/reusable-release.yaml@refs/tags/v0.74.0" }
+      }
+    },
+    "trivyPlatforms": {
+      "type": "object", "additionalProperties": false, "required": ["windows-x64", "linux-x64"],
+      "properties": { "windows-x64": { "$ref": "#/$defs/trivyWindows" }, "linux-x64": { "$ref": "#/$defs/trivyLinux" } }
+    },
+    "gitleaksPlatforms": {
+      "type": "object", "additionalProperties": false, "required": ["windows-x64", "linux-x64"],
+      "properties": { "windows-x64": { "$ref": "#/$defs/gitleaksWindows" }, "linux-x64": { "$ref": "#/$defs/gitleaksLinux" } }
+    },
+    "cosignPlatforms": {
+      "type": "object", "additionalProperties": false, "required": ["windows-x64", "linux-x64"],
+      "properties": { "windows-x64": { "$ref": "#/$defs/cosignWindows" }, "linux-x64": { "$ref": "#/$defs/cosignLinux" } }
+    },
+    "trivyWindows": { "type": "object", "$ref": "#/$defs/platform", "properties": { "assetName": { "const": "trivy_0.74.0_windows-64bit.zip" }, "sha256": { "$ref": "#/$defs/sha256" }, "archiveType": { "const": "zip" }, "executableName": { "const": "trivy.exe" } } },
+    "trivyLinux": { "type": "object", "$ref": "#/$defs/platform", "properties": { "assetName": { "const": "trivy_0.74.0_Linux-64bit.tar.gz" }, "sha256": { "$ref": "#/$defs/sha256" }, "archiveType": { "const": "tar.gz" }, "executableName": { "const": "trivy" } } },
+    "gitleaksWindows": { "type": "object", "$ref": "#/$defs/platform", "properties": { "assetName": { "const": "gitleaks_8.30.0_windows_x64.zip" }, "sha256": { "$ref": "#/$defs/sha256" }, "archiveType": { "const": "zip" }, "executableName": { "const": "gitleaks.exe" } } },
+    "gitleaksLinux": { "type": "object", "$ref": "#/$defs/platform", "properties": { "assetName": { "const": "gitleaks_8.30.0_linux_x64.tar.gz" }, "sha256": { "$ref": "#/$defs/sha256" }, "archiveType": { "const": "tar.gz" }, "executableName": { "const": "gitleaks" } } },
+    "cosignWindows": { "type": "object", "$ref": "#/$defs/platform", "properties": { "assetName": { "const": "cosign-windows-amd64.exe" }, "sha256": { "$ref": "#/$defs/sha256" }, "archiveType": { "const": "binary" }, "executableName": { "const": "cosign.exe" } } },
+    "cosignLinux": { "type": "object", "$ref": "#/$defs/platform", "properties": { "assetName": { "const": "cosign-linux-amd64" }, "sha256": { "$ref": "#/$defs/sha256" }, "archiveType": { "const": "binary" }, "executableName": { "const": "cosign" } } },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assetName", "sha256", "archiveType", "executableName"],
+      "properties": {
+        "assetName": true,
+        "sha256": true,
+        "archiveType": true,
+        "executableName": true
+      }
+    }
+  }
+}

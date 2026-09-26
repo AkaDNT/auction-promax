@@ -1,0 +1,41 @@
+openapi: 3.1.0
+info:
+  title: Identity Profile Sample Fixture
+  version: 1.0.0
+paths:
+  /api/v1/identity-profile-samples:
+    post:
+      operationId: createIdentityProfileSample
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - purpose
+              properties:
+                purpose:
+                  type: string
+                  enum:
+                    - PHASE_0_BASELINE
+      responses:
+        "201":
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - sampleId
+                  - status
+                properties:
+                  sampleId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum:
+                      - RECORDED

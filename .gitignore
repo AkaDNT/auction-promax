@@ -1,0 +1,33 @@
+# Private local evidence and assistant/tool workspaces.
+.worktrees/
+.superpowers/
+
+# IDE and nested repository metadata.
+.vscode/
+**/.git/
+
+# Credentials and local environment; checked-in templates are explicit exceptions.
+**/.env*
+!**/.env.example
+!**/.env.local.example
+
+# Local tools, dependencies, generated output, and caches.
+**/.tools/
+**/node_modules/
+**/.next/
+**/.turbo/
+**/target/
+**/coverage/
+**/.cache/
+**/.pytest_cache/
+**/__pycache__/
+
+# Local-only reports, logs, backups, and raw scanner output.
+**/logs/
+**/backups/
+**/evidence/raw/
+**/*.log
+**/*.trivy.json
+**/*.trivy.sarif
+**/*.raw.json
+**/*.raw.sarif

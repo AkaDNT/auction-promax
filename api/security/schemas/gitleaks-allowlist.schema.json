@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/auction-promax/api/security/schemas/gitleaks-allowlist.schema.json",
+  "title": "Cycle 4 Gitleaks False-Positive Registry",
+  "description": "Repository-owned, exact-match false-positive registry. It cannot accept real secrets or suppress scanner findings before raw-report validation and sanitization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "entries"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "repositoryRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+    },
+    "sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "entry": {
+      "oneOf": [
+        { "$ref": "#/$defs/dirEntry" },
+        { "$ref": "#/$defs/gitEntry" }
+      ]
+    },
+    "baseEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "scanMode", "ruleId", "repositoryRelativePath", "scannerFingerprint", "status", "owner", "rationale", "remediationReference", "approvedBy", "approvedAt", "expiresAt"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^GL-FP-[0-9]{3,}$" },
+        "scanMode": { "enum": ["dir", "git"] },
+        "ruleId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
+        "repositoryRelativePath": { "$ref": "#/$defs/repositoryRelativePath" },
+        "scannerFingerprint": { "type": "string", "minLength": 5, "maxLength": 1024, "pattern": "^[^\\r\\n]+$" },
+        "commitId": true,
+        "status": { "const": "false-positive" },
+        "owner": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "rationale": { "type": "string", "minLength": 10, "maxLength": 2000 },
+        "remediationReference": { "type": "string", "minLength": 3, "maxLength": 256 },
+        "approvedBy": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "approvedAt": { "$ref": "#/$defs/timestamp" },
+        "expiresAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "dirEntry": {
+      "allOf": [
+        { "$ref": "#/$defs/baseEntry" },
+        {
+          "type": "object",
+          "properties": {
+            "scanMode": { "const": "dir" },
+            "commitId": { "type": "null" }
+          },
+          "required": ["commitId"]
+        }
+      ]
+    },
+    "gitEntry": {
+      "allOf": [
+        { "$ref": "#/$defs/baseEntry" },
+        {
+          "type": "object",
+          "properties": {
+            "scanMode": { "const": "git" },
+            "commitId": { "$ref": "#/$defs/sha" }
+          },
+          "required": ["commitId"]
+        }
+      ]
+    }
+  }
+}

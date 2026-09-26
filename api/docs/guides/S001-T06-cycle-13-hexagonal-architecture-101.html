@@ -1,0 +1,2347 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cycle 13 — Hexagonal Architecture</title>
+    <style>
+      :root {
+        --bg: #0b1120;
+        --panel: #111827;
+        --panel2: #151f31;
+        --line: #2a3548;
+        --text: #e6edf7;
+        --muted: #a5b3c8;
+        --accent: #7db4ff;
+        --accent2: #8bd3c7;
+        --domain: #3a3218;
+        --app: #17382b;
+        --port: #17304a;
+        --adapter: #302342;
+        --config: #432621;
+        --good: #55d69e;
+        --warn: #f2b45f;
+        --bad: #ff7b8a;
+        --code: #070b12;
+        --shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--bg);
+        font:
+          16px/1.72 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      a {
+        color: var(--accent);
+      }
+      code,
+      kbd {
+        font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+      }
+      code {
+        color: #e9f1ff;
+      }
+      header {
+        padding: 56px max(22px, calc((100vw - 1240px) / 2));
+        background: linear-gradient(135deg, #08142d, #153d6e 60%, #173c58);
+        border-bottom: 1px solid #274a72;
+      }
+      header h1 {
+        max-width: 1050px;
+        margin: 0 0 14px;
+        font-size: clamp(2rem, 5vw, 4rem);
+        line-height: 1.06;
+      }
+      header p {
+        max-width: 980px;
+        color: #c9dbf4;
+        font-size: 1.08rem;
+      }
+      .badge {
+        display: inline-block;
+        padding: 7px 12px;
+        margin: 8px 8px 0 0;
+        border-radius: 999px;
+        background: #102d37;
+        border: 1px solid #3c9a96;
+        color: #c9fff8;
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+      .layout {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 28px 20px 80px;
+        display: grid;
+        grid-template-columns: 300px minmax(0, 920px);
+        gap: 34px;
+      }
+      nav {
+        position: sticky;
+        top: 16px;
+        align-self: start;
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+      nav strong {
+        display: block;
+        margin-bottom: 8px;
+      }
+      nav a {
+        display: block;
+        padding: 5px 8px;
+        border-left: 2px solid transparent;
+        text-decoration: none;
+        color: #c9d6e7;
+        font-size: 0.93rem;
+      }
+      nav a:hover {
+        background: #17243a;
+        border-color: var(--accent);
+      }
+      nav .sub {
+        padding-left: 18px;
+        color: #9fb0c7;
+        font-size: 0.88rem;
+      }
+      main {
+        min-width: 0;
+      }
+      section {
+        scroll-margin-top: 18px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        padding: 28px;
+        margin-bottom: 28px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+      }
+      h2 {
+        font-size: 1.82rem;
+        line-height: 1.23;
+        margin: 0 0 18px;
+      }
+      h3 {
+        font-size: 1.32rem;
+        margin-top: 30px;
+        line-height: 1.35;
+      }
+      h4 {
+        font-size: 1.05rem;
+        margin: 22px 0 8px;
+      }
+      .lead {
+        font-size: 1.1rem;
+        color: #cbd6e6;
+      }
+      .callout {
+        margin: 18px 0;
+        padding: 15px 17px;
+        border-left: 5px solid var(--accent);
+        background: #14243b;
+        border-radius: 9px;
+      }
+      .callout strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .remember {
+        border-color: var(--good);
+        background: #143326;
+      }
+      .warning {
+        border-color: var(--warn);
+        background: #382817;
+      }
+      .danger {
+        border-color: var(--bad);
+        background: #3a1e25;
+      }
+      .scope {
+        border-color: #a78bfa;
+        background: #2b2040;
+      }
+      .beginner {
+        border-color: var(--accent2);
+        background: #102e32;
+      }
+      .layers,
+      .cards,
+      .twocol,
+      .threecol {
+        display: grid;
+        gap: 12px;
+      }
+      .layers,
+      .twocol {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .threecol {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .cards {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .card {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel2);
+      }
+      .domain {
+        background: var(--domain);
+      }
+      .application {
+        background: var(--app);
+      }
+      .port {
+        background: var(--port);
+      }
+      .adapter {
+        background: var(--adapter);
+      }
+      .configuration {
+        background: var(--config);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: 0.94rem;
+      }
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #1a2638;
+      }
+      pre {
+        overflow: auto;
+        background: var(--code);
+        color: #dfe7f3;
+        padding: 18px;
+        border-radius: 10px;
+        line-height: 1.52;
+        font-size: 0.88rem;
+        border: 1px solid #1f2a3b;
+      }
+      .file {
+        display: block;
+        margin: 20px 0 -10px;
+        padding: 7px 12px;
+        background: #243247;
+        border-radius: 8px 8px 0 0;
+        font:
+          600 0.82rem Consolas,
+          monospace;
+      }
+      .file + pre {
+        border-radius: 0 0 8px 8px;
+      }
+      .flow {
+        display: flex;
+        align-items: stretch;
+        gap: 7px;
+        overflow: auto;
+        padding: 10px 0 6px;
+      }
+      .node {
+        min-width: 145px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        text-align: center;
+      }
+      .arrow {
+        align-self: center;
+        font-size: 1.45rem;
+        color: #8092ac;
+      }
+      .step {
+        display: grid;
+        grid-template-columns: 46px 1fr;
+        gap: 12px;
+        margin: 13px 0;
+        padding: 13px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: #101a29;
+      }
+      .step .n {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #1f4f85;
+        font-weight: 800;
+      }
+      .mental {
+        border: 1px dashed #52739a;
+        background: #0e1a29;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 16px 0;
+      }
+      .mental b {
+        color: #b9d8ff;
+      }
+      details {
+        margin: 10px 0;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #121c2b;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #202b3d;
+        font-size: 0.83rem;
+        margin: 2px;
+      }
+      .good {
+        color: var(--good);
+        font-weight: 700;
+      }
+      .bad {
+        color: var(--bad);
+        font-weight: 700;
+      }
+      .warn {
+        color: var(--warn);
+        font-weight: 700;
+      }
+      .small {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .tree {
+        white-space: pre-wrap;
+      }
+      .term {
+        border-left: 4px solid #5f9ee8;
+        padding: 11px 14px;
+        margin: 12px 0;
+        background: #111e30;
+        border-radius: 8px;
+      }
+      .term .name {
+        font-weight: 800;
+        color: #cfe4ff;
+      }
+      .term .dont {
+        color: #f5c47b;
+      }
+      .checkpoint {
+        padding: 14px;
+        border: 1px solid #315c79;
+        border-radius: 10px;
+        background: #102232;
+        margin: 14px 0;
+      }
+      .checkpoint::before {
+        content: "Checkpoint";
+        display: block;
+        font-weight: 800;
+        color: #95d7ff;
+        margin-bottom: 4px;
+      }
+      .compare-good {
+        border-left: 4px solid var(--good);
+      }
+      .compare-bad {
+        border-left: 4px solid var(--bad);
+      }
+      .quiz-answer {
+        margin-top: 8px;
+        color: #c8d6e8;
+      }
+      footer {
+        padding: 34px 20px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .topline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .kbd {
+        padding: 1px 6px;
+        border: 1px solid #46556c;
+        border-bottom-width: 2px;
+        border-radius: 5px;
+        background: #141e2d;
+      }
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        nav {
+          position: relative;
+          top: 0;
+          max-height: none;
+        }
+        .layers,
+        .twocol,
+        .threecol {
+          grid-template-columns: 1fr;
+        }
+        section {
+          padding: 22px;
+        }
+      }
+      @media print {
+        body {
+          background: #fff;
+          color: #000;
+          font-size: 11pt;
+        }
+        header {
+          background: #fff;
+          color: #000;
+          border-bottom: 2px solid #000;
+        }
+        header p {
+          color: #222;
+        }
+        nav {
+          display: none;
+        }
+        .layout {
+          display: block;
+          max-width: none;
+          padding: 0;
+        }
+        section {
+          background: #fff;
+          border: 0;
+          border-bottom: 1px solid #bbb;
+          border-radius: 0;
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        pre {
+          background: #f2f2f2;
+          color: #000;
+          white-space: pre-wrap;
+        }
+        .card,
+        .callout,
+        .step,
+        .mental,
+        details {
+          background: #fff;
+          color: #000;
+        }
+        a {
+          color: #000;
+          text-decoration: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Cycle 13 — Hexagonal Architecture</h1>
+      <div class="topline">
+        <span class="badge"
+          >Giữ thuật ngữ English chuẩn + giải nghĩa tiếng Việt</span
+        >
+        <span class="badge">Dùng chính identity-profile-service làm ví dụ</span>
+        <span class="badge">Có code xấu → code đúng → flow từng bước</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Mục lục">
+        <strong>Mục lục</strong>
+        <a href="#read-first">0. Đọc phần này trước</a>
+        <a href="#big-picture">1. Bức tranh lớn</a>
+        <a href="#terms">2. 12 thuật ngữ phải hiểu</a>
+        <a href="#without-hex">3. Nếu không có Hexagonal</a>
+        <a href="#hex-core">4. Hexagonal thực sự là gì?</a>
+        <a href="#layers">5. Domain / Application / Ports / Adapters</a>
+        <a href="#in-out">6. Port IN và Port OUT</a>
+        <a href="#project-map">7. Map code Cycle 13</a>
+        <a href="#http-flow">8. HTTP command flow cực chi tiết</a>
+        <a href="#persistence">9. Persistence + transaction</a>
+        <a href="#idempotency">10. Idempotency từ số 0</a>
+        <a href="#outbox">11. Transactional Outbox</a>
+        <a href="#relay">12. Outbox relay + retry</a>
+        <a href="#inbox">13. Inbox + exactly-once effect</a>
+        <a href="#dependency">14. Runtime vs source dependency</a>
+        <a href="#dip">15. Dependency Inversion</a>
+        <a href="#composition">16. Composition Root + Spring DI</a>
+        <a href="#archunit">17. ArchUnit đọc code thế nào?</a>
+        <a href="#architecture-tests">18. ArchitectureTest bảo vệ gì?</a>
+        <a href="#tdd">19. TDD + evidence</a>
+        <a href="#change-tech">20. Đổi công nghệ thì sửa đâu?</a>
+        <a href="#reading-order">21. Cách đọc repo cho người mới</a>
+        <a href="#faq">22. FAQ</a>
+        <a href="#quiz">23. Bài tự kiểm tra</a>
+        <a href="#glossary">24. Glossary chuẩn, không dịch thô</a>
+        <a href="#cheatsheet">25. Cheat sheet 1 trang</a>
+        <a href="#status">26. Trạng thái Cycle 13</a>
+      </nav>
+
+      <main>
+        <section id="read-first">
+          <h2>0. Đọc phần này trước: bạn không cần “biết kiến trúc” sẵn</h2>
+          <p class="lead">
+            Mục tiêu của tài liệu này không phải để bạn đọc xong rồi nhắc lại
+            được câu định nghĩa “Hexagonal Architecture là Ports and Adapters”.
+            Mục tiêu là khi mở một class Java mới, bạn trả lời được:
+            <b
+              >class này đang làm vai trò gì, nó được phép import ai, ai được
+              gọi nó, và nếu đổi công nghệ thì nó có phải sửa không?</b
+            >
+          </p>
+
+          <div class="callout beginner">
+            <strong>Quy tắc học thuật ngữ trong tài liệu này</strong>
+            Không cố dịch 100% sang tiếng Việt. Ta giữ từ gốc như
+            <code>port</code>, <code>adapter</code>,
+            <code>application service</code>, <code>transaction boundary</code>,
+            rồi giải nghĩa bằng tiếng Việt tự nhiên. Đây là cách dễ nối kiến
+            thức với code và tài liệu kỹ thuật tiếng Anh hơn.
+          </div>
+
+          <div class="cards">
+            <div class="card">
+              <b>Sau phần 8</b><br />Bạn theo được một HTTP request từ
+              Controller → Port → Service → Adapter → DB.
+            </div>
+            <div class="card">
+              <b>Sau phần 13</b><br />Bạn hiểu vì sao duplicate request/event
+              không tạo tác dụng phụ nhiều lần.
+            </div>
+            <div class="card">
+              <b>Sau phần 18</b><br />Bạn hiểu ArchUnit đang bắt “dependency
+              leakage” như thế nào.
+            </div>
+            <div class="card">
+              <b>Sau phần 20</b><br />Bạn nhìn architecture bằng câu hỏi “đổi
+              tech thì chỗ nào phải thay?”.
+            </div>
+          </div>
+        </section>
+
+        <section id="big-picture">
+          <h2>
+            1. Bức tranh lớn: Cycle 13 đang cố tách cái gì ra khỏi cái gì?
+          </h2>
+          <p>Một backend service có hai loại thứ rất dễ bị trộn vào nhau:</p>
+          <div class="twocol">
+            <div class="card application">
+              <h3 style="margin-top: 0">A. Logic của hệ thống</h3>
+              <p>
+                Ví dụ: tạo sample, chống xử lý trùng, quyết định replay hay
+                conflict, retry outbox, bỏ qua duplicate event.
+              </p>
+              <p><b>Đây là phần bạn muốn giữ ổn định.</b></p>
+            </div>
+            <div class="card adapter">
+              <h3 style="margin-top: 0">B. Chi tiết công nghệ</h3>
+              <p>
+                Ví dụ: HTTP/Spring MVC, PostgreSQL/JDBC, Jackson, Micrometer,
+                SLF4J, local event delivery.
+              </p>
+              <p><b>Đây là phần có thể thay đổi theo framework/infra.</b></p>
+            </div>
+          </div>
+
+          <div class="mental">
+            <b>Mental model:</b> Nếu hôm nay bạn thay PostgreSQL bằng một
+            persistence implementation khác, câu hỏi là “business flow có phải
+            viết lại không?”. Hexagonal Architecture cố làm cho câu trả lời gần
+            với <b>“không; chủ yếu thay adapter ở mép ngoài”</b>.
+          </div>
+
+          <p>
+            Đây không phải “Spring/JDBC xấu”. Vấn đề chỉ xuất hiện khi core
+            logic <b>biết quá nhiều</b> về những chi tiết đó.
+          </p>
+        </section>
+
+        <section id="terms">
+          <h2>2. 12 thuật ngữ phải hiểu trước khi đọc code</h2>
+
+          <div class="term">
+            <div class="name">Boundary</div>
+            <div>
+              <b>Hiểu là:</b> ranh giới trách nhiệm. Qua ranh giới này, dữ liệu
+              thường được đổi sang “ngôn ngữ” của phía nhận.
+            </div>
+            <div class="dont">
+              <b>Đừng chỉ nhớ:</b> “boundary = đường biên”.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Port</div>
+            <div>
+              <b>Hiểu là:</b> interface/hợp đồng mô tả một khả năng tại
+              boundary. Nó nói <i>cần làm gì</i>, không nói
+              <i>làm bằng công nghệ nào</i>.
+            </div>
+            <div class="dont">
+              <b>Đừng học máy móc:</b> “port = cổng”. Hình ảnh “cổng” chỉ là ví
+              dụ.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Adapter</div>
+            <div>
+              <b>Hiểu là:</b> code nối một công nghệ/protocol cụ thể vào một
+              port. Ví dụ Controller nối HTTP vào port IN; JDBC adapter nối port
+              OUT vào PostgreSQL.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Application service</div>
+            <div>
+              <b>Hiểu là:</b> class điều phối một use case: gọi domain/value
+              object, gọi các ports theo đúng thứ tự, xử lý branch logic ở mức
+              use case.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Domain</div>
+            <div>
+              <b>Hiểu là:</b> những khái niệm và invariant cốt lõi phải đúng bất
+              kể request đến từ HTTP, test, CLI hay message.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Capability</div>
+            <div>
+              <b>Hiểu là:</b> “khả năng hệ thống cần/cung cấp”. Ví dụ “persist
+              atomically”, “serialize payload”, “record metric”. Không cần dịch
+              thành một từ duy nhất mỗi lần.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Orchestration</div>
+            <div>
+              <b>Hiểu là:</b> điều phối thứ tự các bước. Ví dụ validate domain →
+              fingerprint → serialize → persist → record outcome.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Policy vs Detail</div>
+            <div>
+              <b>Policy:</b> quyết định ở mức cao “hệ thống nên làm gì”.
+              <b>Detail:</b> chi tiết kỹ thuật “làm bằng JDBC/Jackson/Spring như
+              thế nào”.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Dependency</div>
+            <div>
+              <b>Hiểu là:</b> class A cần biết class/type B để compile.
+              Dependency không chỉ là dòng <code>import</code>.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Dependency Inversion</div>
+            <div>
+              <b>Hiểu là:</b> core không phụ thuộc implementation ngoài; cả core
+              và implementation gặp nhau tại abstraction/port do phía core định
+              nghĩa.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Composition Root</div>
+            <div>
+              <b>Hiểu là:</b> nơi duy nhất biết nhiều implementation cụ thể để
+              “lắp” object graph. Trong Cycle 13 đó là
+              <code>SampleFlowConfiguration</code>.
+            </div>
+          </div>
+
+          <div class="term">
+            <div class="name">Effect / side effect</div>
+            <div>
+              <b>Hiểu là:</b> thay đổi có thể quan sát được ở bên ngoài hàm, ví
+              dụ insert DB row, publish event, gửi email. Trong tài liệu này
+              “exactly-once effect” nghĩa là tác dụng nghiệp vụ chỉ được áp dụng
+              một lần.
+            </div>
+          </div>
+        </section>
+
+        <section id="without-hex">
+          <h2>
+            3. Nếu không có Hexagonal: code “nhanh lúc đầu, đau về sau” trông
+            thế nào?
+          </h2>
+
+          <span class="file"
+            >Ví dụ minh họa — một service biết quá nhiều thứ</span
+          >
+          <pre><code>@Service
+public class CreateSampleService {
+
+  private final JdbcTemplate jdbcTemplate;
+  private final ObjectMapper objectMapper;
+  private final MeterRegistry meterRegistry;
+
+  @Transactional
+  public ResponseEntity&lt;CreateSampleResponse&gt; create(HttpServletRequest request) {
+    String key = request.getHeader("Idempotency-Key");
+
+    // business logic
+    // SQL
+    // JSON
+    // metrics
+    // HTTP response
+    // tất cả nằm cùng chỗ
+  }
+}</code></pre>
+
+          <p>Class trên có ít nhất 5 lý do để đổi:</p>
+          <ul>
+            <li>API HTTP contract đổi.</li>
+            <li>Persistence đổi.</li>
+            <li>JSON serializer đổi.</li>
+            <li>Metric/logging stack đổi.</li>
+            <li>Business behavior đổi.</li>
+          </ul>
+
+          <div class="callout danger">
+            <strong>Vấn đề chính không phải “class dài”</strong>
+            Vấn đề sâu hơn là <b>dependency direction</b>: logic quan trọng đang
+            phụ thuộc trực tiếp vào những thứ nằm ngoài nó.
+          </div>
+
+          <div class="checkpoint">
+            Nếu bạn xóa dòng <code>import JdbcTemplate</code> nhưng vẫn viết
+            <code>org.springframework.jdbc.core.JdbcTemplate</code> bằng
+            fully-qualified name, dependency có biến mất không? <br /><b
+              >Không.</b
+            >
+            Compiler/bytecode vẫn biết type đó.
+          </div>
+        </section>
+
+        <section id="hex-core">
+          <h2>4. Hexagonal Architecture thực sự là gì?</h2>
+          <p class="lead">
+            Có thể tóm bằng một câu:
+            <b
+              >core nói chuyện với thế giới ngoài thông qua các hợp đồng
+              (ports), còn chi tiết công nghệ nằm trong adapters.</b
+            >
+          </p>
+
+          <div class="flow">
+            <div class="node adapter">HTTP / Spring MVC</div>
+            <span class="arrow">→</span>
+            <div class="node port">Port IN</div>
+            <span class="arrow">→</span>
+            <div class="node application">Application</div>
+            <span class="arrow">→</span>
+            <div class="node port">Port OUT</div>
+            <span class="arrow">→</span>
+            <div class="node adapter">JDBC / PostgreSQL</div>
+          </div>
+
+          <h3>Vì sao gọi là “hexagonal”?</h3>
+          <p>
+            Hình sáu cạnh chỉ là hình minh họa rằng ứng dụng có nhiều “mặt” giao
+            tiếp. Điều quan trọng không phải số 6. Điều quan trọng là
+            <b>inside/outside</b> và <b>dependency direction</b>.
+          </p>
+
+          <h3>
+            Ba câu hỏi để nhận ra một thiết kế có tinh thần Hexagonal hay không
+          </h3>
+          <ol>
+            <li>Application/domain có import framework/adapter không?</li>
+            <li>
+              Inbound adapter có gọi qua port IN hay gọi thẳng implementation?
+            </li>
+            <li>
+              Nếu thay một technology detail, core có phải sửa theo không?
+            </li>
+          </ol>
+        </section>
+
+        <section id="layers">
+          <h2>
+            5. Domain / Application / Ports / Adapters / Configuration khác nhau
+            thế nào?
+          </h2>
+
+          <div class="layers">
+            <div class="card domain">
+              <h3 style="margin-top: 0">Domain</h3>
+              <p><b>Nhiệm vụ:</b> giữ invariant và khái niệm cốt lõi.</p>
+              <p><b>Ví dụ:</b> <code>IdempotencyKey</code>.</p>
+              <p><b>Không nên biết:</b> HTTP, SQL, Spring, Jackson, logging.</p>
+            </div>
+            <div class="card application">
+              <h3 style="margin-top: 0">Application</h3>
+              <p><b>Nhiệm vụ:</b> điều phối use case.</p>
+              <p>
+                <b>Ví dụ:</b> <code>CreateSampleService</code>,
+                <code>LocalOutboxRelay</code>, <code>SampleEventConsumer</code>.
+              </p>
+              <p><b>Được biết:</b> domain + ports + Java types.</p>
+            </div>
+            <div class="card port">
+              <h3 style="margin-top: 0">Ports</h3>
+              <p><b>Nhiệm vụ:</b> hợp đồng tại boundary.</p>
+              <p>
+                <b>Ví dụ:</b> <code>CreateSampleUseCase</code>,
+                <code>SampleCommandPersistencePort</code>.
+              </p>
+              <p>
+                <b>Không nên chứa:</b> <code>ResponseEntity</code>,
+                <code>JdbcTemplate</code>, framework-specific types.
+              </p>
+            </div>
+            <div class="card adapter">
+              <h3 style="margin-top: 0">Adapters</h3>
+              <p>
+                <b>Nhiệm vụ:</b> hiện thực việc nói chuyện với công nghệ cụ thể.
+              </p>
+              <p>
+                <b>Ví dụ:</b> Controller, JDBC adapter, Jackson adapter,
+                observability adapter.
+              </p>
+            </div>
+            <div class="card configuration">
+              <h3 style="margin-top: 0">Configuration</h3>
+              <p><b>Nhiệm vụ:</b> lắp các implementation vào ports.</p>
+              <p><b>Ví dụ:</b> <code>SampleFlowConfiguration</code>.</p>
+              <p>
+                <b>Nó biết nhiều class cụ thể hơn</b> vì đó chính là nhiệm vụ
+                của composition root.
+              </p>
+            </div>
+          </div>
+
+          <div class="checkpoint">
+            Một class có <code>@RestController</code> và đọc HTTP header thì nên
+            ở đâu? <br /><b>Inbound adapter.</b> Vì nó nói ngôn ngữ HTTP/Spring
+            MVC.
+          </div>
+        </section>
+
+        <section id="in-out">
+          <h2>6. Port IN và Port OUT — phần người mới dễ nhầm nhất</h2>
+
+          <div class="twocol">
+            <div class="card port">
+              <h3 style="margin-top: 0">Port IN</h3>
+              <p><b>Câu hỏi:</b> “Bên ngoài có thể yêu cầu hệ thống làm gì?”</p>
+              <p>
+                Ví dụ: <code>CreateSampleUseCase</code> mô tả hành động “create
+                sample”.
+              </p>
+              <p>Controller gọi vào nó.</p>
+            </div>
+            <div class="card port">
+              <h3 style="margin-top: 0">Port OUT</h3>
+              <p>
+                <b>Câu hỏi:</b> “Application cần thế giới ngoài làm gì giúp nó?”
+              </p>
+              <p>
+                Ví dụ: persist atomically, serialize payload, deliver event,
+                record metric.
+              </p>
+              <p>Application gọi ra nó.</p>
+            </div>
+          </div>
+
+          <h3>Đừng nhớ bằng vị trí file; hãy nhớ bằng hướng của “ý định”</h3>
+          <pre><code>Bên ngoài muốn gọi hệ thống:
+HTTP Controller
+     |
+     v
+CreateSampleUseCase       &lt;-- PORT IN
+     |
+     v
+CreateSampleService
+
+Application cần hạ tầng:
+CreateSampleService
+     |
+     v
+SampleCommandPersistencePort  &lt;-- PORT OUT
+     |
+     v
+JdbcSampleCommandPersistenceAdapter</code></pre>
+
+          <div class="callout remember">
+            <strong>Mẹo nhớ rất ngắn</strong>
+            <b>IN</b> = request đi vào core.<br />
+            <b>OUT</b> = core cần đi ra ngoài để hoàn thành công việc.
+          </div>
+        </section>
+
+        <section id="project-map">
+          <h2>
+            7. Bản đồ code Cycle 13: nhìn package là đoán được trách nhiệm
+          </h2>
+          <pre class="tree"><code>com.auctionpromax.identityprofileservice
+├── domain/idempotency
+│   ├── IdempotencyKey
+│   └── InvalidIdempotencyKeyException
+│
+├── application/sample
+│   ├── CreateSampleService
+│   ├── LocalOutboxRelay
+│   ├── SampleEventConsumer
+│   ├── RequestFingerprint
+│   └── SampleRequestFingerprint
+│
+├── ports/in/sample
+│   ├── CreateSampleUseCase + Command/Result
+│   ├── OutboxRelayUseCase
+│   └── SampleEventHandler
+│
+├── ports/out/sample
+│   ├── SampleCommandPersistencePort
+│   ├── OutboxRelayPersistencePort
+│   ├── InboxPersistencePort
+│   ├── SamplePayloadSerializerPort
+│   ├── LocalEventDeliveryPort
+│   └── observability ports + technology-neutral records
+│
+├── adapter/in/web/sample
+│   └── CreateSampleController + HTTP DTOs
+│
+├── adapter/out
+│   ├── persistence/sample
+│   ├── serialization/sample
+│   ├── observability/sample
+│   └── delivery/sample
+│
+└── configuration
+    └── SampleFlowConfiguration</code></pre>
+
+          <h3>Cách đọc tên package bằng tiếng người</h3>
+          <table>
+            <tr>
+              <th>Package</th>
+              <th>Đọc thành câu</th>
+            </tr>
+            <tr>
+              <td><code>ports.in.sample</code></td>
+              <td>
+                “Những hợp đồng mà bên ngoài dùng để yêu cầu sample use cases.”
+              </td>
+            </tr>
+            <tr>
+              <td><code>ports.out.sample</code></td>
+              <td>“Những khả năng hạ tầng mà sample application cần.”</td>
+            </tr>
+            <tr>
+              <td><code>adapter.in.web.sample</code></td>
+              <td>“Code web nhận request và dịch sang port IN.”</td>
+            </tr>
+            <tr>
+              <td><code>adapter.out.persistence.sample</code></td>
+              <td>“Code JDBC/PostgreSQL thực hiện persistence port.”</td>
+            </tr>
+          </table>
+        </section>
+
+        <section id="http-flow">
+          <h2>8. HTTP command flow — đi từng bước như debugger</h2>
+
+          <div class="flow">
+            <div class="node adapter">Client POST</div>
+            <span class="arrow">→</span>
+            <div class="node adapter">Controller</div>
+            <span class="arrow">→</span>
+            <div class="node port">CreateSampleUseCase</div>
+            <span class="arrow">→</span>
+            <div class="node application">CreateSampleService</div>
+            <span class="arrow">→</span>
+            <div class="node port">Ports OUT</div>
+            <span class="arrow">→</span>
+            <div class="node adapter">JDBC / JSON / Metrics</div>
+          </div>
+
+          <h3>Giả sử client gửi gì?</h3>
+          <pre><code>POST /sample
+Idempotency-Key: sample-key-001
+Content-Type: application/json
+
+{
+  "purpose": "PHASE_0_BASELINE",
+  "sampleRequestId": "0192f1c0-0000-7000-8000-000000000002"
+}</code></pre>
+
+          <div class="step">
+            <div class="n">1</div>
+            <div>
+              <b>Request vào Controller.</b><br />
+              Controller là chỗ được phép biết HTTP header, request body, status
+              code, Jakarta Validation, Spring MVC. Nó đang đứng ở “mép” của hệ
+              thống.
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="n">2</div>
+            <div>
+              <b>Controller kiểm tra wire contract.</b><br />
+              Ví dụ: <code>Idempotency-Key</code> đúng format của API, body đúng
+              schema. Đây là validation của giao thức HTTP/API.
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="n">3</div>
+            <div>
+              <b>Controller dịch HTTP DTO → application command.</b><br />
+              Từ đây core không cần biết request ban đầu đến từ JSON hay HTTP
+              header.
+            </div>
+          </div>
+
+          <span class="file"
+            >CreateSampleController.java — ý tưởng quan trọng</span
+          >
+          <pre><code>private final CreateSampleUseCase useCase;
+
+var result = useCase.create(
+    new CreateSampleCommand(
+        key,
+        request.purpose().name(),
+        request.sampleRequestId(),
+        correlationId
+    )
+);</code></pre>
+
+          <div class="step">
+            <div class="n">4</div>
+            <div>
+              <b
+                >Controller giữ reference kiểu interface
+                <code>CreateSampleUseCase</code>.</b
+              ><br />
+              Đây là điểm rất quan trọng. Controller biết “hệ thống có
+              capability create sample”, không cần biết class implementation tên
+              là <code>CreateSampleService</code>.
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="n">5</div>
+            <div>
+              <b
+                >Spring runtime đã inject một implementation vào interface
+                đó.</b
+              ><br />
+              Việc implementation nào được dùng không do Controller quyết định;
+              composition root quyết định.
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="n">6</div>
+            <div>
+              <b><code>CreateSampleService</code> nhận command.</b><br />
+              Nó bắt đầu nói ngôn ngữ application/domain: idempotency key,
+              fingerprint, sample IDs, event data. Không còn
+              <code>HttpServletRequest</code> hay <code>ResponseEntity</code>.
+            </div>
+          </div>
+
+          <span class="file"
+            >CreateSampleService.java — core orchestration</span
+          >
+          <pre><code>IdempotencyKey idempotencyKey =
+    IdempotencyKey.from(command.idempotencyKey());
+
+RequestFingerprint fingerprint =
+    SampleRequestFingerprint.from(
+        command.purpose(),
+        command.sampleRequestId()
+    );
+
+PersistSampleResult result =
+    persistencePort.persist(persistCommand);</code></pre>
+
+          <div class="step">
+            <div class="n">7</div>
+            <div>
+              <b>Domain validation vẫn chạy.</b><br />
+              Web validation không thay domain invariant. Nếu một ngày use case
+              được gọi từ Kafka/CLI/test,
+              <code>IdempotencyKey</code> vẫn tự bảo vệ quy tắc của nó.
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="n">8</div>
+            <div>
+              <b>Application gọi các port OUT.</b><br />
+              Nó yêu cầu “serialize cái này”, “persist atomically cái này”,
+              “record outcome”. Nó không nói “hãy gọi ObjectMapper method X” hay
+              “hãy chạy SQL Y”.
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="n">9</div>
+            <div>
+              <b>Adapters thực hiện yêu cầu bằng công nghệ thật.</b><br />
+              Jackson adapter serialize, JDBC adapter chạy SQL/transaction,
+              observability adapter gọi Micrometer/SLF4J.
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="n">10</div>
+            <div>
+              <b>Kết quả quay ngược lại.</b><br />
+              Adapter → port result → application result → Controller → HTTP
+              response. Controller mới là nơi dịch result thành status/body của
+              API.
+            </div>
+          </div>
+
+          <div class="checkpoint">
+            Nếu mai thêm một CLI command cũng muốn create sample, ta có copy
+            <code>CreateSampleService</code> không? <br /><b>Không.</b> Thêm
+            inbound adapter mới và tiếp tục gọi cùng
+            <code>CreateSampleUseCase</code>.
+          </div>
+        </section>
+
+        <section id="persistence">
+          <h2>
+            9. Persistence + transaction: vì sao <code>@Transactional</code> ở
+            adapter lại hợp lý?
+          </h2>
+
+          <p>
+            Application muốn một <b>khả năng mang ý nghĩa nghiệp vụ</b>: “hãy
+            persist command này một cách atomic”. Nhưng “atomic bằng PostgreSQL
+            transaction + Spring annotation như thế nào” là chi tiết kỹ thuật.
+          </p>
+
+          <div class="twocol">
+            <div class="card application">
+              <h3 style="margin-top: 0">Application nhìn thấy</h3>
+              <pre><code>persistencePort.persist(command)</code></pre>
+              <p>Nó quan tâm kết quả nghiệp vụ: created / replay / conflict.</p>
+            </div>
+            <div class="card adapter">
+              <h3 style="margin-top: 0">JDBC adapter nhìn thấy</h3>
+              <pre><code>@Transactional
+public PersistSampleResult persist(...) {
+   // SELECT / INSERT / UPDATE ...
+}</code></pre>
+              <p>
+                Nó chịu trách nhiệm dùng transaction thật để đảm bảo atomicity.
+              </p>
+            </div>
+          </div>
+
+          <h3>Atomicity trong flow này nghĩa là gì?</h3>
+          <p>
+            Với command mới, các thay đổi liên quan như idempotency record,
+            sample row, outbox row và stored response phải commit cùng nhau hoặc
+            rollback cùng nhau. Không được có trạng thái “sample đã có nhưng
+            outbox chưa có” do transaction bị chia sai.
+          </p>
+        </section>
+
+        <section id="idempotency">
+          <h2>10. Idempotency từ số 0: vì sao cần key + fingerprint?</h2>
+
+          <h3>Vấn đề đời thực</h3>
+          <p>
+            Client gửi request tạo dữ liệu. Response bị timeout nên client không
+            biết server đã xử lý hay chưa. Client retry. Nếu server xử lý như
+            request mới, có thể tạo effect lần hai.
+          </p>
+
+          <div class="cards">
+            <div class="card">
+              <b>Request 1</b><br />Key = <code>K1</code><br />Payload = A
+            </div>
+            <div class="card">
+              <b>Timeout</b><br />Client không chắc request đã commit chưa.
+            </div>
+            <div class="card">
+              <b>Retry</b><br />Key = <code>K1</code><br />Payload = A
+            </div>
+            <div class="card">
+              <b>Mục tiêu</b><br />Trả lại kết quả cũ, không tạo effect mới.
+            </div>
+          </div>
+
+          <h3>Ba trường hợp Cycle 13 xử lý</h3>
+          <table>
+            <tr>
+              <th>Tình huống</th>
+              <th>Ý nghĩa</th>
+              <th>Kết quả</th>
+            </tr>
+            <tr>
+              <td>Key mới</td>
+              <td>Chưa thấy request này</td>
+              <td>Tạo effect/outbox, lưu response, hoàn tất record.</td>
+            </tr>
+            <tr>
+              <td>Cùng key + cùng fingerprint</td>
+              <td>Retry đúng request cũ</td>
+              <td>Replay kết quả đã lưu, không tạo effect/outbox mới.</td>
+            </tr>
+            <tr>
+              <td>Cùng key + fingerprint khác</td>
+              <td>Client tái sử dụng key cho request khác</td>
+              <td>Conflict <code>IDEMPOTENCY_KEY_REUSED</code>.</td>
+            </tr>
+          </table>
+
+          <h3>Fingerprint dùng để làm gì?</h3>
+          <p>
+            Nếu chỉ lưu key thì server không biết <code>K1</code> lần hai là
+            retry của payload A hay là một payload B hoàn toàn khác. Fingerprint
+            là digest của canonical request để phân biệt hai trường hợp đó.
+          </p>
+
+          <div class="mental">
+            <b>Mental model:</b><br />
+            Idempotency key trả lời: “client đang nói đây là cùng một logical
+            request”.<br />
+            Fingerprint trả lời: “server kiểm tra xem nội dung có thật sự là
+            cùng request hay không”.
+          </div>
+
+          <p>
+            Scope key được xác định bằng composite key kiểu
+            <code>(actor_scope, operation_name, key_digest)</code>, để cùng raw
+            key ở scope/operation khác không bị hiểu nhầm là cùng request.
+          </p>
+        </section>
+
+        <section id="outbox">
+          <h2>11. Transactional Outbox: giải quyết “dual-write problem”</h2>
+
+          <h3>Dual-write problem là gì?</h3>
+          <p>Giả sử một command phải làm hai việc:</p>
+          <ol>
+            <li>Ghi business data vào PostgreSQL.</li>
+            <li>Publish event ra một hệ thống khác.</li>
+          </ol>
+
+          <div class="twocol">
+            <div class="card danger compare-bad">
+              <b>DB commit, publish lỗi</b>
+              <p>
+                Business data đã có nhưng event mất. Downstream không biết có
+                thay đổi.
+              </p>
+            </div>
+            <div class="card danger compare-bad">
+              <b>Publish thành công, DB rollback</b>
+              <p>
+                Downstream thấy event cho một business state thực tế không tồn
+                tại — “event ma”.
+              </p>
+            </div>
+          </div>
+
+          <p>
+            Một local DB transaction không tự bao trùm PostgreSQL + external
+            broker. Transactional outbox tránh publish trực tiếp trong command
+            transaction.
+          </p>
+
+          <h3>Giải pháp</h3>
+          <pre><code>Command transaction:
+  INSERT/UPDATE business state
+  INSERT outbox_event   &lt;-- "ý định cần publish"
+  COMMIT
+
+Sau commit:
+  relay đọc outbox_event
+  relay deliver event
+  relay mark PUBLISHED hoặc FAILED</code></pre>
+
+          <div class="callout remember">
+            <strong>Điểm quan trọng</strong>
+            Outbox row là dữ liệu durable trong cùng database transaction với
+            business change. Vì vậy “business state tồn tại” và “ý định publish
+            event tồn tại” đi cùng nhau.
+          </div>
+        </section>
+
+        <section id="relay">
+          <h2>
+            12. Outbox relay + retry: worker lấy event thế nào mà không đụng
+            nhau?
+          </h2>
+
+          <div class="flow">
+            <div class="node port">OutboxRelayUseCase</div>
+            <span class="arrow">→</span>
+            <div class="node application">LocalOutboxRelay</div>
+            <span class="arrow">→</span>
+            <div class="node port">Persistence Port</div>
+            <span class="arrow">→</span>
+            <div class="node adapter">JDBC claim</div>
+            <span class="arrow">→</span>
+            <div class="node port">Delivery Port</div>
+            <span class="arrow">→</span>
+            <div class="node adapter">Local delivery</div>
+          </div>
+
+          <h3>Flow đơn giản</h3>
+          <div class="step">
+            <div class="n">1</div>
+            <div>
+              <b>Claim một event đến hạn.</b> Worker cần đánh dấu event là đang
+              được nó xử lý.
+            </div>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <div><b>Deliver.</b> Gọi delivery port.</div>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <div><b>Nếu OK:</b> mark <code>PUBLISHED</code>.</div>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <div>
+              <b>Nếu fail:</b> mark <code>FAILED</code>, tính
+              <code>next_attempt_at</code>.
+            </div>
+          </div>
+
+          <span class="file"
+            >JDBC claim logic — ý nghĩa, không cần thuộc SQL</span
+          >
+          <pre><code>SELECT event_id
+FROM identity.outbox_event
+WHERE next_attempt_at &lt;= now()
+  AND (
+      status IN ('PENDING', 'FAILED')
+      OR (status = 'PROCESSING' AND lease_until &lt; now())
+  )
+ORDER BY created_at
+FOR UPDATE SKIP LOCKED
+LIMIT 1</code></pre>
+
+          <h3>Giải nghĩa từng ý quan trọng</h3>
+          <table>
+            <tr>
+              <th>Cơ chế</th>
+              <th>Ý nghĩa bằng tiếng người</th>
+            </tr>
+            <tr>
+              <td><code>FOR UPDATE</code></td>
+              <td>Worker đang claim row này trong transaction.</td>
+            </tr>
+            <tr>
+              <td><code>SKIP LOCKED</code></td>
+              <td>
+                Worker khác gặp row đang bị khóa thì bỏ qua để tìm row khác,
+                không chờ và không claim trùng.
+              </td>
+            </tr>
+            <tr>
+              <td><code>lease_until</code></td>
+              <td>
+                “Quyền xử lý có hạn sử dụng”. Nếu worker chết, event có thể được
+                worker khác reclaim sau khi lease hết hạn.
+              </td>
+            </tr>
+            <tr>
+              <td><code>attempts</code></td>
+              <td>
+                Theo dõi đã thử bao nhiêu lần để phục vụ retry/observability.
+              </td>
+            </tr>
+          </table>
+
+          <h3>Backoff + jitter</h3>
+          <p>
+            Cycle 13 dùng backoff tăng theo 1, 2, 4, 8… giây, cap 300 giây, rồi
+            cộng jitter không âm. Backoff tránh retry quá dày; jitter tránh
+            nhiều event/worker cùng thức dậy chính xác một lúc.
+          </p>
+        </section>
+
+        <section id="inbox">
+          <h2>
+            13. Inbox + exactly-once effect: delivery có thể lặp, effect vẫn một
+            lần
+          </h2>
+
+          <p>
+            Hệ thống phân tán thường dễ đạt <b>at-least-once delivery</b> hơn:
+            event có thể được giao lại. Vì vậy consumer không nên giả định “mỗi
+            event chỉ đến đúng một lần”.
+          </p>
+
+          <div class="flow">
+            <div class="node adapter">Delivery</div>
+            <span class="arrow">→</span>
+            <div class="node port">SampleEventHandler</div>
+            <span class="arrow">→</span>
+            <div class="node application">SampleEventConsumer</div>
+            <span class="arrow">→</span>
+            <div class="node port">InboxPersistencePort</div>
+            <span class="arrow">→</span>
+            <div class="node adapter">JDBC inbox</div>
+          </div>
+
+          <span class="file"
+            >JdbcInboxPersistenceAdapter.java — ý tưởng cốt lõi</span
+          >
+          <pre><code>@Transactional
+public boolean recordOnce(OutboxDelivery delivery, Instant receivedAt) {
+    int inserted = jdbcTemplate.update(
+        "INSERT INTO identity.inbox_receipt ... ON CONFLICT DO NOTHING"
+    );
+
+    if (inserted == 0) {
+        return false; // event_id đã tồn tại
+    }
+
+    jdbcTemplate.update(
+        "INSERT INTO identity.identity_profile_sample_effect ..."
+    );
+
+    return true;
+}</code></pre>
+
+          <h3>Timeline event đầu tiên</h3>
+          <pre><code>event_id = E1
+  -> INSERT inbox_receipt(E1) thành công
+  -> INSERT business effect cho E1
+  -> COMMIT
+  -> applied = true</code></pre>
+
+          <h3>Timeline duplicate</h3>
+          <pre><code>event_id = E1 lần nữa
+  -> INSERT inbox_receipt(E1)
+  -> primary key conflict
+  -> ON CONFLICT DO NOTHING
+  -> inserted == 0
+  -> KHÔNG insert effect
+  -> applied = false</code></pre>
+
+          <h3>Nếu receipt insert rồi effect insert lỗi thì sao?</h3>
+          <p>
+            Vì cùng transaction, toàn bộ rollback. Receipt không bị giữ lại sai.
+            Event có thể retry sau đó.
+          </p>
+
+          <div class="callout remember">
+            <strong>Exactly-once effect ≠ exactly-once delivery</strong>
+            Event có thể đến 2, 5 hay 20 lần. Điều ta bảo vệ là
+            <b>business effect chỉ được áp dụng một lần</b>.
+          </div>
+        </section>
+
+        <section id="dependency">
+          <h2>
+            14. Runtime call khác source dependency — chỗ rất nhiều người mới
+            nhầm
+          </h2>
+
+          <h3>Runtime: object gọi nhau lúc chương trình chạy</h3>
+          <pre><code>HTTP
+  -> Controller
+  -> CreateSampleService
+  -> JdbcSampleCommandPersistenceAdapter
+  -> PostgreSQL</code></pre>
+
+          <h3>Source dependency: class nào cần biết type nào để compile</h3>
+          <pre><code>Controller ---------------------> CreateSampleUseCase
+CreateSampleService ------------> SampleCommandPersistencePort
+JdbcPersistenceAdapter ---------> SampleCommandPersistencePort</code></pre>
+
+          <p>
+            Hai sơ đồ này nhìn khác nhau vì runtime cần gọi từ core ra adapter,
+            nhưng source code của core không cần biết adapter cụ thể là class
+            nào.
+          </p>
+
+          <h3>Dependency tồn tại ở những đâu?</h3>
+          <ul>
+            <li>Field type.</li>
+            <li>Constructor parameter.</li>
+            <li>Method parameter / return type.</li>
+            <li>Annotation.</li>
+            <li>Method call tới type khác.</li>
+            <li>Inheritance / interface implementation.</li>
+            <li>Exception type.</li>
+            <li>Generic type.</li>
+          </ul>
+
+          <div class="checkpoint">
+            Vì vậy “xóa import” không phải là “xóa dependency”. ArchUnit nhìn
+            dependency ở bytecode/type graph, không chỉ nhìn danh sách import ở
+            đầu file.
+          </div>
+        </section>
+
+        <section id="dip">
+          <h2>
+            15. Dependency Inversion — giải thích bằng đúng CreateSampleService
+          </h2>
+
+          <h3>Thiết kế phụ thuộc trực tiếp</h3>
+          <pre><code>CreateSampleService
+    |
+    v
+JdbcSampleCommandPersistenceAdapter
+    |
+    v
+JdbcTemplate / PostgreSQL</code></pre>
+
+          <p>
+            Ở đây high-level logic biết low-level implementation. Nếu đổi
+            persistence implementation, application service có nguy cơ phải sửa.
+          </p>
+
+          <h3>Sau khi đảo dependency</h3>
+          <pre><code>CreateSampleService
+    |
+    v
+SampleCommandPersistencePort   &lt;--- abstraction thuộc boundary của core
+    ^
+    |
+JdbcSampleCommandPersistenceAdapter</code></pre>
+
+          <p>
+            Cả application service và adapter cùng phụ thuộc vào port. Adapter
+            “đi vào” hợp đồng của core thay vì core “đi ra” biết adapter.
+          </p>
+
+          <div class="callout beginner">
+            <strong>Từ “inversion” không có nghĩa runtime chạy ngược</strong>
+            Nó nói về <b>source-code dependency direction</b>, không phải thứ tự
+            gọi hàm lúc runtime.
+          </div>
+        </section>
+
+        <section id="composition">
+          <h2>
+            16. Composition Root + Spring DI: ai lắp interface với
+            implementation?
+          </h2>
+
+          <p>
+            Nếu <code>CreateSampleService</code> tự viết
+            <code>new JdbcSampleCommandPersistenceAdapter(...)</code>, nó lại
+            biết chi tiết JDBC. Vì vậy việc “chọn implementation nào” được đẩy
+            ra configuration.
+          </p>
+
+          <span class="file">SampleFlowConfiguration.java</span>
+          <pre><code>@Bean
+CreateSampleUseCase createSampleUseCase(
+    SampleCommandPersistencePort persistence,
+    SamplePayloadSerializerPort serializer,
+    SampleCommandObservabilityPort observability
+) {
+    return new CreateSampleService(
+        persistence,
+        serializer,
+        observability
+    );
+}</code></pre>
+
+          <h3>Spring đang làm gì ở runtime?</h3>
+          <div class="step">
+            <div class="n">1</div>
+            <div>
+              Spring context tìm bean implement
+              <code>SampleCommandPersistencePort</code>.
+            </div>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <div>Tìm bean implement serializer port và observability port.</div>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <div>Gọi method <code>@Bean</code> với các object đó.</div>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <div>Method tạo <code>new CreateSampleService(...)</code>.</div>
+          </div>
+          <div class="step">
+            <div class="n">5</div>
+            <div>
+              Object được expose dưới contract <code>CreateSampleUseCase</code>.
+            </div>
+          </div>
+          <div class="step">
+            <div class="n">6</div>
+            <div>Controller nhận bean đó qua constructor injection.</div>
+          </div>
+
+          <div class="mental">
+            <b>Mental model:</b> Application service là “thiết bị”. Ports là “ổ
+            cắm”. Adapters là “đầu chuyển”. Configuration là người đứng ngoài
+            chọn đúng đầu chuyển và cắm chúng lại.
+          </div>
+        </section>
+
+        <section id="archunit">
+          <h2>17. ArchUnit đọc code thế nào? Không cần chạy application</h2>
+
+          <p>
+            Đây là phần quan trọng nếu trước đây bạn thấy câu “ArchUnit bắt
+            dependency leakage” hơi mơ hồ.
+          </p>
+
+          <pre><code>Source code
+   |
+   | mvn/test compile
+   v
+.class bytecode
+   |
+   v
+ClassFileImporter
+   |
+   v
+JavaClasses
+   |
+   v
+ArchRule
+   |
+   v
+rule.check(PRODUCTION_CLASSES)
+   |
+   +--> PASS
+   |
+   +--> AssertionError + dependency vi phạm</code></pre>
+
+          <h3>Bước 1 — Java đã compile thành bytecode</h3>
+          <p>
+            ArchUnit không cần boot Spring. Nó đọc metadata trong các
+            <code>.class</code> đã compile: class nào có field type gì, method
+            gọi type gì, annotation gì, implement interface nào…
+          </p>
+
+          <h3>Bước 2 — <code>ClassFileImporter</code> import các class</h3>
+          <p>Nó xây một mô hình các class trong package cần kiểm tra.</p>
+
+          <h3>Bước 3 — <code>JavaClasses</code> là “bản đồ type/dependency”</h3>
+          <p>
+            Hãy tưởng tượng mỗi class là một node, dependency là các mũi tên.
+          </p>
+
+          <pre><code>CreateSampleService
+   |--> IdempotencyKey
+   |--> SampleCommandPersistencePort
+   |--> SamplePayloadSerializerPort
+
+JdbcSampleCommandPersistenceAdapter
+   |--> SampleCommandPersistencePort
+   |--> JdbcTemplate
+   |--> Transactional</code></pre>
+
+          <h3>Bước 4 — ArchRule hỏi trên bản đồ đó</h3>
+          <p>Ví dụ một rule có ý nghĩa:</p>
+          <pre><code>"Classes trong application
+ không được phụ thuộc vào Spring/JDBC/Jackson/Micrometer/SLF4J"</code></pre>
+
+          <h3>Bước 5 — Nếu một field JDBC lọt vào application?</h3>
+          <pre><code>package ...application.sample;
+
+public class CreateSampleService {
+    private final JdbcTemplate jdbcTemplate;
+}</code></pre>
+
+          <p>
+            Dù không chạy app, ArchUnit vẫn thấy mũi tên:
+            <code
+              >CreateSampleService ->
+              org.springframework.jdbc.core.JdbcTemplate</code
+            >.
+          </p>
+
+          <div class="callout warning">
+            <strong
+              >Đây là lý do architecture test mạnh hơn code review bằng
+              mắt</strong
+            >
+            Rule chạy tự động mỗi lần test. Một developer mới vô tình import
+            framework vào core có thể bị chặn ngay.
+          </div>
+        </section>
+
+        <section id="architecture-tests">
+          <h2>18. ArchitectureTest của Cycle 13 bảo vệ những gì?</h2>
+
+          <table>
+            <tr>
+              <th>Rule</th>
+              <th>Giải thích dễ hiểu</th>
+            </tr>
+            <tr>
+              <td>Domain không phụ thuộc adapter/framework</td>
+              <td>
+                Invariant không được biết Spring, servlet, persistence, logging.
+              </td>
+            </tr>
+            <tr>
+              <td>Application không phụ thuộc framework/adapter</td>
+              <td>
+                Use-case orchestration không import
+                JDBC/JPA/Jackson/Micrometer/SLF4J/Spring.
+              </td>
+            </tr>
+            <tr>
+              <td>Ports technology-independent</td>
+              <td>Interface không biến thành API riêng của framework.</td>
+            </tr>
+            <tr>
+              <td>Inbound adapters dùng inbound ports</td>
+              <td>
+                Controller không gọi thẳng <code>CreateSampleService</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>Top-level packages không tạo cycle</td>
+              <td>Tránh vòng phụ thuộc khiến package A/B/C biết lẫn nhau.</td>
+            </tr>
+          </table>
+
+          <h3>Tại sao còn cần fixture cố tình sai?</h3>
+          <p>
+            Một architecture test xanh chưa chắc rule tốt; có thể nó scan sai
+            package và chẳng kiểm tra gì. Vì vậy fixture cố ý tạo vi phạm, ví dụ
+            application import <code>JdbcTemplate</code>. Test phải chứng minh
+            rule thật sự bắt được lỗi đó.
+          </p>
+
+          <div class="mental">
+            <b>So sánh dễ nhớ:</b> Architecture rule là đầu báo khói. Negative
+            fixture là nút “TEST” trên đầu báo — bấm vào để chứng minh còi thật
+            sự kêu.
+          </div>
+        </section>
+
+        <section id="tdd">
+          <h2>19. TDD + evidence: Cycle 13 kiểm chứng behavior thế nào?</h2>
+
+          <h3>Red → Green → Refactor dùng cho branching behavior</h3>
+          <table>
+            <tr>
+              <th>Bước</th>
+              <th>Ý nghĩa thực tế</th>
+            </tr>
+            <tr>
+              <td><b>Red</b></td>
+              <td>Viết test cho behavior chưa có; test fail đúng lý do.</td>
+            </tr>
+            <tr>
+              <td><b>Green</b></td>
+              <td>Viết implementation tối thiểu để behavior pass.</td>
+            </tr>
+            <tr>
+              <td><b>Refactor</b></td>
+              <td>Dọn cấu trúc mà giữ behavior xanh.</td>
+            </tr>
+          </table>
+
+          <h3>Không phải thứ gì cũng cần “ép TDD hình thức”</h3>
+          <p>
+            Wiring/configuration phù hợp hơn với context/configuration tests.
+            Boundaries phù hợp với ArchUnit. SQL/transaction/concurrency cần
+            Testcontainers trên PostgreSQL thật.
+          </p>
+
+          <h3>Các lớp bằng chứng</h3>
+          <ul>
+            <li>
+              <b>Application unit tests:</b> new command, replay, fingerprint
+              conflict, relay success/failure/backoff, inbox duplicate.
+            </li>
+            <li><b>Serializer tests:</b> mapping response/event ổn định.</li>
+            <li>
+              <b>Observability tests:</b> recorded/replayed, relay
+              attempted/published/failed, inbox applied/duplicate.
+            </li>
+            <li>
+              <b>Configuration test:</b> ports được lắp vào đúng application
+              implementations.
+            </li>
+            <li><b>Architecture tests:</b> boundaries và negative fixtures.</li>
+            <li>
+              <b>Testcontainers:</b> atomic persistence, rollback, concurrent
+              duplicate, duplicate delivery, expired lease, DB role behavior
+              trên PostgreSQL thật.
+            </li>
+          </ul>
+        </section>
+
+        <section id="change-tech">
+          <h2>
+            20. Đổi công nghệ thì sửa đâu? Đây là bài test giá trị nhất của
+            boundary
+          </h2>
+
+          <table>
+            <tr>
+              <th>Thay đổi</th>
+              <th>Chủ yếu phải sửa</th>
+              <th>Phần nên giữ ổn</th>
+            </tr>
+            <tr>
+              <td>PostgreSQL/JDBC → persistence khác</td>
+              <td>Persistence adapters + migration/schema tương ứng</td>
+              <td>Application services, ports IN, controller</td>
+            </tr>
+            <tr>
+              <td>Jackson → serializer khác</td>
+              <td>Serialization adapter</td>
+              <td><code>CreateSampleService</code></td>
+            </tr>
+            <tr>
+              <td>HTTP → CLI/message input</td>
+              <td>Thêm inbound adapter</td>
+              <td><code>CreateSampleUseCase</code> + service</td>
+            </tr>
+            <tr>
+              <td>Micrometer/SLF4J → stack khác</td>
+              <td>Observability adapters</td>
+              <td>Application ports/calls</td>
+            </tr>
+            <tr>
+              <td>Local delivery → broker</td>
+              <td>Delivery adapter + composition</td>
+              <td>Relay policy có thể giữ nếu port contract vẫn phù hợp</td>
+            </tr>
+          </table>
+
+          <div class="callout remember">
+            <strong>Boundary tốt không hứa “không bao giờ sửa code”</strong>
+            Nó giúp <b>khoanh vùng phần phải sửa</b> và giảm hiệu ứng dây
+            chuyền.
+          </div>
+        </section>
+
+        <section id="reading-order">
+          <h2>21. Người mới nên đọc repo theo thứ tự nào?</h2>
+
+          <ol>
+            <li>
+              <b>Đọc <code>CreateSampleUseCase</code> trước.</b> Chỉ hỏi: system
+              cho phép caller yêu cầu gì?
+            </li>
+            <li>
+              <b>Đọc Command/Result.</b> Application boundary dùng dữ liệu gì?
+            </li>
+            <li>
+              <b>Đọc <code>CreateSampleController</code>.</b> HTTP được dịch vào
+              command ra sao?
+            </li>
+            <li>
+              <b>Đọc <code>CreateSampleService</code>.</b> Đánh dấu từng
+              dependency là domain hay port OUT.
+            </li>
+            <li><b>Đọc từng port OUT.</b> Mỗi port mô tả capability gì?</li>
+            <li>
+              <b>Sau đó mới đọc adapters.</b> Xem JDBC/Jackson/Micrometer hiện
+              thực capability đó thế nào.
+            </li>
+            <li>
+              <b>Đọc <code>SampleFlowConfiguration</code>.</b> Xem object graph
+              được lắp ra sao.
+            </li>
+            <li>
+              <b>Đọc <code>LocalOutboxRelay</code>.</b> Tập trung state machine
+              + retry.
+            </li>
+            <li>
+              <b>Đọc <code>SampleEventConsumer</code>.</b> Tập trung duplicate
+              handling.
+            </li>
+            <li>
+              <b>Cuối cùng đọc ArchUnit + Testcontainers.</b> Xem
+              architecture/transaction được chứng minh thế nào.
+            </li>
+          </ol>
+
+          <h3>Mỗi lần mở một class, tự hỏi 7 câu</h3>
+          <ol>
+            <li>Class này nhận input từ ai?</li>
+            <li>Nó trả output cho ai?</li>
+            <li>Nó chứa business decision hay technology detail?</li>
+            <li>
+              Dependencies trong constructor là domain, port hay framework?
+            </li>
+            <li>Nếu đổi HTTP/DB/serializer thì class này có cần đổi không?</li>
+            <li>Nó có đang gọi qua interface đúng boundary không?</li>
+            <li>
+              Test phù hợp là unit, architecture, configuration hay integration?
+            </li>
+          </ol>
+        </section>
+
+        <section id="faq">
+          <h2>22. FAQ cho người mới</h2>
+
+          <details>
+            <summary>Có phải cứ thấy interface là port?</summary>
+            <p>
+              Không. Port phải đại diện một capability có ý nghĩa tại boundary.
+              Tạo interface cho mọi class chỉ làm code dài hơn.
+            </p>
+          </details>
+
+          <details>
+            <summary>Domain và application khác nhau thế nào?</summary>
+            <p>
+              Domain giữ invariant/khái niệm cốt lõi. Application điều phối một
+              use case bằng domain + ports. Domain mỏng trong một sample flow
+              nhỏ là bình thường.
+            </p>
+          </details>
+
+          <details>
+            <summary>
+              Vì sao Controller không gọi thẳng CreateSampleService?
+            </summary>
+            <p>
+              Vì Controller nên phụ thuộc vào capability contract
+              <code>CreateSampleUseCase</code>, không vào implementation cụ thể.
+              Như vậy adapter không “biết quá sâu” vào core.
+            </p>
+          </details>
+
+          <details>
+            <summary>
+              Vì sao application không dùng ObjectMapper trực tiếp?
+            </summary>
+            <p>
+              Vì serialization là technology detail. Application chỉ cần
+              capability “serialize payload”; adapter quyết định Jackson hay
+              implementation nào.
+            </p>
+          </details>
+
+          <details>
+            <summary>
+              Có thể đặt @Service lên CreateSampleService không?
+            </summary>
+            <p>
+              Về kỹ thuật có thể, nhưng Cycle 13 chủ động giữ application thuần
+              Java và tạo bean tại composition root để boundary rõ hơn và unit
+              test dễ hơn.
+            </p>
+          </details>
+
+          <details>
+            <summary>
+              Transaction là business logic hay technical detail?
+            </summary>
+            <p>
+              “Phải atomic” có thể là requirement của use case; nhưng cách hiện
+              thực bằng Spring transaction/PostgreSQL là technical detail của
+              persistence adapter.
+            </p>
+          </details>
+
+          <details>
+            <summary>Outbox có làm delivery đúng một lần không?</summary>
+            <p>
+              Không tự động. Outbox giúp không mất “ý định publish”. Delivery
+              vẫn có thể lặp; inbox/dedup phía consumer bảo vệ exactly-once
+              effect.
+            </p>
+          </details>
+
+          <details>
+            <summary>Hexagonal có phải Clean Architecture không?</summary>
+            <p>
+              Chúng có tinh thần gần nhau về dependency direction và tách core
+              khỏi details, nhưng thuật ngữ/layering không hoàn toàn đồng nhất.
+              Đừng cố map 1:1 mọi tên gọi.
+            </p>
+          </details>
+        </section>
+
+        <section id="quiz">
+          <h2>23. Bài tự kiểm tra — mở đáp án sau khi tự trả lời</h2>
+
+          <details>
+            <summary>
+              1. Nếu thêm Kafka consumer để create sample, class mới nằm đâu?
+            </summary>
+            <div class="quiz-answer">
+              Inbound adapter. Nó dịch Kafka message →
+              <code>CreateSampleCommand</code> rồi gọi
+              <code>CreateSampleUseCase</code>.
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              2. Nếu CreateSampleService import JdbcTemplate, vấn đề là gì?
+            </summary>
+            <div class="quiz-answer">
+              Application đã phụ thuộc trực tiếp vào persistence
+              framework/detail, phá boundary.
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              3. Nếu Controller inject CreateSampleService thay vì
+              CreateSampleUseCase?
+            </summary>
+            <div class="quiz-answer">
+              Inbound adapter phụ thuộc implementation cụ thể thay vì capability
+              contract.
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              4. Hai relay worker cùng thấy một outbox row thì cơ chế nào giúp
+              tránh claim trùng?
+            </summary>
+            <div class="quiz-answer">
+              <code>FOR UPDATE SKIP LOCKED</code> + transaction claim.
+            </div>
+          </details>
+
+          <details>
+            <summary>5. Worker chết khi event đang PROCESSING thì sao?</summary>
+            <div class="quiz-answer">
+              <code>lease_until</code> hết hạn cho phép event được reclaim.
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              6. Duplicate event đến lần hai, vì sao effect không chạy lần hai?
+            </summary>
+            <div class="quiz-answer">
+              <code>event_id</code> đã có trong inbox receipt; insert conflict
+              bị bỏ qua, consumer không insert effect mới.
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              7. Receipt insert thành công nhưng effect insert lỗi?
+            </summary>
+            <div class="quiz-answer">
+              Cùng transaction rollback cả receipt, event có thể retry.
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              8. Xóa dòng import JdbcTemplate có làm ArchUnit hết thấy
+              dependency không?
+            </summary>
+            <div class="quiz-answer">
+              Không, nếu class vẫn dùng type đó. ArchUnit nhìn dependency từ
+              bytecode/type graph.
+            </div>
+          </details>
+        </section>
+
+        <section id="glossary">
+          <h2>24. Glossary chuẩn: giữ từ gốc, giải nghĩa tự nhiên</h2>
+
+          <table>
+            <tr>
+              <th>Thuật ngữ</th>
+              <th>Cách nên hiểu</th>
+              <th>Tránh hiểu quá máy móc</th>
+            </tr>
+            <tr>
+              <td><b>Boundary</b></td>
+              <td>Ranh giới trách nhiệm/ngôn ngữ giữa hai vùng.</td>
+              <td>Không chỉ là “đường biên vật lý”.</td>
+            </tr>
+            <tr>
+              <td><b>Port</b></td>
+              <td>Interface/hợp đồng cho một capability tại boundary.</td>
+              <td>Không cần dịch thành “cổng” trong mọi câu.</td>
+            </tr>
+            <tr>
+              <td><b>Adapter</b></td>
+              <td>Code nối technology/protocol cụ thể với port.</td>
+              <td>Không chỉ là “bộ chuyển đổi” theo nghĩa phần cứng.</td>
+            </tr>
+            <tr>
+              <td><b>Inbound / driving side</b></td>
+              <td>Phía kích hoạt use case của application.</td>
+              <td>Không cần ép dịch “bên lái”.</td>
+            </tr>
+            <tr>
+              <td><b>Outbound / driven side</b></td>
+              <td>Phía application cần gọi để hoàn thành use case.</td>
+              <td>Không cần ép dịch “bị lái”.</td>
+            </tr>
+            <tr>
+              <td><b>Application service</b></td>
+              <td>Class điều phối use case.</td>
+              <td>Không đồng nghĩa với “Spring @Service”.</td>
+            </tr>
+            <tr>
+              <td><b>Domain invariant</b></td>
+              <td>Quy tắc phải luôn đúng trong domain.</td>
+              <td>Không chỉ là validation của HTTP.</td>
+            </tr>
+            <tr>
+              <td><b>Dependency Inversion</b></td>
+              <td>Core và detail gặp nhau qua abstraction phía core.</td>
+              <td>Không phải runtime call chạy ngược.</td>
+            </tr>
+            <tr>
+              <td><b>Composition Root</b></td>
+              <td>Nơi tạo và nối object graph.</td>
+              <td>Không phải business service.</td>
+            </tr>
+            <tr>
+              <td><b>Idempotency</b></td>
+              <td>Retry cùng logical request không tạo thêm effect.</td>
+              <td>
+                Không có nghĩa mọi request giống nhau đều trả cùng kết quả nếu
+                payload khác.
+              </td>
+            </tr>
+            <tr>
+              <td><b>Fingerprint</b></td>
+              <td>Digest của canonical request để phát hiện key reuse sai.</td>
+              <td>Không phải raw request body tùy ý.</td>
+            </tr>
+            <tr>
+              <td><b>Transactional Outbox</b></td>
+              <td>
+                Business change + durable publish intent trong cùng DB
+                transaction.
+              </td>
+              <td>
+                Không có nghĩa broker publish nằm trong cùng DB transaction.
+              </td>
+            </tr>
+            <tr>
+              <td><b>Inbox deduplication</b></td>
+              <td>
+                Receipt unique giúp duplicate event không áp dụng effect lần
+                hai.
+              </td>
+              <td>Không ngăn transport gửi duplicate.</td>
+            </tr>
+            <tr>
+              <td><b>Lease</b></td>
+              <td>Quyền xử lý có thời hạn để reclaim sau crash.</td>
+              <td>Không phải database lock kéo dài vô hạn.</td>
+            </tr>
+            <tr>
+              <td><b>Adapter leakage</b></td>
+              <td>Technology detail rò vào domain/application/ports.</td>
+              <td>Không phải memory leak.</td>
+            </tr>
+            <tr>
+              <td><b>Atomicity</b></td>
+              <td>
+                Một nhóm thay đổi commit cùng nhau hoặc rollback cùng nhau.
+              </td>
+              <td>Không đồng nghĩa với “thread-safe” nói chung.</td>
+            </tr>
+            <tr>
+              <td><b>Exactly-once effect</b></td>
+              <td>
+                Tác dụng nghiệp vụ được áp dụng một lần dù delivery có thể lặp.
+              </td>
+              <td>Không khẳng định network chỉ deliver một lần.</td>
+            </tr>
+          </table>
+        </section>
+
+        <section id="cheatsheet">
+          <h2>25. Cheat sheet 1 trang</h2>
+
+          <h3>Nhìn class → phân loại nhanh</h3>
+          <table>
+            <tr>
+              <th>Nếu class...</th>
+              <th>Thường thuộc...</th>
+            </tr>
+            <tr>
+              <td>Đọc HTTP header/body, trả status code</td>
+              <td>Inbound adapter</td>
+            </tr>
+            <tr>
+              <td>Điều phối use case, gọi ports, không biết framework</td>
+              <td>Application</td>
+            </tr>
+            <tr>
+              <td>Giữ invariant/value object</td>
+              <td>Domain</td>
+            </tr>
+            <tr>
+              <td>Là interface mô tả capability caller gọi vào</td>
+              <td>Port IN</td>
+            </tr>
+            <tr>
+              <td>Là interface mô tả capability application cần bên ngoài</td>
+              <td>Port OUT</td>
+            </tr>
+            <tr>
+              <td>Dùng JdbcTemplate/ObjectMapper/MeterRegistry</td>
+              <td>Outbound adapter</td>
+            </tr>
+            <tr>
+              <td>Chọn implementation và tạo bean</td>
+              <td>Configuration / Composition Root</td>
+            </tr>
+          </table>
+
+          <h3>Flow create sample</h3>
+          <pre><code>HTTP
+ -> Controller
+ -> CreateSampleUseCase
+ -> CreateSampleService
+ -> domain/value objects
+ -> ports OUT
+ -> adapters
+ -> PostgreSQL / JSON / metrics
+ -> result quay lại Controller
+ -> HTTP response</code></pre>
+
+          <h3>Flow event</h3>
+          <pre><code>Command transaction
+ -> business row + outbox row COMMIT
+
+Relay
+ -> claim
+ -> deliver
+ -> PUBLISHED / FAILED + retry
+
+Consumer
+ -> inbox receipt
+ -> effect
+ -> duplicate? skip
+ -> same transaction</code></pre>
+
+          <h3>Ba lỗi phải ngửi thấy ngay</h3>
+          <ul>
+            <li>
+              <code>application</code> import
+              <code>JdbcTemplate</code
+              >/<code>ObjectMapper</code>/<code>MeterRegistry</code>/<code>Logger</code>.
+            </li>
+            <li>Controller inject implementation application cụ thể.</li>
+            <li>Port trả framework type như <code>ResponseEntity</code>.</li>
+          </ul>
+        </section>
+
+        <section id="status">
+          <h2>26. Trạng thái Cycle 13 theo tài liệu gốc</h2>
+
+          <p>
+            Phần này giữ nguyên ý nghĩa trạng thái kỹ thuật từ tài liệu bạn cung
+            cấp, nhưng viết lại rõ hơn.
+          </p>
+
+          <ul>
+            <li>
+              <span class="good">108/108 PASS</span> — unit, security và
+              architecture tests.
+            </li>
+            <li>
+              <span class="good">9/9 PASS</span> — canonical Testcontainers
+              integration tests.
+            </li>
+            <li>
+              <span class="good">PASS</span> — OpenAPI/event/realtime schema,
+              governance và N/N-1 contract compatibility.
+            </li>
+            <li>
+              <span class="good">PASS</span> — Maven verify sau khi V3 khôi phục
+              Flyway history privilege boundary.
+            </li>
+          </ul>
+
+          <div class="callout scope">
+            <strong>Scope chính xác</strong>
+            Cycle 13 hoàn tất ở mức implementation và canonical verification.
+            Tài liệu gốc không tuyên bố toàn bộ S001-T06 đã COMPLETED: local
+            end-to-end logs/traces/metrics evidence và cập nhật Definition of
+            Done thuộc Cycle 14.
+          </div>
+
+          <h3>Các path nguồn quan trọng trong repository</h3>
+          <pre
+            class="tree"
+          ><code>src/main/java/.../application/sample/CreateSampleService.java
+src/main/java/.../configuration/SampleFlowConfiguration.java
+src/test/java/.../architecture/ArchitectureTest.java
+src/test/java/.../IdentityProfileServiceApplicationTestcontainersIT.java
+src/main/resources/db/migration/V2__create_sample_delivery_flow.sql
+src/main/resources/db/migration/V3__protect_flyway_history_from_runtime.sql</code></pre>
+
+          <p class="small">
+            Tài liệu này là bản dạy lại dành cho người mới dựa trên trạng thái
+            Cycle 13 trong HTML gốc. Nó ưu tiên giải thích mental model và code
+            flow; không thay đổi các kết luận trạng thái của tài liệu gốc.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <footer>
+      Cycle 13 · Hexagonal Architecture Beginner Deep Dive ·
+      identity-profile-service
+    </footer>
+  </body>
+</html>

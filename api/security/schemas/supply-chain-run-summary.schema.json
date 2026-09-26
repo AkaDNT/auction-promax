@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/auction-promax/api/security/schemas/supply-chain-run-summary.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "workflow", "commit", "executionState", "policyState", "reviewState", "deltaState", "failureCode"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "workflow": { "enum": ["supply-chain", "security-freshness"] },
+    "commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "executionState": { "enum": ["IMPLEMENTATION_FAILURE", "PASS"] },
+    "policyState": { "enum": ["NOT_EVALUATED", "PASS", "BLOCKED"] },
+    "reviewState": { "enum": ["NOT_REQUIRED", "REVIEW_REQUIRED"] },
+    "deltaState": { "enum": ["NOT_APPLICABLE", "UNCHANGED", "NEW", "REMEDIATED", "BASELINE_UNAVAILABLE"] },
+    "failureCode": { "enum": ["SUPPLY_CHAIN_NOT_STARTED", "CHECKOUT_FAILED", "CONTRACT_VALIDATION_FAILED", "TOOL_BOOTSTRAP_FAILED", "SBOM_BUILD_FAILED", "SBOM_VALIDATION_FAILED", "DEPENDENCY_SCAN_FAILED", "SECRET_SCAN_FAILED", "BASE_TRUST_FAILED", "IMAGE_BUILD_FAILED", "SMOKE_FAILED", "CONTAINER_SCAN_FAILED", "SCANNER_OUTPUT_INVALID", "POLICY_EVALUATION_FAILED", "EVIDENCE_SANITIZATION_FAILED", "EVIDENCE_VALIDATION_FAILED", "EVIDENCE_UPLOAD_FAILED", "CLEANUP_FAILED", "NONE"] }
+  }
+}

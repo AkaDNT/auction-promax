@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "workflowPaths": {
+    "baseline": ".github/workflows/api-baseline.yml",
+    "supplyChain": ".github/workflows/supply-chain.yml",
+    "freshness": ".github/workflows/security-freshness.yml"
+  },
+  "actions": {
+    "checkout": "11d5960a326750d5838078e36cf38b85af677262",
+    "setupJava": "cf277c60eb25467037889841efdb72551f06f6c3",
+    "setupNode": "49933ea5288caeca8642d1e84afbd3f7d6820020",
+    "uploadArtifact": "ea165f8d65b6e75b540449e92b4886f43607fa02"
+  },
+  "runners": { "hostedLinux": "ubuntu-24.04" },
+  "timeouts": { "verificationMinutes": 60, "releasePolicyMinutes": 5, "freshnessMinutes": 60 },
+  "jobs": {
+    "verification": "supply-chain-verification",
+    "releasePolicy": "release-policy",
+    "freshness": "security-freshness"
+  },
+  "evidence": {
+    "relativePath": "s001-t07-evidence/hosted",
+    "retentionDays": 30,
+    "files": [
+      "run-summary.json",
+      "vulnerability-inventory.json",
+      "gitleaks-inventory.json",
+      "container-vulnerability-inventory.json",
+      "image-identity.json",
+      "smoke-summary.json",
+      "policy-summary.json"
+    ]
+  }
+}

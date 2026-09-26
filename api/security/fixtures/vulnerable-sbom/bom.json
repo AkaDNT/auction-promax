@@ -1,0 +1,38 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:00000000-0000-4000-8000-000000000001",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-11T00:00:00Z",
+    "component": {
+      "type": "application",
+      "group": "com.auctionpromax.fixture",
+      "name": "trivy-vulnerable-sbom-fixture",
+      "version": "1.0.0",
+      "bom-ref": "pkg:generic/auction-promax/trivy-vulnerable-sbom-fixture@1.0.0",
+      "purl": "pkg:generic/auction-promax/trivy-vulnerable-sbom-fixture@1.0.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "lodash",
+      "version": "4.17.20",
+      "bom-ref": "pkg:npm/lodash@4.17.20",
+      "purl": "pkg:npm/lodash@4.17.20"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:generic/auction-promax/trivy-vulnerable-sbom-fixture@1.0.0",
+      "dependsOn": [
+        "pkg:npm/lodash@4.17.20"
+      ]
+    },
+    {
+      "ref": "pkg:npm/lodash@4.17.20",
+      "dependsOn": []
+    }
+  ]
+}

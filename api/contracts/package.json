@@ -1,0 +1,21 @@
+{
+  "name": "@auction-promax/contracts",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Versioned contract registry tooling for Auction ProMax.",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
+  "scripts": {
+    "lint:openapi": "redocly lint openapi/identity-profile-service/v1/identity-profile-samples.openapi.yaml --config redocly.yaml",
+    "validate:schemas": "node scripts/validate-json-schemas.mjs",
+    "test:fixtures": "node tests/contract-fixtures.test.mjs",
+    "test:governance": "node tests/contract-governance.test.mjs"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.46.1",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "yaml": "2.9.1"
+  }
+}

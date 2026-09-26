@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.auction-promax.local/fixtures/malformed/identity-profile-sample-recorded.invalid.schema.json",
+  "type": "object",
+  "properties": {
+    "eventId": {
+      "type": "string"
+    }
+  }
+  "required": ["eventId"]
+}

@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    url: ${IDENTITY_DB_URL}
+    username: ${IDENTITY_DB_APP_USERNAME}
+    password: ${IDENTITY_DB_APP_PASSWORD}
+  flyway:
+    url: ${IDENTITY_DB_URL}
+    user: ${IDENTITY_DB_MIGRATOR_USERNAME}
+    password: ${IDENTITY_DB_MIGRATOR_PASSWORD}
+    default-schema: identity
+    schemas: identity
+    table: flyway_schema_history
+    placeholders:
+      runtimeRole: ${IDENTITY_DB_APP_USERNAME}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  tracing:
+    sampling:
+      probability: 1.0
+
+logging:
+  structured:
+    format:
+      console: ecs
+    ecs:
+      service:
+        name: identity-profile-service
+        environment: local
+
+auction:
+  sample-flow:
+    enabled: true
+    relay:
+      scheduler-enabled: true
+      fixed-delay: 1s

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "images": [
+    {
+      "id": "identity-profile-service-runtime",
+      "repository": "docker.io/library/amazoncorretto",
+      "reviewedTag": "21.0.12-al2023-headless",
+      "indexDigest": "sha256:9d84285ae8bf9d4251bbdf4881a598240bd6908817096b64de246ce022ec7d86",
+      "platform": {
+        "os": "linux",
+        "architecture": "amd64"
+      },
+      "platformManifestDigest": "sha256:82eb6e99cb91fb87f5a65a933750ae5bb23cab4ab396e4bba4a5b0b07dcd32ff",
+      "manifestMediaType": "application/vnd.oci.image.manifest.v1+json",
+      "runtime": {
+        "javaMajor": 21,
+        "operatingSystem": "amazon-linux-2023",
+        "distribution": "headless"
+      },
+      "officialSource": "https://github.com/corretto/corretto-docker.git#a2028380492e3f5128dca6b06c1e26b10e9b8f04:21/headless/al2023",
+      "reviewedAtUtc": "2026-09-22T07:00:00Z"
+    }
+  ]
+}

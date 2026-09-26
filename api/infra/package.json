@@ -1,0 +1,18 @@
+{
+  "name": "auction-promax-infrastructure",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@11.12.1",
+  "engines": {
+    "node": "24.15.0",
+    "npm": "11.12.1"
+  },
+  "scripts": {
+    "cdk:version": "cdk --version"
+  },
+  "devDependencies": {
+    "aws-cdk": "2.1135.1",
+    "aws-cdk-lib": "2.269.0",
+    "constructs": "10.8.1"
+  }
+}

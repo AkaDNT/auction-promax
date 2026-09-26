@@ -1,0 +1,5 @@
+# The container build receives only the immutable Dockerfile and the verified
+# executable JAR produced by Maven outside Docker.
+**
+!Dockerfile
+!target/identity-profile-service-0.0.1-SNAPSHOT.jar

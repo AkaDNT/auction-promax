@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "scanner": {
+    "name": "gitleaks",
+    "version": "8.30.0",
+    "installation": "cycle-1-verified-bootstrap"
+  },
+  "workingTree": {
+    "candidateCommand": ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+    "snapshot": "temporary-only",
+    "neverReadPaths": [".env.local"]
+  },
+  "scans": [
+    {
+      "id": "working-tree",
+      "command": "dir",
+      "target": "temporary-working-tree-snapshot",
+      "arguments": ["--config", "security/tooling/gitleaks.toml", "--gitleaks-ignore-path", "security/tooling/gitleaks-empty-ignore.txt", "--ignore-gitleaks-allow", "--redact=100", "--report-format", "json", "--report-path", "temporary-only", "--exit-code", "3", "--log-level", "error", "--no-banner", "--no-color", "--timeout", "300"]
+    },
+    {
+      "id": "git-history",
+      "command": "git",
+      "target": "repository-root",
+      "arguments": ["--log-opts", "--full-history --all", "--config", "security/tooling/gitleaks.toml", "--gitleaks-ignore-path", "security/tooling/gitleaks-empty-ignore.txt", "--ignore-gitleaks-allow", "--redact=100", "--report-format", "json", "--report-path", "temporary-only", "--exit-code", "3", "--log-level", "error", "--no-banner", "--no-color", "--timeout", "300"]
+    }
+  ],
+  "reportHandling": {
+    "rawReports": "temporary-only",
+    "sanitizedInventoryFields": ["scanMode", "ruleId", "repositoryRelativePath", "scannerFingerprint", "commitId", "status", "remediationReference"]
+  },
+  "policy": {
+    "findingExitCode": 3,
+    "otherNonzeroExit": "fail-closed",
+    "mustRun": true,
+    "allowlist": "repository-owned-exact-match-only",
+    "realSecretDisposition": "incident-only"
+  }
+}

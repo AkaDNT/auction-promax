@@ -1,0 +1,2 @@
+# Gitleaks scanner-side ignore entries are intentionally disabled for Cycle 4.
+# Repository-owned, exact finding review occurs after sanitization instead.

@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: ${IDENTITY_TEST_DB_URL}
+    username: ${IDENTITY_TEST_DB_APP_USERNAME}
+    password: ${IDENTITY_TEST_DB_APP_PASSWORD}
+  flyway:
+    url: ${IDENTITY_TEST_DB_URL}
+    user: ${IDENTITY_TEST_DB_MIGRATOR_USERNAME}
+    password: ${IDENTITY_TEST_DB_MIGRATOR_PASSWORD}
+    default-schema: identity
+    schemas: identity
+    table: flyway_schema_history
+    placeholders:
+      runtimeRole: ${IDENTITY_TEST_DB_APP_USERNAME}
+
+auction:
+  sample-flow:
+    enabled: true

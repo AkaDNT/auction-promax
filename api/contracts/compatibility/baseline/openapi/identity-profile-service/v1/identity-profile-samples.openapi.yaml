@@ -1,0 +1,219 @@
+openapi: 3.1.0
+info:
+  title: Identity Profile Service — Phase 0 Sample Contract
+  version: 1.0.0
+  description: |
+    Contract-only Phase 0 technical sample for S001-T06.
+    It is not profile CRUD, Cognito integration, or a public product capability.
+    Authentication/authorization runtime implementation remains outside Sprint 001 scope.
+servers:
+  - url: /
+    description: Deployment-relative API origin; environment host is supplied by ingress/runtime.
+paths:
+  /api/v1/identity-profile-samples:
+    post:
+      security: []
+      summary: Record a Phase 0 identity-profile sample
+      description: |
+        Creates one technical sample record. The same Idempotency-Key with the
+        same request replays the stored response. Reusing the key with a
+        different request returns IDEMPOTENCY_KEY_REUSED. For this Phase 0
+        unauthenticated proof, the key is scoped to the fixed technical actor
+        and this operation. The optional sampleRequestId provides a safe,
+        non-PII value with which to demonstrate different-request detection.
+      operationId: createIdentityProfileSample
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/Traceparent"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIdentityProfileSampleRequest"
+            examples:
+              phase0Baseline:
+                value:
+                  purpose: PHASE_0_BASELINE
+      responses:
+        "201":
+          description: Sample recorded or idempotently replayed.
+          headers:
+            X-Correlation-Id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateIdentityProfileSampleResponse"
+              examples:
+                recorded:
+                  value:
+                    sampleId: "0192f1c0-0000-7000-8000-000000000001"
+                    status: RECORDED
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "409":
+          $ref: "#/components/responses/IdempotencyKeyReusedProblem"
+        "500":
+          $ref: "#/components/responses/InternalProblem"
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Opaque, case-sensitive key used for deterministic replay of this
+        command. Whitespace is not trimmed. The value must contain 1 to 128
+        visible ASCII characters from the registered safe character set. The
+        service stores a one-way SHA-256 digest rather than the raw key.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9._:-]+$'
+    Traceparent:
+      name: traceparent
+      in: header
+      required: false
+      description: Optional W3C Trace Context parent supplied by the caller.
+      schema:
+        type: string
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: Optional caller correlation identifier; generated safely when absent or invalid.
+      schema:
+        type: string
+
+  headers:
+    CorrelationId:
+      description: Correlation identifier used by the service for this request.
+      schema:
+        type: string
+
+  schemas:
+    CreateIdentityProfileSampleRequest:
+      type: object
+      required:
+        - purpose
+      properties:
+        purpose:
+          type: string
+          const: PHASE_0_BASELINE
+          description: Fixed technical-sample purpose. No user-entered text is accepted.
+        sampleRequestId:
+          type: string
+          format: uuid
+          description: |
+            Optional client-generated opaque request identifier used to prove
+            same-key/different-request behavior without accepting free text or
+            PII. When present, it is used as the event causationId.
+      examples:
+        - purpose: PHASE_0_BASELINE
+          sampleRequestId: "0192f1c0-0000-7000-8000-000000000002"
+
+    CreateIdentityProfileSampleResponse:
+      type: object
+      required:
+        - sampleId
+        - status
+      properties:
+        sampleId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          const: RECORDED
+      examples:
+        - sampleId: "0192f1c0-0000-7000-8000-000000000001"
+          status: RECORDED
+
+    ProblemDetails:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - code
+        - correlationId
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        code:
+          type: string
+          enum:
+            - VALIDATION_FAILED
+            - MALFORMED_REQUEST
+            - IDEMPOTENCY_KEY_REUSED
+            - INTERNAL_ERROR
+        correlationId:
+          type: string
+
+  responses:
+    ValidationProblem:
+      description: Request validation or JSON parsing failed without exposing request content.
+      headers:
+        X-Correlation-Id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+          examples:
+            validationFailed:
+              value:
+                type: "https://problems.auction-promax.local/validation-failed"
+                title: Request validation failed
+                status: 400
+                code: VALIDATION_FAILED
+                correlationId: "t04-example-correlation-001"
+
+    IdempotencyKeyReusedProblem:
+      description: The same idempotency key was supplied for a different request.
+      headers:
+        X-Correlation-Id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+          examples:
+            keyReused:
+              value:
+                type: "https://problems.auction-promax.local/idempotency-key-reused"
+                title: Idempotency key reused
+                status: 409
+                code: IDEMPOTENCY_KEY_REUSED
+                correlationId: "t04-example-correlation-001"
+
+    InternalProblem:
+      description: Sanitized unexpected error; no exception detail or sensitive value is returned.
+      headers:
+        X-Correlation-Id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+          examples:
+            internalError:
+              value:
+                type: "https://problems.auction-promax.local/internal-error"
+                title: Internal server error
+                status: 500
+                code: INTERNAL_ERROR
+                correlationId: "t04-example-correlation-001"

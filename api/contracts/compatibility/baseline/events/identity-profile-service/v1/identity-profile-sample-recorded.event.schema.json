@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.auction-promax.local/events/identity-profile-service/v1/identity-profile-sample-recorded.event.schema.json",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "aggregateType", "aggregateId", "aggregateVersion", "occurredAt", "producer", "correlationId", "causationId", "payload"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "identity-profile.sample-recorded" },
+    "eventVersion": { "const": 1 },
+    "aggregateType": { "const": "identity-profile-sample" },
+    "aggregateId": { "type": "string", "format": "uuid" },
+    "aggregateVersion": { "type": "integer", "minimum": 1 },
+    "occurredAt": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "producer": { "const": "identity-profile-service" },
+    "correlationId": { "type": "string", "minLength": 1 },
+    "causationId": { "type": "string", "format": "uuid" },
+    "traceparent": { "type": "string" },
+    "payload": { "type": "object", "required": ["sampleId", "purpose"], "properties": { "sampleId": { "type": "string", "format": "uuid" }, "purpose": { "const": "PHASE_0_BASELINE" } } }
+  },
+  "examples": [{ "eventId": "0192f1c0-0000-7000-8000-000000000010", "eventType": "identity-profile.sample-recorded", "eventVersion": 1, "aggregateType": "identity-profile-sample", "aggregateId": "0192f1c0-0000-7000-8000-000000000001", "aggregateVersion": 1, "occurredAt": "2026-08-23T00:00:00Z", "producer": "identity-profile-service", "correlationId": "t04-example-correlation-001", "causationId": "0192f1c0-0000-7000-8000-000000000002", "payload": { "sampleId": "0192f1c0-0000-7000-8000-000000000001", "purpose": "PHASE_0_BASELINE" } }]
+}
