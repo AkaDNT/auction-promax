@@ -1,0 +1,142 @@
+name: Monorepo verification
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    name: Classify changed paths
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      api: ${{ steps.paths.outputs.api }}
+      web: ${{ steps.paths.outputs.web }}
+      contracts: ${{ steps.paths.outputs.contracts }}
+      shared: ${{ steps.paths.outputs.shared }}
+    steps:
+      - name: Check out PR merge result or push tip
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js 24.15.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: api/.nvmrc
+      - name: Install required-check test tooling
+        working-directory: api/contracts
+        run: npm ci
+      - name: Verify classifier and aggregate regressions
+        run: node scripts/migration/Test-MonorepoRequiredChecks.mjs
+      - name: Classify PR base/head or push before/after
+        id: paths
+        run: node scripts/migration/MonorepoRequiredChecks.mjs --classify
+
+  api:
+    name: Monorepo API gates
+    needs: classify
+    if: ${{ needs.classify.outputs.api == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out the same merge result or push tip
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Temurin Java 21
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Verify identity-profile-service
+        working-directory: api/services/identity-profile-service
+        run: |
+          chmod +x mvnw
+          ./mvnw -B verify
+      - name: Set up Node.js 24.15.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: api/.nvmrc
+      - name: Verify CDK toolchain
+        working-directory: api/infra
+        run: |
+          npm ci
+          npm run cdk:version
+      - name: Install canonical contract tooling
+        working-directory: api/contracts
+        run: npm ci
+      - name: Verify canonical producer contracts
+        working-directory: api/contracts
+        run: |
+          npm run lint:openapi
+          npm run validate:schemas
+          npm run test:fixtures
+          npm run test:governance
+      - name: Reject breaking producer fixture
+        shell: pwsh
+        run: ./api/scripts/verify-contracts.ps1 -Mode Fixture
+      - name: Verify canonical registry
+        shell: pwsh
+        run: ./api/scripts/verify-contracts.ps1 -Mode Registry
+
+  web:
+    name: Monorepo web gates
+    needs: classify
+    if: ${{ needs.classify.outputs.web == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the same merge result or push tip
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 24.15.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+      - name: Lint
+        working-directory: web
+        run: npm run lint
+      - name: Build production application
+        working-directory: web
+        run: npm run build
+
+  monorepo-required:
+    name: monorepo-required
+    needs: [classify, api, web]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every applicable component to succeed
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          API_REQUIRED: ${{ needs.classify.outputs.api }}
+          WEB_REQUIRED: ${{ needs.classify.outputs.web }}
+          API_RESULT: ${{ needs.api.result }}
+          WEB_RESULT: ${{ needs.web.result }}
+        run: |
+          node -e '
+          const { CLASSIFY_RESULT, API_REQUIRED, WEB_REQUIRED, API_RESULT, WEB_RESULT } = process.env;
+          const ok = CLASSIFY_RESULT === "success" &&
+            [[API_REQUIRED, API_RESULT], [WEB_REQUIRED, WEB_RESULT]].every(
+              ([required, actual]) =>
+                (required === "true" || required === "false") &&
+                actual === (required === "true" ? "success" : "skipped")
+            );
+          if (!ok) {
+            console.error("MONOREPO_REQUIRED_GATE_FAILED");
+            process.exit(1);
+          }
+          console.log("MONOREPO_REQUIRED_GATE_PASS");
+          '

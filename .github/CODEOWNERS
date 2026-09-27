@@ -1,0 +1,6 @@
+/api/** @AkaDNT
+/api/contracts/** @AkaDNT
+/api/infra/** @AkaDNT
+/web/** @AkaDNT
+/.github/workflows/** @AkaDNT
+/.github/CODEOWNERS @AkaDNT

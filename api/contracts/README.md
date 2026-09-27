@@ -14,6 +14,10 @@ Sprint S001-T04 registers the Phase 0 technical sample that S001-T06 will later 
 
 The sample proves technical delivery semantics only. It is not profile CRUD, Cognito integration, or a product business capability.
 
+### Web consumer coverage during S001-T09
+
+The current web client calls product routes such as `/auctions`, `/auction-categories`, and `/auth/...`. This Phase 0 registry does not contain producer-owned contracts for those routes, and the current API tree does not implement them. S001-T09 validates the registered sample as a producer contract and runs web lint/build on contract-path changes; it records product web consumer compatibility as `DEFERRED_NO_PRODUCER_CONTRACT`. A green monorepo required check does not assert compatibility for those web calls. See the [Phase 0 consumer gate addendum](../../docs/superpowers/specs/2026-09-27-s001-t09-phase0-consumer-gate-addendum.md) for the owner and verification requirements before that claim can be made.
+
 `CreateIdentityProfileSample` is intentionally unauthenticated only for the Phase 0 local technical proof. It must not be deployed as an unauthenticated public endpoint. The Phase 1 Cognito/OIDC policy supersedes this exception.
 
 ### S001-T06 implementation decisions
