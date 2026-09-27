@@ -143,6 +143,15 @@ test("required workflow owns one unique always-concluding check without PR path 
   }
 });
 
+test("API job runs both Linux-hosted PowerShell and executable-permission proofs", () => {
+  const workflow = YAML.parse(fs.readFileSync(path.join(root, ".github/workflows/monorepo-verification.yml"), "utf8"));
+  const step = workflow.jobs.api.steps.find((candidate) => candidate.name === "Verify Linux PowerShell and tool executable handling");
+  assert.ok(step, "Task 6 Linux proof step is required in the API job");
+  assert.equal(step.shell, "pwsh");
+  assert.match(step.run, /\.\/api\/scripts\/supply-chain\/Test-LinuxHostedPowerShellExecutable\.ps1/);
+  assert.match(step.run, /\.\/api\/scripts\/supply-chain\/Test-LinuxToolExecutablePermission\.ps1/);
+});
+
 test("the actual aggregate job command rejects required failures and accepts docs-only skips", () => {
   const workflow = YAML.parse(fs.readFileSync(path.join(root, ".github/workflows/monorepo-verification.yml"), "utf8"));
   const command = workflow.jobs["monorepo-required"].steps[0].run;

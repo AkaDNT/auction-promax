@@ -83,6 +83,11 @@ jobs:
       - name: Verify canonical registry
         shell: pwsh
         run: ./api/scripts/verify-contracts.ps1 -Mode Registry
+      - name: Verify Linux PowerShell and tool executable handling
+        shell: pwsh
+        run: |
+          ./api/scripts/supply-chain/Test-LinuxHostedPowerShellExecutable.ps1
+          ./api/scripts/supply-chain/Test-LinuxToolExecutablePermission.ps1
 
   web:
     name: Monorepo web gates
