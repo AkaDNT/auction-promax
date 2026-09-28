@@ -6,6 +6,7 @@ info:
     Contract-only Phase 0 technical sample for S001-T06.
     It is not profile CRUD, Cognito integration, or a public product capability.
     Authentication/authorization runtime implementation remains outside Sprint 001 scope.
+    Task 6 disposable PR fixture: description-only, non-contractual change.
 servers:
   - url: /
     description: Deployment-relative API origin; environment host is supplied by ingress/runtime.
