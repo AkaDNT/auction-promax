@@ -13,7 +13,7 @@
 - Current sprint: SPRINT-001
 - Sprint status: IN_PROGRESS
 - Target environment: Local developer environment and CI baseline
-- Last updated: 2026-09-24
+- Last updated: 2026-10-03
 
 ## Current Phase Goal
 
@@ -29,8 +29,8 @@ An engineer can build and verify the initial service baseline with versioned con
   - Evidence: ADR-001 through ADR-016 and `docs/decisions/PHASE_0_BASELINES.md` were approved by the Product Owner / Project Owner on 2026-08-05; BD-004/BD-005 record the approved PostgreSQL privilege refinement and supersession rule.
   - Covered by sprint/task: S001-T01.
 - [ ] Monorepo and service templates let every service build independently.
-  - Evidence: ADR-017 / BD-007 approved `OPTION_A_MONOREPO` on 2026-09-24 by `AkaDNT` (Project Owner / Repository Owner). The API and web still remain separate repositories; `identity-profile-service` and web have independent documented local baseline commands and GitHub Actions workflows; the first hosted API and web runs passed on 2026-08-11, as confirmed by the repository owner. Their logs remain private. Repository migration, independent builds from the monorepo, path-scoped CI, contract consumer validation, and required-check evidence are outstanding.
-  - Covered by sprint/task: S001-T02, S001-T03, S001-T09. The topology direction is decided, but the Phase 0 monorepo deliverable is not complete.
+  - Evidence: ADR-017 / BD-007 approved `OPTION_A_MONOREPO`; the public monorepo now has reviewed API and web snapshots and independent fresh-checkout API, web, contract, and infrastructure builds. Its protected default is `migration/monorepo`; unchanged, locked bootstrap `main` remains the rollback reference. Hosted path-classification and negative PR cases concluded as designed, and the first protected governance merge passed the required `monorepo-required` and `supply-chain-verification` checks. The canonical producer registry does not yet cover web product endpoints: consumer compatibility is `DEFERRED_NO_PRODUCER_CONTRACT`, not PASS. The owner accepted this residual risk for the Phase 0 topology cutover, not for product release. Detailed evidence remains local-only.
+  - Covered by sprint/task: S001-T02, S001-T03, S001-T09. D-005 is resolved for the governed repository topology after the owner's final review of the amended evidence. This composite Phase 0 gate remains open for separate service-template obligations.
 - [x] Java, Spring, Maven, Node, and CDK versions are pinned with a reproducible clean build.
   - Evidence: Java 21/Spring Boot 3.5.16/Maven Wrapper 3.9.16 are enforced by the Identity service; Node 24.15.0/npm 11.12.1 are pinned and checked in web; CDK CLI 2.1135.1, `aws-cdk-lib` 2.264.0, and `constructs` 10.8.1 are lockfile-pinned in `infra`. Local and first hosted GitHub Actions baseline commands passed on 2026-08-11; hosted logs remain private.
   - Covered by sprint/task: S001-T02.
@@ -54,9 +54,9 @@ S001-T01 through S001-T07 are COMPLETED. S001-T07 has hosted PR/push and default
 ## Repository Assessment
 
 - `services/identity-profile-service`: Spring Boot skeleton with Java 21, Spring Boot 3.5.16, Maven Wrapper, persistence/security/observability dependencies, separate local/test Flyway credentials, and split local/Testcontainers integration-test paths.
-- `web`: Next.js 16.2.2 application with UI and client-side feature code; Node/npm policy and a separate GitHub Actions lint/build workflow are configured. It is not evidence of Phase 1–8 backend delivery.
-- Missing for Phase 0 evidence: resolution of the monorepo/topology decision and remaining template/runbook work. S001-T07 hosted supply-chain execution, default-branch freshness evidence, artifact audit, and owner-confirmed branch protection are complete; the release policy remains `BLOCKED` and is not a release-ready claim. The idempotent outbox/inbox sample flow is complete under S001-T06. A CDK application, deployment, ECR publishing, and CodeBuild/CodePipeline are later Phase 1 platform work under the revised blueprint.
-- Git metadata is unavailable in the inspected working directory, so no commit-history evidence can be claimed.
+- `web`: Next.js 16.3.6 application with UI and client-side feature code; Node/npm policy and an independent root GitHub Actions lint/build workflow are configured. This is not evidence of Phase 1–8 backend delivery.
+- Remaining Phase 0 work includes service-template/runbook and decision closeout outside the resolved D-005 topology gate. S001-T07 hosted supply-chain execution, default-branch freshness evidence, artifact audit, and protected required checks are complete; the release policy remains `BLOCKED` and is not a release-ready claim. The idempotent outbox/inbox sample flow is complete under S001-T06. A CDK application, deployment, ECR publishing, and CodeBuild/CodePipeline are later Phase 1 platform work under the revised blueprint.
+- This public monorepo's bootstrap and snapshot commits establish its own history; they do not import or assert ancestry from prior source repositories.
 
 ## Decision / Blocker Log
 
@@ -66,8 +66,8 @@ S001-T01 through S001-T07 are COMPLETED. S001-T07 has hosted PR/push and default
 | D-002 | CI provider and container image registry choice | RESOLVED | Product Owner / Project Owner | GitHub Actions and Amazon ECR were approved on 2026-08-11; separate API/web baseline workflows are configured. ECR publishing awaits a dedicated GitHub OIDC role in a later deployment task. |
 | D-003 | Identity service baseline test cannot initialize a datasource | RESOLVED | Developer | Local integration context now passes through `mvnw.cmd -Pit-local verify` using `identity_test_db` and separate runtime/Flyway credentials (2026-08-11). |
 | D-004 | PostgreSQL owner/migrator/runtime baseline lacks full execution evidence | RESOLVED | Developer | Resolved on 2026-08-25: bootstrap converged twice, the complete local isolation matrix passed 8/8, the local Identity integration path passed 1/1, and canonical Testcontainers verification passed 5/5. |
-| D-005 | Revised blueprint requires monorepo delivery while current API/web remain separate repositories | OPEN | Project Owner / Developer | Resolved direction: ADR-017 / BD-007 approved `OPTION_A_MONOREPO` on 2026-09-24. Keep open until history-preserving migration, clean-checkout independent builds, contract consumer compatibility validation, path-scoped CI with stable required checks, ownership rules, and rollback evidence pass. |
+| D-005 | Revised blueprint requires governed monorepo delivery | RESOLVED | Project Owner / Developer | Resolved on 2026-10-03 after owner review and acceptance of the amended exit evidence: reviewed current-tree snapshot, independent clean-checkout builds, protected default and stable required checks, ownership, hosted PR matrix, sanitized evidence, and locked bootstrap rollback reference. Prior Git ancestry was intentionally not imported. Phase 0 web consumer compatibility remains `DEFERRED_NO_PRODUCER_CONTRACT` under the approved addendum, not PASS; release policy remains separately `BLOCKED`, so this does not authorize product release. |
 
 ## Next Action
 
-Complete S001-T08 runbook/sprint closeout and execute the S001-T09 `OPTION_A_MONOREPO` migration plan after its destination repository and cutover window are approved. Keep `release-policy` visible and blocked until High/Critical findings are remediated or receive exact, approved, unexpired dispositions.
+Complete S001-T08 and remaining Sprint 001 decision work separately from the resolved D-005 topology decision. Identify authoritative producer contracts for web product endpoints before claiming consumer compatibility. Keep `release-policy` visible and blocked until High/Critical findings are remediated or receive exact, approved, unexpired dispositions.
