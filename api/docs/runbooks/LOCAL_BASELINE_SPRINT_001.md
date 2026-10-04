@@ -151,7 +151,11 @@ if ($first.StatusCode -ne 201 -or $replay.StatusCode -ne 201 -or
 }
 $sampleId = [guid]::Parse($a.sampleId).ToString()
 function Assert-Problem($Response, [int]$Status, [string]$Code) {
-    $problem = $Response.Content | ConvertFrom-Json
+    # application/problem+json can be exposed as byte[] by PowerShell 7.
+    $problemText = if ($Response.Content -is [byte[]]) {
+        [Text.Encoding]::UTF8.GetString($Response.Content)
+    } else { [string]$Response.Content }
+    $problem = $problemText | ConvertFrom-Json
     foreach ($field in @('type','title','status','code','correlationId')) {
         if ($null -eq $problem.PSObject.Properties[$field]) { throw 'Missing canonical problem field' }
     }
@@ -199,7 +203,7 @@ Terminal A logs should show `identity_sample.recorded`, `identity_sample.replaye
 
 ## Security evidence and Sprint review
 
-After Maven verification in the same clean commit, invoke the existing orchestrator with `-WorkflowName supply-chain`, `-CommitSha` set to that actual checkout commit, `-EvidenceRoot` set to absolute ignored private storage, and `-UseExistingVerifiedArtifact` only for the artifact just built. Check native exit and summary execution state; do not fabricate summaries.
+After Maven verification in the same clean commit, invoke the existing orchestrator with `-WorkflowName supply-chain`, `-CommitSha` set to that actual checkout commit, `-EvidenceRoot` set to absolute ignored private storage, and `-UseExistingVerifiedArtifact` only for the artifact just built. On a fresh checkout use `-RefreshDatabase`: without it the default path requires an already fresh local Trivy DB. Check native exit and summary execution state; do not fabricate summaries.
 
 Validate with `node api/scripts/supply-chain/Validate-HostedSupplyChainEvidence.mjs <evidence-root> <commit-sha>` and check exit immediately. Exactly seven sanitized files are required: run summary, vulnerability inventory, Gitleaks inventory, container vulnerability inventory, image identity, smoke summary and policy summary. No raw report upload/publication.
 
