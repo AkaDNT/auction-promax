@@ -28,4 +28,4 @@ The ECS/Lambda boundary becomes explicit without mandating Lambda deployment. A 
 
 ## Later implementation evidence
 
-Phase 8 image-processing design and failure/idempotency tests, plus service deployment evidence, are required before claiming this policy implemented. No Lambda function or AWS account is claimed here.
+Phase 2 image-processing design and failure/idempotency tests, plus service deployment evidence, are required before claiming that workload implemented. Other approved supporting-Lambda workloads, such as Phase 8 notifications/projections, require their own later evidence. No Lambda function or AWS account is claimed here.

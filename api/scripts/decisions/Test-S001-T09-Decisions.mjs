@@ -229,6 +229,94 @@ function readRepositoryAdr(relativePath) {
   }
 }
 
+function readDocumentOrNull(absolutePath) {
+  try {
+    return fs.readFileSync(absolutePath, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+function validateDecisionDocuments(readDocument) {
+  const errors = [];
+  const monorepoRoot = path.resolve(repositoryRoot, '..');
+  const documentPaths = [
+    ...fs.readdirSync(adrDirectory)
+      .filter((name) => /^ADR-\d{3}-.*\.md$/.test(name))
+      .map((name) => path.join(adrDirectory, name)),
+    matrixPath,
+    path.join(decisionsDirectory, 'BUSINESS_DECISIONS.md'),
+  ];
+
+  for (const documentPath of documentPaths) {
+    const content = readDocument(documentPath);
+    if (typeof content !== 'string') {
+      errors.push(`MISSING_DOCUMENT:${path.basename(documentPath)}`);
+      continue;
+    }
+    for (const match of content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
+      const target = match[1];
+      if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
+      const [relativePath, fragment] = target.split('#', 2);
+      const destination = path.resolve(path.dirname(documentPath), relativePath || '.');
+      if (!(destination === monorepoRoot ||
+        destination.startsWith(`${monorepoRoot}${path.sep}`))) {
+        errors.push(`LINK_OUTSIDE_REPOSITORY:${path.basename(documentPath)}`);
+        continue;
+      }
+      const destinationContent = readDocument(destination);
+      if (typeof destinationContent !== 'string') {
+        errors.push(`BROKEN_LOCAL_LINK:${path.basename(documentPath)}:${target}`);
+        continue;
+      }
+      if (fragment) {
+        const headings = [...destinationContent.matchAll(/^#{1,6}\s+(.+)$/gm)]
+          .map((heading) => heading[1]
+            .toLowerCase()
+            .replace(/<[^>]+>/g, '')
+            .replace(/[`*_~]/g, '')
+            .replace(/[^\p{L}\p{N}\s-]/gu, '')
+            .trim()
+            .replace(/\s+/g, '-'));
+        if (!headings.includes(fragment.toLowerCase())) {
+          errors.push(`BROKEN_LOCAL_ANCHOR:${path.basename(documentPath)}:${target}`);
+        }
+      }
+    }
+  }
+
+  const topology = readDocument(adr017Path);
+  const businessDecisions = readDocument(path.join(decisionsDirectory,
+    'BUSINESS_DECISIONS.md'));
+  if (typeof topology !== 'string' ||
+    !/^- Status: APPROVED$/m.test(topology) ||
+    !/^- Approved by: AkaDNT \(Project Owner \/ Repository Owner\)$/m.test(topology) ||
+    !/^- Selected option: `OPTION_A_MONOREPO`$/m.test(topology) ||
+    typeof businessDecisions !== 'string' ||
+    !/^\| BD-007 \|[^\r\n]*\| APPROVED \|/m.test(businessDecisions)) {
+    errors.push('TOPOLOGY_NOT_APPROVED');
+  }
+
+  for (const adrFile of proposedAdrs) {
+    const content = readDocument(path.join(adrDirectory, adrFile));
+    const date = typeof content === 'string'
+      ? content.match(/^- Approval date: (\d{4})-(\d{2})-(\d{2})$/m)
+      : null;
+    const year = Number(date?.[1]);
+    const month = Number(date?.[2]);
+    const day = Number(date?.[3]);
+    const calendarDate = new Date(Date.UTC(year, month - 1, day));
+    if (typeof content !== 'string' || !/^- Status: APPROVED$/m.test(content) ||
+      !/^- Approved by: AkaDNT \(Project Owner \/ Repository Owner\)$/m.test(content) ||
+      !date || calendarDate.getUTCFullYear() !== year ||
+      calendarDate.getUTCMonth() + 1 !== month ||
+      calendarDate.getUTCDate() !== day) {
+      errors.push(`INVALID_APPROVAL_DATE:${adrFile}`);
+    }
+  }
+  return errors;
+}
+
 function assertCase(name, condition) {
   if (!condition) {
     console.error(`[FAIL] ${name}`);
@@ -398,6 +486,37 @@ if (!firstRow || !secondRow || !lastRow || !approvedLink) {
   assertCase('GAP and approved delta states both validate',
     validateMatrix(gapMatrix, readRepositoryAdr).length === 0 &&
       validateMatrix(canonical, readRepositoryAdr).length === 0);
+}
+
+const adr018Path = path.join(adrDirectory, proposedAdrs[0]);
+const adr017Path = path.join(adrDirectory,
+  'ADR-017-repository-topology-and-contract-governance.md');
+const adr018 = readDocumentOrNull(adr018Path);
+const adr017 = readDocumentOrNull(adr017Path);
+const overrideDocument = (target, changedPath, replacement) =>
+  target === changedPath ? replacement : readDocumentOrNull(target);
+assertCase('Broken Refines target is rejected',
+  validateDecisionDocuments((target) => overrideDocument(target, adr018Path,
+    adr018.replace('ADR-001-coarse-grained-microservices-first.md',
+      'ADR-999-missing.md'))).some((error) => error.startsWith('BROKEN_LOCAL_LINK')));
+assertCase('Unapproved topology ADR is rejected',
+  validateDecisionDocuments((target) => overrideDocument(target, adr017Path,
+    adr017.replace('- Status: APPROVED', '- Status: PROPOSED')))
+    .includes('TOPOLOGY_NOT_APPROVED'));
+assertCase('Broken business-decision anchor is rejected',
+  validateDecisionDocuments((target) => overrideDocument(target, matrixPath,
+    replaceFirst(canonical, 'BUSINESS_DECISIONS.md',
+      'BUSINESS_DECISIONS.md#bd-999')))
+    .some((error) => error.startsWith('BROKEN_LOCAL_ANCHOR')));
+assertCase('Impossible approval date is rejected',
+  validateDecisionDocuments((target) => overrideDocument(target, adr018Path,
+    adr018.replace('- Approval date: 2026-10-03', '- Approval date: 2026-99-99')))
+    .some((error) => error.startsWith('INVALID_APPROVAL_DATE')));
+const documentErrors = validateDecisionDocuments(readDocumentOrNull);
+assertCase('All decision-document links, approvals and dates validate',
+  documentErrors.length === 0);
+if (documentErrors.length > 0) {
+  console.error(`[DIAGNOSTIC] Decision document codes: ${documentErrors.join(',')}`);
 }
 
 console.log(process.exitCode ? 'S001-T09 decision matrix tests: FAIL' : 'S001-T09 decision matrix tests: PASS');
