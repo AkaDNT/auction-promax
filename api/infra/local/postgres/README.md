@@ -17,7 +17,7 @@ development databases and four local-integration databases use distinct roles.
 
 ## Prerequisites
 
-1. Install PostgreSQL 16 or 17 locally and make `psql` available on `PATH`.
+1. Install PostgreSQL server 17 locally and make `psql` available on `PATH`. The bootstrap validates the connected server major version, not just the client version.
 2. Copy `api/.env.local.example` to `api/.env.local`.
 3. Replace every `replace-me` password in `.env.local`. Do not commit that file.
 
