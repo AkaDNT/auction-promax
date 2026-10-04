@@ -57,6 +57,7 @@ const expectedAdrIds = {
 };
 const expectedDelta = {
   3: 'ADR-018',
+  7: 'ADR-019',
   8: 'ADR-019',
   13: 'ADR-020',
   14: 'ADR-021',
@@ -65,6 +66,16 @@ const expectedDelta = {
   19: 'ADR-024',
   20: 'ADR-025',
 };
+const proposedAdrs = [
+  'ADR-018-hexagonal-service-boundaries.md',
+  'ADR-019-lambda-supporting-workloads.md',
+  'ADR-020-step-functions-orchestration-criteria.md',
+  'ADR-021-appconfig-rollout-policy.md',
+  'ADR-022-kms-security-baseline.md',
+  'ADR-023-multi-account-governance.md',
+  'ADR-024-immutable-image-promotion-and-blue-green.md',
+  'ADR-025-backup-restore-and-fault-testing.md',
+];
 
 const requiredApprovedAdrs = Array.from({ length: 16 }, (_, index) =>
   `ADR-${String(index + 1).padStart(3, '0')}`,
@@ -132,7 +143,10 @@ function validateMatrix(markdown, readAdr) {
       errors.push(`SUBJECT_${number}`);
     }
     if (!coverageValues.has(coverage)) errors.push(`COVERAGE_${number}`);
-    if (expectedCoverage[number - 1] && coverage !== expectedCoverage[number - 1]) {
+    const allowedCoverage = expectedDelta[number]
+      ? new Set([expectedCoverage[number - 1], 'COVERED'])
+      : new Set([expectedCoverage[number - 1]]);
+    if (!allowedCoverage.has(coverage)) {
       errors.push(`MAPPING_COVERAGE_${number}`);
     }
     if (!decisionStatuses.has(decisionStatus)) errors.push(`DECISION_STATUS_${number}`);
@@ -149,7 +163,10 @@ function validateMatrix(markdown, readAdr) {
 
     const links = [...references.matchAll(/\[(ADR-\d{3})\]\(([^)]+)\)/g)]
       .map((match) => ({ id: match[1], target: match[2] }));
-    const expectedIds = expectedAdrIds[number] ?? [];
+    const expectedIds = [
+      ...(expectedAdrIds[number] ?? []),
+      ...(coverage === 'COVERED' && expectedDelta[number] ? [expectedDelta[number]] : []),
+    ];
     const actualIds = links.map((link) => link.id);
     if (expectedIds.join(',') !== actualIds.join(',')) {
       errors.push(`ADR_MAPPING_${number}`);
@@ -182,7 +199,8 @@ function validateMatrix(markdown, readAdr) {
     }
 
     if (coverage === 'COVERED' &&
-      (decisionStatus !== 'APPROVED' || !adrResults.some((adr) => adr.status === 'APPROVED'))) {
+      (decisionStatus !== 'APPROVED' || adrResults.length === 0 ||
+        !adrResults.every((adr) => adr.status === 'APPROVED'))) {
       errors.push(`COVERED_WITHOUT_APPROVED_DECISION_${number}`);
     }
     if (coverage === 'PARTIAL' &&
@@ -211,6 +229,94 @@ function readRepositoryAdr(relativePath) {
   }
 }
 
+function readDocumentOrNull(absolutePath) {
+  try {
+    return fs.readFileSync(absolutePath, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+function validateDecisionDocuments(readDocument) {
+  const errors = [];
+  const monorepoRoot = path.resolve(repositoryRoot, '..');
+  const documentPaths = [
+    ...fs.readdirSync(adrDirectory)
+      .filter((name) => /^ADR-\d{3}-.*\.md$/.test(name))
+      .map((name) => path.join(adrDirectory, name)),
+    matrixPath,
+    path.join(decisionsDirectory, 'BUSINESS_DECISIONS.md'),
+  ];
+
+  for (const documentPath of documentPaths) {
+    const content = readDocument(documentPath);
+    if (typeof content !== 'string') {
+      errors.push(`MISSING_DOCUMENT:${path.basename(documentPath)}`);
+      continue;
+    }
+    for (const match of content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
+      const target = match[1];
+      if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
+      const [relativePath, fragment] = target.split('#', 2);
+      const destination = path.resolve(path.dirname(documentPath), relativePath || '.');
+      if (!(destination === monorepoRoot ||
+        destination.startsWith(`${monorepoRoot}${path.sep}`))) {
+        errors.push(`LINK_OUTSIDE_REPOSITORY:${path.basename(documentPath)}`);
+        continue;
+      }
+      const destinationContent = readDocument(destination);
+      if (typeof destinationContent !== 'string') {
+        errors.push(`BROKEN_LOCAL_LINK:${path.basename(documentPath)}:${target}`);
+        continue;
+      }
+      if (fragment) {
+        const headings = [...destinationContent.matchAll(/^#{1,6}\s+(.+)$/gm)]
+          .map((heading) => heading[1]
+            .toLowerCase()
+            .replace(/<[^>]+>/g, '')
+            .replace(/[`*_~]/g, '')
+            .replace(/[^\p{L}\p{N}\s-]/gu, '')
+            .trim()
+            .replace(/\s+/g, '-'));
+        if (!headings.includes(fragment.toLowerCase())) {
+          errors.push(`BROKEN_LOCAL_ANCHOR:${path.basename(documentPath)}:${target}`);
+        }
+      }
+    }
+  }
+
+  const topology = readDocument(adr017Path);
+  const businessDecisions = readDocument(path.join(decisionsDirectory,
+    'BUSINESS_DECISIONS.md'));
+  if (typeof topology !== 'string' ||
+    !/^- Status: APPROVED$/m.test(topology) ||
+    !/^- Approved by: AkaDNT \(Project Owner \/ Repository Owner\)$/m.test(topology) ||
+    !/^- Selected option: `OPTION_A_MONOREPO`$/m.test(topology) ||
+    typeof businessDecisions !== 'string' ||
+    !/^\| BD-007 \|[^\r\n]*\| APPROVED \|/m.test(businessDecisions)) {
+    errors.push('TOPOLOGY_NOT_APPROVED');
+  }
+
+  for (const adrFile of proposedAdrs) {
+    const content = readDocument(path.join(adrDirectory, adrFile));
+    const date = typeof content === 'string'
+      ? content.match(/^- Approval date: (\d{4})-(\d{2})-(\d{2})$/m)
+      : null;
+    const year = Number(date?.[1]);
+    const month = Number(date?.[2]);
+    const day = Number(date?.[3]);
+    const calendarDate = new Date(Date.UTC(year, month - 1, day));
+    if (typeof content !== 'string' || !/^- Status: APPROVED$/m.test(content) ||
+      !/^- Approved by: AkaDNT \(Project Owner \/ Repository Owner\)$/m.test(content) ||
+      !date || calendarDate.getUTCFullYear() !== year ||
+      calendarDate.getUTCMonth() + 1 !== month ||
+      calendarDate.getUTCDate() !== day) {
+      errors.push(`INVALID_APPROVAL_DATE:${adrFile}`);
+    }
+  }
+  return errors;
+}
+
 function assertCase(name, condition) {
   if (!condition) {
     console.error(`[FAIL] ${name}`);
@@ -237,6 +343,24 @@ for (const adrId of requiredApprovedAdrs) {
   assertCase(`${adrId} exists and is approved`, approved);
 }
 
+for (const adrFile of proposedAdrs) {
+  const adrPath = path.join(adrDirectory, adrFile);
+  const content = fs.existsSync(adrPath) ? fs.readFileSync(adrPath, 'utf8') : '';
+  const status = content.match(/^- Status: (PROPOSED|APPROVED)$/m)?.[1];
+  const approvalIsConsistent = status === 'PROPOSED'
+    ? !/^- Approved by:/m.test(content) && !/^- Approval date:/m.test(content)
+    : status === 'APPROVED' && /^- Approved by: \S.+$/m.test(content) &&
+      /^- Approval date: \d{4}-\d{2}-\d{2}$/m.test(content);
+  const valid = approvalIsConsistent &&
+    /^- Owner: Project Owner \/ Repository Owner$/m.test(content) &&
+    /^## Context$/m.test(content) &&
+    /^## Proposed decision$/m.test(content) &&
+    /^## Alternatives$/m.test(content) &&
+    /^## Consequences$/m.test(content) &&
+    /^## Later implementation evidence$/m.test(content);
+  assertCase(`${adrFile} has reviewable metadata for its decision status`, valid);
+}
+
 if (!fs.existsSync(matrixPath)) {
   console.error('[FAIL] Canonical 20-row decision matrix exists and validates (MATRIX_MISSING)');
   process.exitCode = 1;
@@ -248,6 +372,31 @@ const canonical = fs.readFileSync(matrixPath, 'utf8');
 const canonicalErrors = validateMatrix(canonical, readRepositoryAdr);
 assertCase('Canonical matrix has exactly 20 ordered blueprint subjects',
   canonicalErrors.length === 0);
+if (process.argv.includes('--require-complete')) {
+  const rows = extractRows(canonical);
+  assertCase('All 20 mandatory decisions have approved coverage',
+    rows.length === 20 && rows.every((row) => row[2] === 'COVERED' &&
+      row[4] === 'APPROVED') && canonicalErrors.length === 0);
+}
+if (process.argv.includes('--require-closeout')) {
+  const sprint = fs.readFileSync(path.join(repositoryRoot, 'docs/sprints/SPRINT_001.md'), 'utf8');
+  const delivery = fs.readFileSync(path.join(repositoryRoot, 'docs/DELIVERY_STATE.md'), 'utf8');
+  const index = fs.readFileSync(path.join(repositoryRoot, 'docs/SPRINT_INDEX.md'), 'utf8');
+  const t09 = sprint.split('## S001-T09 — Reconcile revised blueprint decision delta')[1]
+    ?.split('## S001-T08 —')[0] ?? '';
+  assertCase('Sprint T09 acceptance and task status reflect approved decision closeout',
+    /^\|\s*9\s*\|\s*S001-T09\s*\|[^\r\n]*\|\s*COMPLETED\s*\|$/m.test(sprint) &&
+      (t09.match(/^- \[x\]/gm) ?? []).length === 4);
+  assertCase('Delivery State and sprint index hand off to T08 without closing Phase 0',
+    delivery.includes('S001-T09 decision traceability: 20/20 approved') &&
+      delivery.includes('Sprint 001 remain in progress pending S001-T08') &&
+      index.includes('Current execution task: S001-T08'));
+}
+for (const adrFile of proposedAdrs) {
+  const adrId = adrFile.slice(0, 7);
+  assertCase(`${adrId} decision is linked from the matrix`,
+    canonical.includes(`[${adrId}](../adr/${adrFile})`));
+}
 if (canonicalErrors.length > 0) {
   console.error(`[DIAGNOSTIC] Canonical matrix validation codes: ${canonicalErrors.join(',')}`);
 }
@@ -299,10 +448,18 @@ if (!firstRow || !secondRow || !lastRow || !approvedLink) {
   assertCase('COVERED without approved decision rejected',
     validateMatrix(noDecision, readRepositoryAdr).some((error) => error.startsWith('COVERED_WITHOUT_APPROVED')));
 
-  const gapWithoutOwner = canonical.replace(
-    /^(\|\s*3\s*\|[^\r\n]*\|\s*GAP\s*\|[^\r\n]*\|[^\r\n]*\|[^\r\n]*\|[^\r\n]*\|[^\r\n]*\|)[^|]+(\|)$/m,
-    '$1—$2',
-  );
+  const approvedThirdRow = canonical.match(/^\|\s*3\s*\|[^\r\n]+/m)?.[0];
+  const gapCells = parseTableRow(approvedThirdRow);
+  gapCells[2] = 'GAP';
+  gapCells[3] = '—';
+  gapCells[4] = 'NOT_DECIDED';
+  gapCells[7] = 'Proposed ADR-018; no approval claimed.';
+  gapCells[8] = 'Product Owner / Project Owner';
+  const gapRow = `| ${gapCells.join(' | ')} |`;
+  const gapMatrix = canonical.replace(approvedThirdRow, gapRow);
+  gapCells[8] = '—';
+  const gapWithoutOwner = canonical.replace(approvedThirdRow,
+    `| ${gapCells.join(' | ')} |`);
   assertCase('GAP without proposed delta owner rejected',
     validateMatrix(gapWithoutOwner, readRepositoryAdr).some((error) => error.startsWith('GAP_WITHOUT_PROPOSED')));
 
@@ -325,6 +482,41 @@ if (!firstRow || !secondRow || !lastRow || !approvedLink) {
     validateMatrix(proposedLink, proposedAdrReader)
       .some((error) => error.startsWith('UNAPPROVED_ADR_AS_APPROVED') ||
         error.startsWith('COVERED_WITHOUT_APPROVED')));
+
+  assertCase('GAP and approved delta states both validate',
+    validateMatrix(gapMatrix, readRepositoryAdr).length === 0 &&
+      validateMatrix(canonical, readRepositoryAdr).length === 0);
+}
+
+const adr018Path = path.join(adrDirectory, proposedAdrs[0]);
+const adr017Path = path.join(adrDirectory,
+  'ADR-017-repository-topology-and-contract-governance.md');
+const adr018 = readDocumentOrNull(adr018Path);
+const adr017 = readDocumentOrNull(adr017Path);
+const overrideDocument = (target, changedPath, replacement) =>
+  target === changedPath ? replacement : readDocumentOrNull(target);
+assertCase('Broken Refines target is rejected',
+  validateDecisionDocuments((target) => overrideDocument(target, adr018Path,
+    adr018.replace('ADR-001-coarse-grained-microservices-first.md',
+      'ADR-999-missing.md'))).some((error) => error.startsWith('BROKEN_LOCAL_LINK')));
+assertCase('Unapproved topology ADR is rejected',
+  validateDecisionDocuments((target) => overrideDocument(target, adr017Path,
+    adr017.replace('- Status: APPROVED', '- Status: PROPOSED')))
+    .includes('TOPOLOGY_NOT_APPROVED'));
+assertCase('Broken business-decision anchor is rejected',
+  validateDecisionDocuments((target) => overrideDocument(target, matrixPath,
+    replaceFirst(canonical, 'BUSINESS_DECISIONS.md',
+      'BUSINESS_DECISIONS.md#bd-999')))
+    .some((error) => error.startsWith('BROKEN_LOCAL_ANCHOR')));
+assertCase('Impossible approval date is rejected',
+  validateDecisionDocuments((target) => overrideDocument(target, adr018Path,
+    adr018.replace('- Approval date: 2026-10-03', '- Approval date: 2026-99-99')))
+    .some((error) => error.startsWith('INVALID_APPROVAL_DATE')));
+const documentErrors = validateDecisionDocuments(readDocumentOrNull);
+assertCase('All decision-document links, approvals and dates validate',
+  documentErrors.length === 0);
+if (documentErrors.length > 0) {
+  console.error(`[DIAGNOSTIC] Decision document codes: ${documentErrors.join(',')}`);
 }
 
 console.log(process.exitCode ? 'S001-T09 decision matrix tests: FAIL' : 'S001-T09 decision matrix tests: PASS');

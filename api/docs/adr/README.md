@@ -7,3 +7,4 @@ All initial ADRs were approved by the Product Owner / Project Owner on 2026-08-0
 | ADR-001–ADR-015 | Blueprint-mandated initial architecture decisions | APPROVED |
 | ADR-016 | PostgreSQL owner/migrator/runtime role separation | APPROVED |
 | ADR-017 | Repository topology and contract governance | APPROVED |
+| ADR-018–ADR-025 | Blueprint decision deltas: service boundaries, supporting compute, orchestration, config, security, accounts, deployment and recovery | APPROVED on 2026-10-03; decision-only coverage |

@@ -26,8 +26,8 @@ An engineer can build and verify the initial service baseline with versioned con
 ## Phase Exit Gate Progress
 
 - [x] Final ADR set, threat model, data classification, SLOs, and cost model are approved and traceable.
-  - Evidence: ADR-001 through ADR-016 and `docs/decisions/PHASE_0_BASELINES.md` were approved by the Product Owner / Project Owner on 2026-08-05; BD-004/BD-005 record the approved PostgreSQL privilege refinement and supersession rule.
-  - Covered by sprint/task: S001-T01.
+  - Evidence: ADR-001 through ADR-016 and `docs/decisions/PHASE_0_BASELINES.md` were approved by the Product Owner / Project Owner on 2026-08-05; BD-004/BD-005 record the approved PostgreSQL privilege refinement and supersession rule. ADR-017 records the later topology decision; ADR-018 through ADR-025 were approved on 2026-10-03. The 20-row `docs/decisions/S001-T09_BLUEPRINT_ADR_MATRIX.md` traces all mandatory blueprint subjects as approved decision-only coverage.
+  - Covered by sprint/task: S001-T01, S001-T09.
 - [ ] Monorepo and service templates let every service build independently.
   - Evidence: ADR-017 / BD-007 approved `OPTION_A_MONOREPO`; the public monorepo now has reviewed API and web snapshots and independent fresh-checkout API, web, contract, and infrastructure builds. Its protected default is `migration/monorepo`; unchanged, locked bootstrap `main` remains the rollback reference. Hosted path-classification and negative PR cases concluded as designed, and the first protected governance merge passed the required `monorepo-required` and `supply-chain-verification` checks. The canonical producer registry does not yet cover web product endpoints: consumer compatibility is `DEFERRED_NO_PRODUCER_CONTRACT`, not PASS. The owner accepted this residual risk for the Phase 0 topology cutover, not for product release. Detailed evidence remains local-only.
   - Covered by sprint/task: S001-T02, S001-T03, S001-T09. D-005 is resolved for the governed repository topology after the owner's final review of the amended evidence. This composite Phase 0 gate remains open for separate service-template obligations.
@@ -49,13 +49,13 @@ An engineer can build and verify the initial service baseline with versioned con
 
 ## Current Sprint Progress
 
-S001-T01 through S001-T07 are COMPLETED. S001-T07 has hosted PR/push and default-branch freshness evidence, sanitized artifact validation, and owner-confirmed Phase 0 branch protection. Its release policy remains honestly `BLOCKED`; this is not release readiness. The overall Phase 0 exit gate and Sprint 001 remain in progress pending S001-T08 and S001-T09. Cognito, EventBridge/SQS, ECS, RDS, ElastiCache, and multi-service choreography remain later-phase work.
+S001-T01 through S001-T07 and S001-T09 are COMPLETED. S001-T09 decision traceability: 20/20 approved mandatory blueprint subjects with no GAP/PARTIAL rows; these are architecture decisions, not AWS delivery. S001-T07 has hosted PR/push and default-branch freshness evidence, sanitized artifact validation, and owner-confirmed Phase 0 branch protection. Its release policy remains honestly `BLOCKED`; this is not release readiness. The overall Phase 0 exit gate and Sprint 001 remain in progress pending S001-T08. Cognito, EventBridge/SQS, ECS, RDS, ElastiCache, and multi-service choreography remain later-phase work.
 
 ## Repository Assessment
 
 - `services/identity-profile-service`: Spring Boot skeleton with Java 21, Spring Boot 3.5.16, Maven Wrapper, persistence/security/observability dependencies, separate local/test Flyway credentials, and split local/Testcontainers integration-test paths.
 - `web`: Next.js 16.3.6 application with UI and client-side feature code; Node/npm policy and an independent root GitHub Actions lint/build workflow are configured. This is not evidence of Phase 1–8 backend delivery.
-- Remaining Phase 0 work includes service-template/runbook and decision closeout outside the resolved D-005 topology gate. S001-T07 hosted supply-chain execution, default-branch freshness evidence, artifact audit, and protected required checks are complete; the release policy remains `BLOCKED` and is not a release-ready claim. The idempotent outbox/inbox sample flow is complete under S001-T06. A CDK application, deployment, ECR publishing, and CodeBuild/CodePipeline are later Phase 1 platform work under the revised blueprint.
+- Remaining Phase 0 work includes service-template/runbook obligations outside the resolved D-005 topology gate and completed T09 decision traceability. S001-T07 hosted supply-chain execution, default-branch freshness evidence, artifact audit, and protected required checks are complete; the release policy remains `BLOCKED` and is not a release-ready claim. The idempotent outbox/inbox sample flow is complete under S001-T06. A CDK application, deployment, ECR publishing, and CodeBuild/CodePipeline are later Phase 1 platform work under the revised blueprint.
 - This public monorepo's bootstrap and snapshot commits establish its own history; they do not import or assert ancestry from prior source repositories.
 
 ## Decision / Blocker Log
@@ -70,4 +70,4 @@ S001-T01 through S001-T07 are COMPLETED. S001-T07 has hosted PR/push and default
 
 ## Next Action
 
-Complete S001-T08 and remaining Sprint 001 decision work separately from the resolved D-005 topology decision. Identify authoritative producer contracts for web product endpoints before claiming consumer compatibility. Keep `release-policy` visible and blocked until High/Critical findings are remediated or receive exact, approved, unexpired dispositions.
+Complete S001-T08 and the separate Phase 0 service-template obligations; T09's 20/20 decision traceability and D-005 topology decision are resolved. Identify authoritative producer contracts for web product endpoints before claiming consumer compatibility. Keep `release-policy` visible and blocked until High/Critical findings are remediated or receive exact, approved, unexpired dispositions.

@@ -74,7 +74,7 @@ One non-financial sample command in `identity-profile-service` traverses HTTP va
 |     6 | S001-T06 | Prove idempotent outbox-to-inbox sample flow                  |       8h | HIGH        | COMPLETED   |
 |     7 | S001-T07 | Add supply-chain scan evidence and CI verification path       |       5h | MEDIUM      | COMPLETED   |
 |     8 | S001-T08 | Publish local baseline runbook and sprint evidence            |       4h | LOW         | READY       |
-|     9 | S001-T09 | Reconcile revised blueprint decision delta                    |       4h | MEDIUM      | READY       |
+|     9 | S001-T09 | Reconcile revised blueprint decision delta                    |       4h | MEDIUM      | COMPLETED   |
 
 ## Stretch Backlog
 
@@ -668,10 +668,10 @@ Revised blueprint and completed S001-T01 decision baseline.
 
 ### Acceptance Criteria
 
-- [ ] Every revised mandatory ADR area has a traceable existing ADR or a new delta ADR.
-- [ ] The monorepo-versus-two-repository topology is explicitly approved, including the resulting build/contract-governance obligations.
-- [ ] Existing approved ADR-001 through ADR-016 remain valid unless a new record explicitly supersedes a decision.
-- [ ] The decision matrix distinguishes Phase 0 evidence from later Phase 1+ AWS/platform delivery.
+- [x] Every revised mandatory ADR area has a traceable existing ADR or a new delta ADR.
+- [x] The monorepo-versus-two-repository topology is explicitly approved, including the resulting build/contract-governance obligations.
+- [x] Existing approved ADR-001 through ADR-016 remain valid unless a new record explicitly supersedes a decision.
+- [x] The decision matrix distinguishes Phase 0 evidence from later Phase 1+ AWS/platform delivery.
 
 ### Required Tests
 
@@ -688,11 +688,11 @@ The revised blueprint's mandatory decisions are fully traceable without retroact
 
 ### Evidence
 
-- Commit/PR:
-- Commands:
-- Test results:
+- Commit/PR: Local decision commit `dc9cbb0fd9d59dd19c8c9abc9a2623186b23cb1b`; protected-default PR/merge evidence remains to be recorded after publication.
+- Commands: `node api/scripts/decisions/Test-S001-T09-Decisions.mjs --require-complete --require-closeout`; exact-path Markdown link and staged-content checks; `git diff --cached --check`.
+- Test results: 20/20 approved decision subjects, 0 GAP/PARTIAL; ADR-017 records the approved monorepo topology and D-005 has separate cutover evidence. The new ADRs are decision-only, not AWS implementation evidence. Local content inspection found no credential, account ID, token or private path; Gitleaks tooling was not available on PATH in this isolated checkout.
 - Deployment: Not applicable.
-- Screenshots/log references:
+- Screenshots/log references: `docs/decisions/S001-T09_BLUEPRINT_ADR_MATRIX.md`; ADR-017 through ADR-025; local-only T09 execution log (not committed).
 
 ## S001-T08 — Publish local baseline runbook and sprint evidence
 
@@ -779,7 +779,7 @@ Runbook is proven by execution, evidence is complete, and no planned item is rep
 - Completed: S001-T04 — versioned OpenAPI/event/realtime registry, Phase 0 `/api/v1` sample, event envelope, realtime placeholder, N/N-1 compatibility gates, malformed/breaking fixtures, local evidence, and the private GitHub Actions `verify-contract-registry` PASS are recorded.
 - Completed: S001-T06 — safe validation, idempotent replay, atomic sample/idempotency/outbox persistence, forced rollback, concurrent duplicate safety, post-commit local relay with durable retry state, duplicate-safe inbox effect, linked trace/correlation logs, and low-cardinality metrics passed canonical and supplementary local verification on 2026-09-06.
 - Completed: S001-T07 — hosted PR/push and default-branch freshness executions passed their execution-integrity checks; their release policy remains `BLOCKED` with 29 High, 37 Medium, and 0 Critical container findings. Sanitized artifact validation and owner-confirmed Phase 0 branch protection are recorded.
-- Next action: Complete S001-T08 runbook/sprint closeout and resolve the S001-T09 monorepo/topology decision. Do not treat the blocked release policy as release readiness.
+- Next action: Complete S001-T08 runbook/sprint closeout. S001-T09 decision traceability is complete; do not treat the blocked release policy as release readiness.
 
 ## Sprint Acceptance Criteria
 
@@ -836,7 +836,7 @@ Developer/operator technical sample flow passed through canonical Testcontainers
 
 ## Incomplete Work
 
-S001-T02 through S001-T07 are complete. S001-T08 and S001-T09 remain incomplete; do not represent Sprint 001 as complete.
+S001-T02 through S001-T07 and S001-T09 are complete. S001-T08 remains incomplete; do not represent Sprint 001 as complete.
 
 ## Technical Debt Accepted
 
@@ -866,4 +866,4 @@ Complete any remaining Phase 0 exit criteria based on Sprint 001 evidence; do no
 
 ## Immediate Next Action
 
-Complete S001-T08 runbook/sprint closeout and resolve the S001-T09 monorepo/topology decision; do not expand the completed T06 sample flow into production messaging or multi-service choreography. Keep release-policy blocked until findings are remediated or receive exact valid dispositions.
+Complete S001-T08 runbook/sprint closeout; the S001-T09 monorepo/topology and decision traceability are resolved separately. Do not expand the completed T06 sample flow into production messaging or multi-service choreography. Keep release-policy blocked until findings are remediated or receive exact valid dispositions.
