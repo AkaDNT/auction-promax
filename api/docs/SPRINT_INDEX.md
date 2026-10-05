@@ -6,8 +6,10 @@
 - Roadmap phase: Phase 0 — Decision lock and engineering foundation
 - Milestone: R0 — Engineering Baseline
 - Sprint goal: An engineer can build and verify the initial service baseline with versioned contracts, isolated local PostgreSQL, and one traced, idempotent outbox-to-inbox sample flow.
-- Status: IN_PROGRESS
-- Current execution task: S001-T08 (S001-T01 through S001-T07 and S001-T09 completed)
+- Status: COMPLETED
+- Publication status: PENDING_PROTECTED_PR
+- Actual review/closure date: 2026-10-05
+- Current execution task: S001-T08 protected publication (local review accepted; delivery pending)
 - Start date: 2026-08-10 (planned)
 - End date: 2026-08-21 (planned)
 
@@ -15,7 +17,7 @@
 
 | Sprint | Phase | Goal | Status | Result | Review |
 | ------ | ----- | ---- | ------ | ------ | ------ |
-| None | — | — | — | — | — |
+| SPRINT-001 | Phase 0 | Engineering baseline | COMPLETED locally; publication pending | Owner-accepted technical outcome; Phase 0 open, release policy BLOCKED | [T08 review](sprints/S001-T08_REVIEW_EVIDENCE.md), accepted 2026-10-05 |
 
 ## Upcoming Sprint Candidates
 
