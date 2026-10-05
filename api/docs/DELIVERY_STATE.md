@@ -12,9 +12,10 @@
 - Active milestone: R0 — Engineering Baseline
 - Current sprint: SPRINT-001
 - Sprint status: COMPLETED
-- Publication status: PENDING_PROTECTED_PR
+- Publication status: PUBLISHED_VERIFIED
+- Published merge: `ab2d8256b25919cc7479fa6d6aad7a41eb964f83`.
 - Actual review/closure date: 2026-10-05
-- Delivery scope: owner-accepted local technical closure; protected-default publication/postmerge evidence pending.
+- Delivery scope: owner-accepted technical closure delivered through PR16; required postmerge execution checks verified. Phase 0 and release readiness remain open.
 - Target environment: Local developer environment and CI baseline
 - Last updated: 2026-10-05
 
@@ -52,7 +53,7 @@ An engineer can build and verify the initial service baseline with versioned con
 
 ## Current Sprint Progress
 
-S001-T01 through S001-T09 have accepted local task outcomes. S001-T09 decision traceability: 20/20 approved mandatory blueprint subjects with no GAP/PARTIAL rows; these are architecture decisions, not AWS delivery. T09 is published via PR #15/default merge `0bd0f70a3324738fde08e3d104955e6b2d054742`. The owner accepted T08's [technical review](sprints/S001-T08_REVIEW_EVIDENCE.md) on 2026-10-05: fresh builds/contracts/database/sample evidence and canonical supply-chain execution PASS. Sprint 001 technical outcome is closed locally; protected T08 publication/postmerge delivery remains pending. The overall Phase 0 exit gate remains open. Consumer compatibility is DEFERRED_NO_PRODUCER_CONTRACT; release-policy=BLOCKED. Cognito, EventBridge/SQS, ECS, RDS, ElastiCache and multi-service choreography remain later-phase work.
+S001-T01 through S001-T09 have accepted technical task outcomes. S001-T09 decision traceability: 20/20 approved mandatory blueprint subjects with no GAP/PARTIAL rows; these are architecture decisions, not AWS delivery. T09 is published via PR #15/default merge `0bd0f70a3324738fde08e3d104955e6b2d054742`. The owner accepted T08's [technical review](sprints/S001-T08_REVIEW_EVIDENCE.md) on 2026-10-05: fresh builds/contracts/database/sample evidence and canonical supply-chain execution PASS. PR16 delivered Sprint 001's technical outcome with required postmerge execution checks verified. The overall Phase 0 exit gate remains open. Consumer compatibility is DEFERRED_NO_PRODUCER_CONTRACT; release-policy=BLOCKED. Cognito, EventBridge/SQS, ECS, RDS, ElastiCache and multi-service choreography remain later-phase work.
 
 ## Repository Assessment
 
@@ -73,4 +74,4 @@ S001-T01 through S001-T09 have accepted local task outcomes. S001-T09 decision t
 
 ## Next Action
 
-Complete protected publication/postmerge verification of the locally accepted S001-T08 closeout, with separate merge authorization. Then assess service-template gaps and authoritative producer contracts before proposing the next Phase 0 sprint; no Phase 1 start or Sprint 002 commitment is implied. Keep release-policy visible and BLOCKED until findings are remediated or receive exact approved unexpired dispositions.
+Assess service-template gaps and authoritative producer contracts before proposing the next Phase 0 sprint; no Phase 1 start or Sprint 002 commitment is implied. Keep release-policy visible and BLOCKED until findings are remediated or receive exact approved unexpired dispositions.
