@@ -1,6 +1,13 @@
 # S001-T08 local baseline review evidence
 
-Status: ACCEPTED_LOCAL_REVIEW. The owner accepted corrected C1's technical outcome on 2026-10-05. Protected publication and delivery verification remain pending; this is not a delivered Sprint closure.
+Status: ACCEPTED_LOCAL_REVIEW. The owner accepted corrected C1's technical outcome on 2026-10-05. PR16 delivered that outcome; required postmerge execution checks passed. This does not complete Phase 0 or establish release readiness.
+
+- Published merge: `ab2d8256b25919cc7479fa6d6aad7a41eb964f83`.
+- Publication PR: https://github.com/AkaDNT/auction-promax/pull/16
+- Postmerge monorepo-required: SUCCESS; https://github.com/AkaDNT/auction-promax/actions/runs/37261367669
+- Postmerge supply-chain-verification: SUCCESS; https://github.com/AkaDNT/auction-promax/actions/runs/37261367494
+
+PR16 was merged by the owner on 2026-10-05. Its actual merge has the reviewed base/C2 parents and C2 tree `25903fa703636bd68a1ab8375ec7f4c8661683a0`. A detached published-revision checkout passed the complete decision/closeout suite. C1 runtime evidence below remains bound to C1: it is applicable through the reviewed docs/lifecycle-only C2 delta and identical published tree, not relabeled as a full merge runtime rehearsal. Actual-merge push checks independently prove hosted execution. The separate release-policy check failed and remains BLOCKED; verification success is not vulnerability acceptance.
 
 - Previous review: AkaDNT accepted the earlier C1 technical outcome on 2026-10-05; this does not approve the corrected revision automatically.
 - Approved by: AkaDNT (Project Owner / Repository Owner)
@@ -80,6 +87,6 @@ Earlier Docker Hub anonymous-token EOF failures are retained as failed evidence,
 - Corrected: reviewed runbook decoding/refresh instructions and owner-approved narrow observability regression/fix. Network recovery allowed the unchanged pinned scan to finish.
 - Improve: retain immediate exit checks, long-path-capable report enumeration and real formatter coverage; separate execution integrity, vulnerability policy and product maturity.
 
-Accepted outcome: the owner accepted corrected C1's local technical review on 2026-10-05 and authorized consistent T08/Sprint closure preparation. Actual technical review/closure date: 2026-10-05. Outstanding Phase 0 obligations, deferred consumer compatibility and BLOCKED release policy remain unchanged. This acceptance neither accepts vulnerability risk nor authorizes PR merge; protected-default delivery remains pending.
+Accepted outcome: the owner accepted corrected C1's local technical review on 2026-10-05 and authorized consistent T08/Sprint closure preparation. Actual technical review/closure date: 2026-10-05. Outstanding Phase 0 obligations, deferred consumer compatibility and BLOCKED release policy remain unchanged. This acceptance neither accepts vulnerability risk nor authorizes PR merge; subsequent owner merge and postmerge execution verification delivered the outcome through PR16.
 
-Protected-default publication, live protection/check review, independent final branch review and postmerge verification remain pending. Completing this draft does not deliver T08 or complete Phase 0.
+Independent final review and owner-shell protection read-back preceded publication; public postmerge checks and exact-revision closeout verification completed afterward. Protection read-back was owner-provided, not a freshly authenticated administration GET by the agent. The deferred Sprint-only phase-mutation regression gap remains; actual documents stay Phase 0. No vulnerability disposition or Phase 0 exit approval is inferred.

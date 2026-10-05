@@ -357,7 +357,17 @@ function validateSprintLifecycle(sprint, delivery, index, evidence) {
   if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return false;
   const publication = [sprint, delivery, index]
     .map((text) => text.match(/^- Publication status: (\S+)$/m)?.[1]);
-  return publication.every((status) => status === 'PENDING_PROTECTED_PR') &&
+  const pendingPublication = publication.every((status) => status === 'PENDING_PROTECTED_PR') &&
+    /^- Current execution task: S001-T08 protected publication\b/m.test(index);
+  const merge = evidence.match(/^- Published merge: `([a-f0-9]{40})`\.$/m)?.[1];
+  const verifiedPublication = publication.every((status) => status === 'PUBLISHED_VERIFIED') &&
+    Boolean(merge) && [sprint, delivery, index].every((text) =>
+      text.includes(`- Published merge: \`${merge}\`.`)) &&
+    /^- Publication PR: https:\/\/github\.com\/AkaDNT\/auction-promax\/pull\/\d+$/m.test(evidence) &&
+    ['monorepo-required', 'supply-chain-verification'].every((name) =>
+      new RegExp(`^- Postmerge ${name}: SUCCESS; https://github\\.com/AkaDNT/auction-promax/actions/runs/\\d+$`, 'm').test(evidence)) &&
+    /^- Current execution task: Phase 0 remaining-gate assessment\b/m.test(index);
+  return (pendingPublication || verifiedPublication) &&
     [sprint, delivery, index].every((text) =>
       text.includes(`- Actual review/closure date: ${date}`)) &&
     /^Status: ACCEPTED_LOCAL_REVIEW\./m.test(evidence) &&
@@ -370,8 +380,7 @@ function validateSprintLifecycle(sprint, delivery, index, evidence) {
     /^policyState\s*= BLOCKED$/m.test(evidence) &&
     /^failureCode\s*= NONE$/m.test(evidence) &&
     [delivery, evidence].every((text) => text.includes('DEFERRED_NO_PRODUCER_CONTRACT')) &&
-    delivery.includes('release-policy=BLOCKED') &&
-    /^- Current execution task: S001-T08 protected publication\b/m.test(index);
+    delivery.includes('release-policy=BLOCKED');
 }
 
 const completedLifecycleFixture = {
@@ -392,6 +401,24 @@ const pendingLifecycleFixture = {
   evidence: '',
 };
 assertCase('Consistent pending T08 lifecycle still validates', lifecycleFixtureValid(pendingLifecycleFixture));
+const publishedLifecycleFixture = Object.fromEntries(Object.entries(completedLifecycleFixture)
+  .map(([key, text]) => [key, text.replaceAll('PENDING_PROTECTED_PR', 'PUBLISHED_VERIFIED')
+    .replace('S001-T08 protected publication', 'Phase 0 remaining-gate assessment')]));
+for (const key of ['sprint', 'delivery', 'index', 'evidence']) {
+  publishedLifecycleFixture[key] += '- Published merge: `3333333333333333333333333333333333333333`.\n';
+}
+publishedLifecycleFixture.evidence += '- Publication PR: https://github.com/AkaDNT/auction-promax/pull/16\n'
+  + '- Postmerge monorepo-required: SUCCESS; https://github.com/AkaDNT/auction-promax/actions/runs/123\n'
+  + '- Postmerge supply-chain-verification: SUCCESS; https://github.com/AkaDNT/auction-promax/actions/runs/456\n';
+assertCase('Published verified T08 lifecycle validates', lifecycleFixtureValid(publishedLifecycleFixture));
+for (const [name, field, search, replacement] of [
+  ['Published merge mismatch', 'delivery', '3333333333333333333333333333333333333333', '4444444444444444444444444444444444444444'],
+  ['Published required check failed', 'evidence', 'supply-chain-verification: SUCCESS', 'supply-chain-verification: FAILURE'],
+  ['Published PR missing', 'evidence', '- Publication PR: https://github.com/AkaDNT/auction-promax/pull/16', ''],
+]) {
+  assertCase(`${name} rejected`, !lifecycleFixtureValid({ ...publishedLifecycleFixture,
+    [field]: replaceFirst(publishedLifecycleFixture[field], search, replacement) }));
+}
 for (const [name, field, search, replacement] of [
   ['Mismatched sprint statuses', 'delivery', 'Sprint status: COMPLETED', 'Sprint status: IN_PROGRESS'],
   ['Missing owner approval', 'evidence', '- Approved by: AkaDNT (Project Owner / Repository Owner)', ''],

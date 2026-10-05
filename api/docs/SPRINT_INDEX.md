@@ -7,9 +7,10 @@
 - Milestone: R0 — Engineering Baseline
 - Sprint goal: An engineer can build and verify the initial service baseline with versioned contracts, isolated local PostgreSQL, and one traced, idempotent outbox-to-inbox sample flow.
 - Status: COMPLETED
-- Publication status: PENDING_PROTECTED_PR
+- Publication status: PUBLISHED_VERIFIED
+- Published merge: `ab2d8256b25919cc7479fa6d6aad7a41eb964f83`.
 - Actual review/closure date: 2026-10-05
-- Current execution task: S001-T08 protected publication (local review accepted; delivery pending)
+- Current execution task: Phase 0 remaining-gate assessment (no next sprint or phase advancement authorized)
 - Start date: 2026-08-10 (planned)
 - End date: 2026-08-21 (planned)
 
@@ -17,7 +18,7 @@
 
 | Sprint | Phase | Goal | Status | Result | Review |
 | ------ | ----- | ---- | ------ | ------ | ------ |
-| SPRINT-001 | Phase 0 | Engineering baseline | COMPLETED locally; publication pending | Owner-accepted technical outcome; Phase 0 open, release policy BLOCKED | [T08 review](sprints/S001-T08_REVIEW_EVIDENCE.md), accepted 2026-10-05 |
+| SPRINT-001 | Phase 0 | Engineering baseline | COMPLETED; published and verified via PR16 | Owner-accepted technical outcome; Phase 0 open, release policy BLOCKED | [T08 review](sprints/S001-T08_REVIEW_EVIDENCE.md), accepted 2026-10-05 |
 
 ## Upcoming Sprint Candidates
 

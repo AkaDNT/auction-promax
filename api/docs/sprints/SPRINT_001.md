@@ -10,9 +10,10 @@
 - Target environment: Local developer environment and CI baseline
 - Target users: Developers and operators
 - Sprint status: COMPLETED
-- Publication status: PENDING_PROTECTED_PR
+- Publication status: PUBLISHED_VERIFIED
+- Published merge: `ab2d8256b25919cc7479fa6d6aad7a41eb964f83`.
 - Actual review/closure date: 2026-10-05
-- Closure scope: owner-accepted local technical outcome; protected-default delivery remains pending.
+- Closure scope: owner-accepted technical outcome delivered through PR16 with required postmerge execution checks verified; not Phase 0 exit or release readiness.
 
 ## Sprint Goal
 
@@ -764,7 +765,7 @@ Runbook is proven by execution, evidence is complete, and no planned item is rep
 
 ### Evidence
 
-- Commit/PR: implementation C1 `c71a49d16a2452268503b4a68eedbfe557e6c7fe`; closeout/protected PR publication pending, not a delivered-default claim.
+- Commit/PR: implementation C1 `c71a49d16a2452268503b4a68eedbfe557e6c7fe`; [PR16](https://github.com/AkaDNT/auction-promax/pull/16) merged as `ab2d8256b25919cc7479fa6d6aad7a41eb964f83`, with C2 tree and required postmerge execution checks verified.
 - Commands: fresh Maven `clean verify`; independent locked installs/builds; contract Fixture/Registry and workflow regressions; native database verification; runbook walkthrough; canonical supply-chain and seven-file validator. Full inventory/results in [T08 review evidence](S001-T08_REVIEW_EVIDENCE.md).
 - Test results: 113 unit, 10 canonical Testcontainers, 4 supplementary local tests; zero failures/errors/skips. HTTP/persistence/metrics/log proof passed. Supply-chain execution PASS, policy BLOCKED, failureCode NONE.
 - Deployment: none; local/CI technical scope only.
@@ -805,7 +806,7 @@ Runbook is proven by execution, evidence is complete, and no planned item is rep
 
 ### Actual closeout review — 2026-10-05
 
-The owner accepted the [six-part technical review](S001-T08_REVIEW_EVIDENCE.md) on corrected C1 `c71a49d16a2452268503b4a68eedbfe557e6c7fe`, tree `39a42ee87f7d47db9fbc68b13cd84c0bcd608724`. Fresh rehearsal, canonical build/scan and live walkthrough on 2026-10-05 passed in their recorded scopes. Prior dates/results below are historical, not overwritten. Publication remains pending; this acceptance is neither vulnerability disposition nor Phase 0 exit approval nor merge authorization.
+The owner accepted the [six-part technical review](S001-T08_REVIEW_EVIDENCE.md) on corrected C1 `c71a49d16a2452268503b4a68eedbfe557e6c7fe`, tree `39a42ee87f7d47db9fbc68b13cd84c0bcd608724`. Fresh rehearsal, canonical build/scan and live walkthrough on 2026-10-05 passed in their recorded scopes. Prior dates/results below are historical, not overwritten. Subsequent owner merge of PR16 and required postmerge execution checks delivered this outcome. Technical acceptance is neither vulnerability disposition nor Phase 0 exit approval nor merge authorization.
 
 ### Build
 
@@ -843,7 +844,7 @@ Developer/operator technical sample flow passed through canonical Testcontainers
 
 ## Incomplete Work
 
-S001-T01 through S001-T09 have owner-accepted local task outcomes. T08/Sprint technical closure is prepared locally; protected PR, required hosted/protection checks and postmerge delivery proof remain pending. Phase 0 service-template, product/auth/producer-contract and production obligations remain open. Release policy remains BLOCKED.
+S001-T01 through S001-T09 have owner-accepted technical task outcomes. T08/Sprint technical closure is delivered through PR16 with required postmerge execution checks verified. Phase 0 service-template, product/auth/producer-contract and production obligations remain open. Release policy remains BLOCKED.
 
 ## Technical Debt Accepted
 
@@ -865,12 +866,12 @@ Keep real formatter/MDC regressions, long-path-capable report counting and immed
 
 ## Sprint Result
 
-`ACCEPTED_LOCAL_TECHNICAL_OUTCOME` — AkaDNT (Project Owner / Repository Owner), 2026-10-05. Protected publication/delivery pending; Phase 0 remains open and release-policy remains BLOCKED.
+`ACCEPTED_LOCAL_TECHNICAL_OUTCOME` — AkaDNT (Project Owner / Repository Owner), 2026-10-05. Published and verified through PR16; Phase 0 remains open and release-policy remains BLOCKED.
 
 ## Next Sprint Recommendation
 
-After protected publication, assess remaining Phase 0 service-template obligations and authoritative product producer contracts against actual gaps. This is a recommendation, not a Sprint 002 commitment or permission to start Phase 1.
+Assess remaining Phase 0 service-template obligations and authoritative product producer contracts against actual gaps. This is a recommendation, not a Sprint 002 commitment or permission to start Phase 1.
 
 ## Immediate Next Action
 
-Review/publish the prepared S001-T08 closeout through the protected default after separate merge authorization. Then assess remaining Phase 0 gates. Do not expand the T06 sample into production choreography or relabel release-policy BLOCKED as release-ready.
+Assess remaining Phase 0 gates. Do not expand the T06 sample into production choreography or relabel release-policy BLOCKED as release-ready.

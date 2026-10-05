@@ -1,6 +1,6 @@
 # Production Coverage
 
-Baseline assessment dated 2026-08-05; local T08 scope update accepted 2026-10-05, protected publication pending. Levels reflect verifiable repository evidence, not planned dependencies or UI prototypes. [T08 review](sprints/S001-T08_REVIEW_EVIDENCE.md) documents the exact C1 and dates; TESTED here does not imply production readiness.
+Baseline assessment dated 2026-08-05; T08 scope update accepted and published through PR16 on 2026-10-05, with required postmerge execution checks verified. Levels reflect verifiable repository evidence, not planned dependencies or UI prototypes. [T08 review](sprints/S001-T08_REVIEW_EVIDENCE.md) documents the exact C1 and publication provenance; TESTED here does not imply production readiness.
 
 | Capability | Current level | Target phase | Evidence | Remaining gap |
 | ---------- | ------------- | ------------ | -------- | ------------- |
