@@ -332,6 +332,89 @@ function replaceFirst(text, search, replacement) {
   return `${text.slice(0, index)}${replacement}${text.slice(index + search.length)}`;
 }
 
+function validateSprintLifecycle(sprint, delivery, index, evidence) {
+  if (!delivery.includes('S001-T09 decision traceability: 20/20 approved') ||
+    !/^- Current roadmap phase: Phase 0\b/m.test(delivery) ||
+    !/^- Roadmap phase: Phase 0\b/m.test(index)) return false;
+  const statuses = [
+    sprint.match(/^- Sprint status: (\S+)$/m)?.[1],
+    delivery.match(/^- Sprint status: (\S+)$/m)?.[1],
+    index.match(/^- Status: (\S+)$/m)?.[1],
+  ];
+  const t08Completed = /^\|\s*8\s*\|\s*S001-T08\s*\|[^\r\n]*\|\s*COMPLETED\s*\|$/m.test(sprint);
+  if (statuses.every((status) => status === 'IN_PROGRESS')) {
+    return !t08Completed &&
+      delivery.includes('Sprint 001 remain in progress pending S001-T08') &&
+      /^- Current execution task: S001-T08\b/m.test(index) &&
+      !/^Status: ACCEPTED_LOCAL_REVIEW\./m.test(evidence);
+  }
+  if (!statuses.every((status) => status === 'COMPLETED') || !t08Completed) return false;
+  const t08 = sprint.split('## S001-T08 — Publish local baseline runbook and sprint evidence')[1]
+    ?.split('## Daily Execution State')[0] ?? '';
+  if ((t08.match(/^- \[x\]/gm) ?? []).length !== 4 || /^- \[ \]/m.test(t08)) return false;
+  const date = evidence.match(/^- Review date: (\d{4}-\d{2}-\d{2})$/m)?.[1];
+  const parsed = date ? new Date(`${date}T00:00:00Z`) : null;
+  if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return false;
+  const publication = [sprint, delivery, index]
+    .map((text) => text.match(/^- Publication status: (\S+)$/m)?.[1]);
+  return publication.every((status) => status === 'PENDING_PROTECTED_PR') &&
+    [sprint, delivery, index].every((text) =>
+      text.includes(`- Actual review/closure date: ${date}`)) &&
+    /^Status: ACCEPTED_LOCAL_REVIEW\./m.test(evidence) &&
+    /^- Approved by: AkaDNT \(Project Owner \/ Repository Owner\)$/m.test(evidence) &&
+    /^- Implementation C1: `[a-f0-9]{40}`\.$/m.test(evidence) &&
+    /^- C1 tree: `[a-f0-9]{40}`\.$/m.test(evidence) &&
+    Array.from({ length: 6 }, (_, number) => number + 1)
+      .every((number) => new RegExp(`^### ${number}\\. `, 'm').test(evidence)) &&
+    /^executionState\s*= PASS$/m.test(evidence) &&
+    /^policyState\s*= BLOCKED$/m.test(evidence) &&
+    /^failureCode\s*= NONE$/m.test(evidence) &&
+    [delivery, evidence].every((text) => text.includes('DEFERRED_NO_PRODUCER_CONTRACT')) &&
+    delivery.includes('release-policy=BLOCKED') &&
+    /^- Current execution task: S001-T08 protected publication\b/m.test(index);
+}
+
+const completedLifecycleFixture = {
+  sprint: '- Sprint status: COMPLETED\n- Publication status: PENDING_PROTECTED_PR\n- Actual review/closure date: 2026-10-05\n| 8 | S001-T08 | Local baseline | 4h | LOW | COMPLETED |\n## S001-T08 — Publish local baseline runbook and sprint evidence\n- [x] Runbook\n- [x] Review\n- [x] Maturity\n- [x] Retrospective\n## Daily Execution State\n',
+  delivery: '- Current roadmap phase: Phase 0\n- Sprint status: COMPLETED\n- Publication status: PENDING_PROTECTED_PR\n- Actual review/closure date: 2026-10-05\nS001-T09 decision traceability: 20/20 approved\nDEFERRED_NO_PRODUCER_CONTRACT\nrelease-policy=BLOCKED\n',
+  index: '- Roadmap phase: Phase 0\n- Status: COMPLETED\n- Publication status: PENDING_PROTECTED_PR\n- Actual review/closure date: 2026-10-05\n- Current execution task: S001-T08 protected publication\n',
+  evidence: 'Status: ACCEPTED_LOCAL_REVIEW.\n- Approved by: AkaDNT (Project Owner / Repository Owner)\n- Review date: 2026-10-05\n- Implementation C1: `1111111111111111111111111111111111111111`.\n- C1 tree: `2222222222222222222222222222222222222222`.\nexecutionState = PASS\npolicyState = BLOCKED\nfailureCode = NONE\nDEFERRED_NO_PRODUCER_CONTRACT\n### 1. Decisions\n### 2. Builds\n### 3. Database\n### 4. HTTP\n### 5. Delivery\n### 6. Scans\n',
+};
+const lifecycleFixtureValid = (fixture) => validateSprintLifecycle(
+  fixture.sprint, fixture.delivery, fixture.index, fixture.evidence,
+);
+assertCase('Owner-reviewed completed T08 with pending publication validates',
+  lifecycleFixtureValid(completedLifecycleFixture));
+const pendingLifecycleFixture = {
+  sprint: '- Sprint status: IN_PROGRESS\n| 8 | S001-T08 | Local baseline | 4h | LOW | READY |\n',
+  delivery: '- Current roadmap phase: Phase 0\n- Sprint status: IN_PROGRESS\nS001-T09 decision traceability: 20/20 approved\nSprint 001 remain in progress pending S001-T08\n',
+  index: '- Roadmap phase: Phase 0\n- Status: IN_PROGRESS\n- Current execution task: S001-T08\n',
+  evidence: '',
+};
+assertCase('Consistent pending T08 lifecycle still validates', lifecycleFixtureValid(pendingLifecycleFixture));
+for (const [name, field, search, replacement] of [
+  ['Mismatched sprint statuses', 'delivery', 'Sprint status: COMPLETED', 'Sprint status: IN_PROGRESS'],
+  ['Missing owner approval', 'evidence', '- Approved by: AkaDNT (Project Owner / Repository Owner)', ''],
+  ['Impossible review date', 'evidence', '2026-10-05', '2026-02-30'],
+  ['Missing C1 provenance', 'evidence', '- Implementation C1: `1111111111111111111111111111111111111111`.', ''],
+  ['Incomplete six-part evidence', 'evidence', '### 6. Scans', ''],
+  ['Failed security execution', 'evidence', 'executionState = PASS', 'executionState = IMPLEMENTATION_FAILURE'],
+  ['Unevidenced publication', 'index', 'PENDING_PROTECTED_PR', 'PUBLISHED'],
+  ['T08 acceptance incomplete', 'sprint', '- [x] Retrospective', '- [ ] Retrospective'],
+  ['Phase 0 prematurely advanced', 'delivery', 'Current roadmap phase: Phase 0', 'Current roadmap phase: Phase 1'],
+  ['Review dates disagree', 'index', '2026-10-05', '2026-10-06'],
+  ['Deferred consumer mislabeled PASS', 'delivery', 'DEFERRED_NO_PRODUCER_CONTRACT', 'COMPATIBILITY_PASS'],
+  ['T09 traceability removed', 'delivery', 'S001-T09 decision traceability: 20/20 approved', ''],
+]) {
+  assertCase(`${name} rejected`, !lifecycleFixtureValid({
+    ...completedLifecycleFixture,
+    [field]: replaceFirst(completedLifecycleFixture[field], search, replacement),
+  }));
+}
+assertCase('Accepted review cannot coexist with pending sprint', !lifecycleFixtureValid({
+  ...pendingLifecycleFixture, evidence: completedLifecycleFixture.evidence,
+}));
+
 for (const adrId of requiredApprovedAdrs) {
   const adrFile = fs.readdirSync(adrDirectory)
     .find((name) => name.startsWith(`${adrId}-`) && name.endsWith('.md'));
@@ -387,10 +470,10 @@ if (process.argv.includes('--require-closeout')) {
   assertCase('Sprint T09 acceptance and task status reflect approved decision closeout',
     /^\|\s*9\s*\|\s*S001-T09\s*\|[^\r\n]*\|\s*COMPLETED\s*\|$/m.test(sprint) &&
       (t09.match(/^- \[x\]/gm) ?? []).length === 4);
-  assertCase('Delivery State and sprint index hand off to T08 without closing Phase 0',
-    delivery.includes('S001-T09 decision traceability: 20/20 approved') &&
-      delivery.includes('Sprint 001 remain in progress pending S001-T08') &&
-      index.includes('Current execution task: S001-T08'));
+  const evidence = readDocumentOrNull(path.join(repositoryRoot,
+    'docs/sprints/S001-T08_REVIEW_EVIDENCE.md')) ?? '';
+  assertCase('Sprint lifecycle is consistent without closing Phase 0',
+    validateSprintLifecycle(sprint, delivery, index, evidence));
 }
 for (const adrFile of proposedAdrs) {
   const adrId = adrFile.slice(0, 7);

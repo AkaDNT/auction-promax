@@ -2,12 +2,12 @@
 
 ## Scope and ownership
 
-The API and web applications are independent Git repositories and therefore use independent GitHub Actions workflows:
+The API and web applications are independently built components in one monorepo. Active workflows live only in the repository-root `.github/workflows/` directory:
 
-| Repository | Workflow | Required baseline command |
+| Component | Root workflow | Required baseline command from monorepo root |
 | --- | --- | --- |
-| `api` | `.github/workflows/api-baseline.yml` | `scripts/verify-build-baseline.ps1` |
-| `web` | `.github/workflows/web-baseline.yml` | `npm ci`, `npm run lint`, `npm run build` |
+| `api` | `.github/workflows/api-baseline.yml` | `pwsh -NoProfile -File api/scripts/verify-build-baseline.ps1` |
+| `web` | `.github/workflows/web-baseline.yml` | `npm.cmd --prefix web ci`, `npm.cmd --prefix web run lint`, `npm.cmd --prefix web run build` |
 
 The workflows deliberately do not publish a container image. Amazon ECR is the approved registry, but publishing requires a separately provisioned GitHub OIDC role with a repository-specific AWS role ARN and least-privilege ECR policy. No long-lived AWS credential is committed or used by this baseline.
 
@@ -21,7 +21,7 @@ The workflows deliberately do not publish a container image. Amazon ECR is the a
 | Node.js | 24.15.0 | `.nvmrc`, `engines`, `engine-strict=true`, and web toolchain check. |
 | npm | 11.12.1 | `packageManager`, `engines`, `engine-strict=true`, and web toolchain check. |
 | AWS CDK CLI | 2.1135.1 | Exact `infra/package.json` dev dependency and lockfile. |
-| AWS CDK library | 2.264.0 | Exact `aws-cdk-lib` dependency and lockfile. |
+| AWS CDK library | 2.269.0 | Exact `aws-cdk-lib` dependency and lockfile. |
 | CDK constructs | 10.8.1 | Exact `constructs` dependency and lockfile. |
 
 `aws-cdk` and `aws-cdk-lib` use independent version streams. Both are intentionally pinned exactly rather than with a range. The local project CLI is invoked through npm; a globally installed CDK is not required.
@@ -30,7 +30,7 @@ The workflows deliberately do not publish a container image. Amazon ECR is the a
 
 Prerequisites: a Java 21 JDK and a network connection for the Maven Wrapper/dependency cache on the first run.
 
-From the API repository root:
+From the monorepo's `api/` directory (not a separate repository):
 
 ```powershell
 ./scripts/verify-build-baseline.ps1
@@ -47,7 +47,7 @@ The CI workflow executes the equivalent Linux command `./mvnw -B verify`.
 
 ## CDK toolchain check
 
-From the API repository root:
+From the monorepo's `api/` directory:
 
 ```powershell
 cd infra
@@ -61,7 +61,7 @@ This establishes a reproducible CDK v2 toolchain only. Infrastructure synthesis 
 
 Prerequisites: Node.js 24.15.0 and npm 11.12.1. Use the `web/.nvmrc` file with your version manager before running commands.
 
-From the web repository root:
+From the monorepo's `web/` directory:
 
 ```powershell
 npm ci

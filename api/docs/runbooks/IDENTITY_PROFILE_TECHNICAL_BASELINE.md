@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Historical scope: this is the T03 database-free `technical-local` profile. For the later database-backed sample, idempotency, outbox/inbox and current Sprint 001 walkthrough, use [Local baseline and Sprint 001 review](LOCAL_BASELINE_SPRINT_001.md). Statements below describe T03's profile, not the full current service.
+
 This runbook records the Sprint 001 technical HTTP and observability baseline for `identity-profile-service`.
 
 It proves HTTP validation, safe RFC 9457 Problem Details, correlation handling, W3C Trace Context-compatible tracing, ECS structured logs, Actuator health, HTTP metrics, and architecture boundaries. It does not describe a stable public business API.

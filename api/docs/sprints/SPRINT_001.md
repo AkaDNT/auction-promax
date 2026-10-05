@@ -9,7 +9,10 @@
 - Planned committed work: 45 hours; reserve 5 hours for integration/defects is not allocated to backlog tasks
 - Target environment: Local developer environment and CI baseline
 - Target users: Developers and operators
-- Sprint status: IN_PROGRESS
+- Sprint status: COMPLETED
+- Publication status: PENDING_PROTECTED_PR
+- Actual review/closure date: 2026-10-05
+- Closure scope: owner-accepted local technical outcome; protected-default delivery remains pending.
 
 ## Sprint Goal
 
@@ -73,7 +76,7 @@ One non-financial sample command in `identity-profile-service` traverses HTTP va
 |     5 | S001-T05 | Provision isolated local PostgreSQL and Flyway baseline       |       7h | HIGH        | COMPLETED   |
 |     6 | S001-T06 | Prove idempotent outbox-to-inbox sample flow                  |       8h | HIGH        | COMPLETED   |
 |     7 | S001-T07 | Add supply-chain scan evidence and CI verification path       |       5h | MEDIUM      | COMPLETED   |
-|     8 | S001-T08 | Publish local baseline runbook and sprint evidence            |       4h | LOW         | READY       |
+|     8 | S001-T08 | Publish local baseline runbook and sprint evidence            |       4h | LOW         | COMPLETED   |
 |     9 | S001-T09 | Reconcile revised blueprint decision delta                    |       4h | MEDIUM      | COMPLETED   |
 
 ## Stretch Backlog
@@ -688,9 +691,9 @@ The revised blueprint's mandatory decisions are fully traceable without retroact
 
 ### Evidence
 
-- Commit/PR: Local decision commit `dc9cbb0fd9d59dd19c8c9abc9a2623186b23cb1b`; protected-default PR/merge evidence remains to be recorded after publication.
+- Commit/PR: [PR #15](https://github.com/AkaDNT/auction-promax/pull/15), merged on protected default as `0bd0f70a3324738fde08e3d104955e6b2d054742`; tree `903c91b917cb2522fa1b8c37330b24845870b2fb`.
 - Commands: `node api/scripts/decisions/Test-S001-T09-Decisions.mjs --require-complete --require-closeout`; exact-path Markdown link and staged-content checks; `git diff --cached --check`.
-- Test results: 20/20 approved decision subjects, 0 GAP/PARTIAL; ADR-017 records the approved monorepo topology and D-005 has separate cutover evidence. The new ADRs are decision-only, not AWS implementation evidence. Local content inspection found no credential, account ID, token or private path; Gitleaks tooling was not available on PATH in this isolated checkout.
+- Test results: 20/20 approved decision subjects, 0 GAP/PARTIAL; ADR-017 records the approved monorepo topology and D-005 has separate cutover evidence. The new ADRs are decision-only, not AWS implementation evidence. Publication preparation verified trusted Gitleaks on the introduced commit range with no findings; hosted PR required execution checks passed while release-policy remained separately BLOCKED.
 - Deployment: Not applicable.
 - Screenshots/log references: `docs/decisions/S001-T09_BLUEPRINT_ADR_MATRIX.md`; ADR-017 through ADR-025; local-only T09 execution log (not committed).
 
@@ -718,10 +721,10 @@ Document only commands and outcomes actually exercised. Distinguish expected loc
 
 ### Acceptance Criteria
 
-- [ ] A new developer can follow the runbook to build, start local dependencies, run migration/tests, invoke the sample flow, and inspect evidence.
-- [ ] Sprint review demonstration is executed and linked to logs/test output.
-- [ ] Delivery State and Production Coverage reflect actual maturity and gaps, not planned work.
-- [ ] Retrospective and next-sprint recommendation are recorded.
+- [x] A new developer can follow the runbook to build, start local dependencies, run migration/tests, invoke the sample flow, and inspect evidence.
+- [x] Sprint review demonstration is executed and linked to logs/test output.
+- [x] Delivery State and Production Coverage reflect actual maturity and gaps, not planned work.
+- [x] Retrospective and next-sprint recommendation are recorded.
 
 ### Required Tests
 
@@ -747,7 +750,7 @@ Runbook, sprint state/evidence, coverage matrix, retrospective.
 
 ### Rollback
 
-Documentation-only change; correct erroneous claims immediately with a follow-up edit.
+Closeout changes are documentation/lifecycle validation only; correct erroneous claims with a reviewed follow-up. The implementation baseline also includes the narrow launcher and owner-approved observability correction; it must not be described as documentation-only runtime scope.
 
 ### Estimate
 
@@ -761,11 +764,11 @@ Runbook is proven by execution, evidence is complete, and no planned item is rep
 
 ### Evidence
 
-- Commit/PR:
-- Commands:
-- Test results:
-- Deployment:
-- Screenshots/log references:
+- Commit/PR: implementation C1 `c71a49d16a2452268503b4a68eedbfe557e6c7fe`; closeout/protected PR publication pending, not a delivered-default claim.
+- Commands: fresh Maven `clean verify`; independent locked installs/builds; contract Fixture/Registry and workflow regressions; native database verification; runbook walkthrough; canonical supply-chain and seven-file validator. Full inventory/results in [T08 review evidence](S001-T08_REVIEW_EVIDENCE.md).
+- Test results: 113 unit, 10 canonical Testcontainers, 4 supplementary local tests; zero failures/errors/skips. HTTP/persistence/metrics/log proof passed. Supply-chain execution PASS, policy BLOCKED, failureCode NONE.
+- Deployment: none; local/CI technical scope only.
+- Screenshots/log references: [local baseline runbook](../runbooks/LOCAL_BASELINE_SPRINT_001.md), [owner-accepted six-part review](S001-T08_REVIEW_EVIDENCE.md); detailed logs retained privately.
 
 ## Daily Execution State
 
@@ -787,7 +790,7 @@ Runbook is proven by execution, evidence is complete, and no planned item is rep
 - [x] Versioned sample API, event, and realtime contract artifacts pass their compatibility/lint checks.
 - [x] Local PostgreSQL starts with isolated service databases/users; identity migration succeeds and cross-database access is denied.
 - [x] The sample command demonstrates validated Problem Details, correlation-aware trace/log evidence, idempotent replay, transactional outbox, retryable relay, and duplicate-safe inbox effect.
-- [ ] SBOM, dependency/image scans, and the local baseline runbook have actual execution evidence.
+- [x] SBOM, dependency/image scans, and the local baseline runbook have actual execution evidence.
 
 ## Sprint Review Demonstration
 
@@ -799,6 +802,10 @@ Runbook is proven by execution, evidence is complete, and no planned item is rep
 6. Show SBOM and scan outcome plus the runbook used to reproduce the demonstration.
 
 ## Sprint Verification Evidence
+
+### Actual closeout review — 2026-10-05
+
+The owner accepted the [six-part technical review](S001-T08_REVIEW_EVIDENCE.md) on corrected C1 `c71a49d16a2452268503b4a68eedbfe557e6c7fe`, tree `39a42ee87f7d47db9fbc68b13cd84c0bcd608724`. Fresh rehearsal, canonical build/scan and live walkthrough on 2026-10-05 passed in their recorded scopes. Prior dates/results below are historical, not overwritten. Publication remains pending; this acceptance is neither vulnerability disposition nor Phase 0 exit approval nor merge authorization.
 
 ### Build
 
@@ -836,7 +843,7 @@ Developer/operator technical sample flow passed through canonical Testcontainers
 
 ## Incomplete Work
 
-S001-T02 through S001-T07 and S001-T09 are complete. S001-T08 remains incomplete; do not represent Sprint 001 as complete.
+S001-T01 through S001-T09 have owner-accepted local task outcomes. T08/Sprint technical closure is prepared locally; protected PR, required hosted/protection checks and postmerge delivery proof remain pending. Phase 0 service-template, product/auth/producer-contract and production obligations remain open. Release policy remains BLOCKED.
 
 ## Technical Debt Accepted
 
@@ -846,24 +853,24 @@ None accepted at planning time.
 
 ### What worked
 
-Not started.
+Immutable C1 evidence, independent builds/contracts, dedicated PostgreSQL roles and actual sample/integration proof made the technical review reproducible.
 
 ### What failed
 
-Not started.
+Rehearsal exposed PowerShell problem-response decoding, fresh scanner DB prerequisites, duplicate correlation fields in ECS logs and intermittent Docker Hub auth connectivity. Failed evidence was retained and gates were not bypassed.
 
 ### What should change
 
-Not started.
+Keep real formatter/MDC regressions, long-path-capable report counting and immediate exit checks. Separate technical execution PASS from release policy, consumer compatibility and production maturity.
 
 ## Sprint Result
 
-`PENDING`
+`ACCEPTED_LOCAL_TECHNICAL_OUTCOME` — AkaDNT (Project Owner / Repository Owner), 2026-10-05. Protected publication/delivery pending; Phase 0 remains open and release-policy remains BLOCKED.
 
 ## Next Sprint Recommendation
 
-Complete any remaining Phase 0 exit criteria based on Sprint 001 evidence; do not plan Phase 1 in task detail until the Phase 0 gate is objectively evaluated.
+After protected publication, assess remaining Phase 0 service-template obligations and authoritative product producer contracts against actual gaps. This is a recommendation, not a Sprint 002 commitment or permission to start Phase 1.
 
 ## Immediate Next Action
 
-Complete S001-T08 runbook/sprint closeout; the S001-T09 monorepo/topology and decision traceability are resolved separately. Do not expand the completed T06 sample flow into production messaging or multi-service choreography. Keep release-policy blocked until findings are remediated or receive exact valid dispositions.
+Review/publish the prepared S001-T08 closeout through the protected default after separate merge authorization. Then assess remaining Phase 0 gates. Do not expand the T06 sample into production choreography or relabel release-policy BLOCKED as release-ready.
