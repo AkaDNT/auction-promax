@@ -91,6 +91,17 @@ try {
     Assert-Restored
     Write-Output '[PASS] Maven failure and restoration'
     $env:T08_TEST_EXIT = '0'
+    foreach ($override in @('SPRING_DATASOURCE_URL','SPRING_FLYWAY_URL','SPRING_APPLICATION_JSON','SPRING_CONFIG_LOCATION','SPRING_PROFILES_ACTIVE','JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','MAVEN_OPTS','MAVEN_ARGS')) {
+        $savedOverride = [Environment]::GetEnvironmentVariable($override, 'Process')
+        try {
+            [Environment]::SetEnvironmentVariable($override, 'synthetic-override', 'Process')
+            Assert-Rejected "inherited $override" $valid 'LOCAL_IDENTITY_INHERITED_OVERRIDE'
+            if ([Environment]::GetEnvironmentVariable($override, 'Process') -ne 'synthetic-override') { throw 'Inherited override was mutated' }
+        } finally {
+            if ($null -eq $savedOverride) { Remove-Item -LiteralPath "Env:$override" -ErrorAction SilentlyContinue }
+            else { [Environment]::SetEnvironmentVariable($override, $savedOverride, 'Process') }
+        }
+    }
     Assert-Rejected 'missing key' @($valid | Where-Object { $_ -notmatch '^IDENTITY_DB_APP_PASSWORD=' }) 'LOCAL_IDENTITY_REQUIRED_VALUE'
     Assert-Rejected 'blank value' @($valid -replace '^IDENTITY_DB_APP_PASSWORD=.*$', 'IDENTITY_DB_APP_PASSWORD= ') 'LOCAL_IDENTITY_REQUIRED_VALUE'
     Assert-Rejected 'duplicate key' @($valid + 'IDENTITY_DB_APP_USERNAME=identity_app') 'LOCAL_IDENTITY_ENV_DUPLICATE'

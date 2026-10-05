@@ -54,6 +54,14 @@ if (-not $url.Success -or [int]$url.Groups['port'].Value -lt 1 -or [int]$url.Gro
 }
 if ($values['IDENTITY_DB_APP_USERNAME'] -ne 'identity_app' -or
     $values['IDENTITY_DB_MIGRATOR_USERNAME'] -ne 'identity_migrator') { throw 'LOCAL_IDENTITY_DB_ROLE' }
+# Fail closed: inherited Spring configuration or JVM/Maven options can replace
+# the validated database/profile mappings. Do not clear them silently or print values.
+foreach ($entry in [Environment]::GetEnvironmentVariables('Process').GetEnumerator()) {
+    if (([string]$entry.Key -match '^(SPRING[_.]|JAVA_TOOL_OPTIONS$|_JAVA_OPTIONS$|JDK_JAVA_OPTIONS$|MAVEN_OPTS$|MAVEN_ARGS$)') -and
+        -not [string]::IsNullOrWhiteSpace([string]$entry.Value)) {
+        throw 'LOCAL_IDENTITY_INHERITED_OVERRIDE'
+    }
+}
 $previous = @{}
 foreach ($key in $required) { $previous[$key] = [Environment]::GetEnvironmentVariable($key, 'Process') }
 $locationPushed = $false

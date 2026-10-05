@@ -92,6 +92,25 @@ npm.cmd --prefix web run build
 
 Fixture and Registry share an oasdiff cache: run them sequentially. The deliberate breaking fixture must be rejected internally while the fixture harness succeeds. CDK version is readiness only, not synthesis/deployment evidence. Web lint/build is not consumer compatibility proof.
 
+Run the workflow contract gates from the monorepo root:
+
+```powershell
+node scripts/migration/Test-MonorepoWorkflowContracts.mjs --fixtures
+if ($LASTEXITCODE -ne 0) { throw 'Workflow fixture gate failed' }
+node scripts/migration/Test-MonorepoWorkflowContracts.mjs --repository
+if ($LASTEXITCODE -ne 0) { throw 'Workflow repository gate failed' }
+node scripts/migration/Test-MonorepoRequiredChecks.mjs
+if ($LASTEXITCODE -ne 0) { throw 'Required-check regression gate failed' }
+node api/scripts/supply-chain/Test-HostedSupplyChainContract.mjs --fixtures
+if ($LASTEXITCODE -ne 0) { throw 'Hosted fixture gate failed' }
+node api/scripts/supply-chain/Test-HostedSupplyChainContract.mjs --repository
+if ($LASTEXITCODE -ne 0) { throw 'Hosted repository gate failed' }
+node api/scripts/supply-chain/Test-HostedSupplyChainContract.mjs --repository-supply-chain
+if ($LASTEXITCODE -ne 0) { throw 'Hosted supply-chain contract gate failed' }
+```
+
+The launcher rejects nonblank inherited `SPRING_*` / `SPRING.*`, JVM option variables (`JAVA_TOOL_OPTIONS`, `_JAVA_OPTIONS`, `JDK_JAVA_OPTIONS`) and Maven option variables (`MAVEN_OPTS`, `MAVEN_ARGS`) before exporting settings or launching Maven. These can override the validated database/profile. Use a reviewed clean shell; do not blindly clear an unknown inherited configuration or print its values.
+
 Canonical Maven verification runs PostgreSQL Testcontainers using the Linux Docker engine. For a fresh full build, from `api/services/identity-profile-service` run `./mvnw.cmd -B clean verify`, then return to the monorepo root. Record actual Surefire and Failsafe XML counts/failures/errors/skips; historic counts are 110 unit and 10 canonical integration tests, not an unconditional expected-result shortcut.
 
 After native database verification, run the supplementary integration path:
@@ -204,6 +223,22 @@ Terminal A logs should show `identity_sample.recorded`, `identity_sample.replaye
 ## Security evidence and Sprint review
 
 After Maven verification in the same clean commit, invoke the existing orchestrator with `-WorkflowName supply-chain`, `-CommitSha` set to that actual checkout commit, `-EvidenceRoot` set to absolute ignored private storage, and `-UseExistingVerifiedArtifact` only for the artifact just built. On a fresh checkout use `-RefreshDatabase`: without it the default path requires an already fresh local Trivy DB. Check native exit and summary execution state; do not fabricate summaries.
+
+Set `$evidenceRoot` to a new, reviewed absolute ignored private directory outside the candidate tree, then run from the monorepo root:
+
+```powershell
+$verifiedCommit = git rev-parse HEAD
+if ($LASTEXITCODE -ne 0) { throw 'Commit resolution failed' }
+if (-not $evidenceRoot -or -not [IO.Path]::IsPathRooted($evidenceRoot)) {
+    throw 'Absolute private evidence directory required'
+}
+pwsh -NoProfile -File api/scripts/supply-chain/Invoke-HostedSupplyChain.ps1 `
+    -WorkflowName supply-chain -CommitSha $verifiedCommit `
+    -EvidenceRoot $evidenceRoot -UseExistingVerifiedArtifact -RefreshDatabase
+if ($LASTEXITCODE -ne 0) { throw 'Supply-chain execution failed; retain failed evidence' }
+node api/scripts/supply-chain/Validate-HostedSupplyChainEvidence.mjs $evidenceRoot $verifiedCommit
+if ($LASTEXITCODE -ne 0) { throw 'Supply-chain evidence validation failed' }
+```
 
 Validate with `node api/scripts/supply-chain/Validate-HostedSupplyChainEvidence.mjs <evidence-root> <commit-sha>` and check exit immediately. Exactly seven sanitized files are required: run summary, vulnerability inventory, Gitleaks inventory, container vulnerability inventory, image identity, smoke summary and policy summary. No raw report upload/publication.
 
