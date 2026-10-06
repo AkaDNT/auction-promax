@@ -4,7 +4,7 @@
 
 - Sprint ID: SPRINT-002
 - Roadmap phase: Phase 0 — Architecture and Java engineering foundation
-- Sprint status: ACTIVATION_PENDING
+- Sprint status: IN_PROGRESS
 - Publication status: NOT_PUBLISHED
 - Capacity: 72–114 engineering hours; reserve 14–22 hours; maximum envelope 136 hours
 - Duration: At most four engineering weeks; dates unset until execution starts
@@ -15,9 +15,9 @@
 - Execution method approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | EXECUTION_METHOD | OWNER-DECISION-2026-10-05-S002-EXECUTION | DIRECT_SEQUENTIAL_ISOLATED_WORKTREE
 - Activation approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-06 | SPRINT_ACTIVATION | OWNER-DECISION-2026-10-06-S002-ACTIVATION candidate 5524dace463be247cdbcf71ba88b894df1b3d20a
 
-Sprint objective is to complete the approved Phase 0 obligations through tasks T01–T07 and publish only evidence that has passed its specified review and protected checks. This record is a plan, not a claim that implementation or activation has happened.
+Sprint objective is to complete the approved Phase 0 obligations through tasks T01–T07. This is the factual activation-record candidate following verified PR18 prerequisite publication; publication of this record is still pending. T01 is not delivered and T02 must not start until this record's own protected merge and push checks are verified.
 
-Current Phase 0 foundation authority uses the revised [blueprint](../Auction_Platform_Final_Production_Architecture_Blueprint_and_Roadmap.md) and [ADR-026](../adr/ADR-026-marketplace-transaction-and-monetization-boundary.md)/[ADR-027](../adr/ADR-027-bidding-billing-and-listing-entitlement-ownership.md): Identity, Auction, Bidding, Billing and Realtime are technical service identities only. T02 has not started; no product bidding/billing behavior or Sprint activation is claimed.
+Current Phase 0 foundation authority uses the revised [blueprint](../Auction_Platform_Final_Production_Architecture_Blueprint_and_Roadmap.md) and [ADR-026](../adr/ADR-026-marketplace-transaction-and-monetization-boundary.md)/[ADR-027](../adr/ADR-027-bidding-billing-and-listing-entitlement-ownership.md): Identity, Auction, Bidding, Billing and Realtime are technical service identities only. T02 has not started; no product bidding/billing behavior is claimed. See [activation evidence](S002_REVIEW_EVIDENCE.md).
 
 ## Task Backlog
 
