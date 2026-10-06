@@ -1,6 +1,6 @@
 # SPRINT-002 lifecycle and review evidence
 
-Status: EXECUTION_IN_PROGRESS; local T01 review, activation approval, publication, and Phase 0 exit remain pending.
+Status: ACTIVATION_PENDING; owner approved the local candidate activation scope on 2026-10-06. Protected publication and Phase 0 exit remain pending.
 
 ## Lifecycle Evidence
 
@@ -9,10 +9,10 @@ Status: EXECUTION_IN_PROGRESS; local T01 review, activation approval, publicatio
 - Plan approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | IMPLEMENTATION_PLAN | OWNER-DECISION-2026-10-05-S002-EXECUTION
 - Capacity approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | CAPACITY | OWNER-DECISION-2026-10-05-S002-EXECUTION | 72-114 | 14-22 | 136 | UNSET
 - Execution method approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | EXECUTION_METHOD | OWNER-DECISION-2026-10-05-S002-EXECUTION | DIRECT_SEQUENTIAL_ISOLATED_WORKTREE
-- Activation approval: —
-- Activation publication: —
+- Activation approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-06 | SPRINT_ACTIVATION | OWNER-DECISION-2026-10-06-S002-ACTIVATION candidate 5524dace463be247cdbcf71ba88b894df1b3d20a
+- Activation publication: PENDING_PROTECTED_PR | — | — | — | — | —
 
-Owner-approved execution prerequisites authorize local implementation only. They do not authorize Sprint activation, branch protection changes, PR merge, Phase 0 exit, or Phase 1 implementation. No runtime acceptance or hosted publication evidence is claimed here.
+Owner decision OWNER-DECISION-2026-10-06-S002-ACTIVATION approves activation for candidate `5524dace463be247cdbcf71ba88b894df1b3d20a` (tree `009d1a911ebefbb1ca90b8edb436d760b5eeb293`) and preparation of the protected prerequisite PR. This approval does not authorize merge. Current Sprint 001 remains unchanged until protected prerequisite publication, exact postmerge verification and the separate factual activation-record publication. No branch protection change, Phase 0 exit, Phase 1 implementation, runtime acceptance or hosted publication evidence is claimed.
 
 The subsequent V1 architecture amendment updates the blueprint/ADR/spec/parent-plan references before activation/T02. T01 lifecycle semantics and historical Sprint 001 proof remain unchanged; existing test outcomes must be rerun against changed documents. This note is not activation approval or a publication claim.
 
@@ -26,4 +26,4 @@ The subsequent V1 architecture amendment updates the blueprint/ADR/spec/parent-p
 | Previously observed T01 RED/GREEN and independent defect review | UNCHANGED_VALID | Their exact behavioral regressions remain applicable; no service shape was encoded into them. |
 | Existing T01 artifacts invalidated by this amendment | INVALIDATED: none identified | No approval, publication identity, SHA or historical acceptance was rewritten. |
 
-Trusted local Gitleaks worktree/history scans passed on 2026-10-06: exit 0 and zero findings in both modes, with unchanged source fingerprints. See the [scan execution log](../../../docs/superpowers/plans/2026-10-06-s002-gitleaks-path-compatibility-log.md). These results do not prove hosted publication; candidate commit/tree identity and activation approval remain pending.
+Trusted local Gitleaks worktree/history scans passed on 2026-10-06: exit 0 and zero findings in both modes, with unchanged source fingerprints. See the [scan execution log](../../../docs/superpowers/plans/2026-10-06-s002-gitleaks-path-compatibility-log.md). Candidate commit/tree and subsequent owner activation decision are recorded above; these local results do not prove hosted publication. The approval-record delta requires renewed local verification before publication.

@@ -4,7 +4,7 @@
 
 - Sprint ID: SPRINT-002
 - Roadmap phase: Phase 0 — Architecture and Java engineering foundation
-- Sprint status: PLANNED
+- Sprint status: ACTIVATION_PENDING
 - Publication status: NOT_PUBLISHED
 - Capacity: 72–114 engineering hours; reserve 14–22 hours; maximum envelope 136 hours
 - Duration: At most four engineering weeks; dates unset until execution starts
@@ -13,7 +13,7 @@
 - Plan approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | IMPLEMENTATION_PLAN | OWNER-DECISION-2026-10-05-S002-EXECUTION
 - Capacity approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | CAPACITY | OWNER-DECISION-2026-10-05-S002-EXECUTION | 72-114 | 14-22 | 136 | UNSET
 - Execution method approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | EXECUTION_METHOD | OWNER-DECISION-2026-10-05-S002-EXECUTION | DIRECT_SEQUENTIAL_ISOLATED_WORKTREE
-- Activation approval: —
+- Activation approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-06 | SPRINT_ACTIVATION | OWNER-DECISION-2026-10-06-S002-ACTIVATION candidate 5524dace463be247cdbcf71ba88b894df1b3d20a
 
 Sprint objective is to complete the approved Phase 0 obligations through tasks T01–T07 and publish only evidence that has passed its specified review and protected checks. This record is a plan, not a claim that implementation or activation has happened.
 
