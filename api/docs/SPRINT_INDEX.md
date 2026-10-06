@@ -1,5 +1,15 @@
 # Sprint Index
 
+## Sprint 001 historical lifecycle
+
+- Sprint: SPRINT-001
+- Roadmap phase: Phase 0 — Decision lock and engineering foundation
+- Status: COMPLETED
+- Publication status: PUBLISHED_VERIFIED
+- Published merge: `ab2d8256b25919cc7479fa6d6aad7a41eb964f83`.
+- Actual review/closure date: 2026-10-05
+- Current execution task: Phase 0 remaining-gate assessment (no next sprint or phase advancement authorized)
+
 ## Current Sprint
 
 - Sprint: SPRINT-001
@@ -24,5 +34,5 @@
 
 | Candidate | Phase | Dependency | Priority | Ready? |
 | --------- | ----- | ---------- | -------- | ------ |
-| SPRINT-002 — Complete Phase 0 gate | Phase 0 | SPRINT-001 evidence and approved decisions | HIGH | NO |
+| SPRINT-002 — Complete Phase 0 gate | Phase 0 | Owner-approved full plan; activation approval remains separate | HIGH | YES — execution approved, not active |
 | SPRINT-003 — Identity walking skeleton | Phase 1 | Phase 0 exit gate passed | HIGH | NO |

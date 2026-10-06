@@ -6,6 +6,7 @@
 **Core stack:** Java 21 LTS, Spring Boot 3.5.x, PostgreSQL, ECS Fargate, AWS managed services  
 **Deployment model:** Hybrid container + serverless  
 **Target qualities:** Correctness, maintainability, scalability, security, observability, recoverability, cost discipline
+**V1 domain revision (2026-10-05):** Buyer and seller settle auctioned-goods payment and delivery outside Auction ProMax. [ADR-026](adr/ADR-026-marketplace-transaction-and-monetization-boundary.md) and [ADR-027](adr/ADR-027-bidding-billing-and-listing-entitlement-ownership.md) supersede the financial-domain portions of historical ADR-005/ADR-012; historical Sprint 001 decision evidence remains unchanged. This revision does not authorize Sprint 002 activation or Phase 1 implementation.
 
 ---
 
@@ -17,7 +18,7 @@ The platform uses:
 
 - **Spring Boot on ECS Fargate** for long-running, transaction-heavy, domain-rich services.
 - **Lambda** for short-lived, event-driven, bursty supporting workloads.
-- **PostgreSQL** as the canonical source of truth for relational and financial state.
+- **PostgreSQL** as the canonical source of truth for each service's relational business state.
 - **DynamoDB** only for access-pattern-specific projections, inboxes and TTL-heavy records.
 - **EventBridge + SQS** for asynchronous integration and consumer isolation.
 - **Step Functions** only for long-running orchestration where explicit workflow state, retries or callbacks are valuable.
@@ -27,6 +28,8 @@ The architecture is optimized to demonstrate both:
 
 1. senior-level Java/backend engineering; and
 2. production-grade AWS architecture and platform engineering.
+
+V1 is a marketplace for seller auctions and buyer bids. The platform finalizes the winner and provides an authorized handoff; buyer and seller arrange payment and delivery outside the platform. Revenue comes from advertising and paid, non-monetary listing entitlements. The platform does not take transaction commission or handle auction-item payment, escrow, seller payout, stored monetary wallets, deposits, withdrawals, financial holds/settlement or platform-controlled delivery. Adding any of these requires a new decision and legal/compliance review.
 
 ---
 
@@ -42,8 +45,8 @@ The architecture is optimized to demonstrate both:
 | P-06 | No service reads or writes another service's database.                                              |
 | P-07 | Integration delivery is at-least-once; every consumer is idempotent.                                |
 | P-08 | Database write and event publication use transactional outbox.                                      |
-| P-09 | Redis/Valkey, DynamoDB projections, OpenSearch and caches are never financial truth.                |
-| P-10 | Every external financial/terminal command has an idempotency key.                                   |
+| P-09 | Valkey, DynamoDB projections, OpenSearch and caches are never canonical bid, result or entitlement truth. |
+| P-10 | External bid, publication, close and platform-purchase commands have idempotency keys.              |
 | P-11 | Public APIs and integration events support N/N-1 compatibility during rolling deployment.           |
 | P-12 | Services scale independently only when evidence shows they need to.                                 |
 | P-13 | Production security, backup, observability and audit are first-class architecture concerns.         |
@@ -69,7 +72,7 @@ The desired outcome is not "used many AWS services".
 
 The desired outcome is:
 
-> Designed and implemented a concurrent financial-like auction backend in Java/Spring/PostgreSQL, then operated it on AWS with secure multi-account infrastructure, asynchronous integration, observability, CI/CD, backup, fault testing and evidence-based scaling.
+> Designed and implemented a concurrent auction and non-monetary listing-entitlement platform in Java/Spring/PostgreSQL, then operated it on AWS with secure multi-account infrastructure, asynchronous integration, observability, CI/CD, backup, fault testing and evidence-based scaling.
 
 ---
 
@@ -77,13 +80,15 @@ The desired outcome is:
 
 ## 4.1 Core Spring Boot services
 
-| Service                    | Responsibilities                                                                              | Canonical data                                     | Runtime     |
-| -------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------- |
-| `identity-profile-service` | Application user mapping, profile, roles, seller status, restrictions                         | PostgreSQL `identity_db`; Cognito owns credentials | ECS Fargate |
-| `auction-service`          | Categories, auction drafts, publication, lifecycle state, image metadata, seller ownership    | PostgreSQL `auction_db` + S3 metadata              | ECS Fargate |
-| `transaction-core-service` | Bids, winning state, wallets, holds, ledger, settlement, reconciliation                       | PostgreSQL `transaction_db`                        | ECS Fargate |
-| `payment-service`          | Deposit/withdrawal orchestration, provider adapters, signed webhooks, provider reconciliation | PostgreSQL `payment_db`                            | ECS Fargate |
-| `realtime-gateway`         | WebSocket authentication, subscriptions, fanout, reconnect snapshots                          | ElastiCache/Valkey ephemeral state                 | ECS Fargate |
+| Service | Responsibilities | Canonical data | Runtime |
+| --- | --- | --- | --- |
+| `identity-profile-service` | User mapping, profile, business roles, seller eligibility and account restrictions; Cognito owns credentials | PostgreSQL `identity_db` / `identity_test_db` | ECS Fargate |
+| `auction-service` | Drafts, publication, lifecycle, categories, media metadata, seller ownership, final AuctionResult, free allowance and usable listing entitlements | PostgreSQL `auction_db` / `auction_test_db`; S3 media | ECS Fargate |
+| `bidding-service` | Bid placement/history, current price/winner, bidding session, idempotency, concurrency, minimum increment and final bid consistency | PostgreSQL `bidding_db` / `bidding_test_db` | ECS Fargate |
+| `billing-service` | Purchases of Auction ProMax listing packages, PurchaseOrder, licensed PSP adapter, signed webhooks, replay protection and provider reconciliation | PostgreSQL `billing_db` / `billing_test_db` | ECS Fargate |
+| `realtime-gateway` | WebSocket authentication, subscriptions, fanout and reconnect/snapshot support | No PostgreSQL; ephemeral Valkey state only | ECS Fargate |
+
+`auction-service` decides whether the seller can publish. Entitlement consumption and auction publication must commit in one local `auction_db` transaction; this is not a synchronous authorization call to billing. `billing-service` proves payment for the platform's own listing service and emits an integration signal for entitlement grant. Listing entitlements are non-monetary, non-withdrawable, non-transferable, and cannot buy auction goods or represent seller payout/stored value. Advertising begins later through a lightweight third-party network/client integration; a dedicated advertising backend requires traffic/revenue evidence, not Phase 0 provisioning.
 
 ## 4.2 Serverless supporting workloads
 
@@ -108,28 +113,26 @@ The desired outcome is:
 
 ---
 
-# 5. Why Transaction Core stays in Java/Spring Boot
+# 5. Why Bidding Core stays in Java/Spring Boot
 
-`transaction-core-service` intentionally owns the complete consistency boundary for bid placement:
+`bidding-service` intentionally owns the complete consistency boundary for bid placement:
 
 1. Claim/read idempotency record.
-2. Lock canonical auction transaction state.
-3. Validate auction bidding state.
+2. Lock/read canonical bidding-session state.
+3. Verify the auction accepts bids through a versioned eligibility/lifecycle contract.
 4. Validate bidder eligibility.
 5. Calculate minimum acceptable bid.
-6. Lock bidder wallet.
-7. Validate available funds.
-8. Increase/create bidder hold.
-9. Release previous winning hold.
-10. Mark previous winning bid outbid.
-11. Insert new winning bid.
-12. Update canonical winner/current price/version.
-13. Append immutable hold/ledger records.
-14. Write integration events to outbox.
-15. Store idempotent response.
-16. Commit exactly once.
+6. Validate bid amount.
+7. Update previous winner state where applicable.
+8. Insert accepted bid.
+9. Update canonical winner/current price and increment aggregate version.
+10. Write integration event to outbox.
+11. Store idempotent response.
+12. Commit exactly once.
 
 This flow must remain one local business transaction.
+
+Auction owns lifecycle and Bidding owns bid acceptance. Phase 4 proves the Bidding-local closed-session race; Phase 5 defines a versioned close/fencing contract: Auction requests close, Bidding durably fences the session against new accepted bids and returns the final bid/version, then Auction records the final AuctionResult. Retries and out-of-order messages must not reopen a fenced session or finalize from an unfenced snapshot. This is a later product protocol, not Phase 0 implementation.
 
 It must **not** be decomposed into a chain of Lambda functions or distributed service calls just to become "more serverless".
 
@@ -146,7 +149,7 @@ It must **not** be decomposed into a chain of Lambda functions or distributed se
 - serialization retry
 - unique constraints
 - idempotency
-- immutable ledger design
+- monotonic aggregate version and close-vs-bid race design
 - concurrency testing
 - virtual threads
 - JVM profiling
@@ -166,28 +169,28 @@ flowchart TD
 
     ALB --> ID[Identity/Profile ECS Service]
     ALB --> AU[Auction ECS Service]
-    ALB --> TX[Transaction Core ECS Service]
-    ALB --> PAY[Payment ECS Service]
+    ALB --> BID[Bidding ECS Service]
+    ALB --> BILL[Platform Billing ECS Service]
     ALB --> RT[Realtime Gateway ECS Service]
 
     COG[Amazon Cognito] --> ID
     COG --> AU
-    COG --> TX
-    COG --> PAY
+    COG --> BID
+    COG --> BILL
     COG --> RT
 
     ID --> RDS1[(RDS PostgreSQL Identity)]
     AU --> RDS2[(RDS PostgreSQL Auction)]
-    TX --> RDS3[(RDS PostgreSQL Transaction)]
-    PAY --> RDS4[(RDS PostgreSQL Payment)]
+    BID --> RDS3[(RDS PostgreSQL Bidding)]
+    BILL --> RDS4[(RDS PostgreSQL Billing)]
 
     AU --> S3[(S3 Media)]
     RT --> REDIS[(ElastiCache Valkey)]
 
     ID --> OUT[Transactional Outbox]
     AU --> OUT
-    TX --> OUT
-    PAY --> OUT
+    BID --> OUT
+    BILL --> OUT
 
     OUT --> EB[EventBridge]
     EB --> Q1[SQS Notification]
@@ -212,8 +215,8 @@ flowchart TD
 
     APPCFG[AWS AppConfig] --> ID
     APPCFG --> AU
-    APPCFG --> TX
-    APPCFG --> PAY
+    APPCFG --> BID
+    APPCFG --> BILL
 
     KMS[AWS KMS] --> RDS1
     KMS --> RDS2
@@ -310,7 +313,7 @@ flowchart TD
 Input:
 
 - `BidOutbid`
-- `SettlementCompleted`
+- `AuctionResultFinalized`
 - `AuctionStarted`
 - `AuctionCancelled`
 
@@ -323,7 +326,7 @@ Outputs:
 
 Input:
 
-- auction and transaction integration events
+- auction and bidding integration events
 
 Output:
 
@@ -358,38 +361,32 @@ Step Functions is **not** used for bid placement.
 
 Use it only where explicit workflow state has value.
 
-## Approved initial candidate: withdrawal orchestration
+## Evidence-triggered candidate: platform listing-purchase reconciliation
 
 ```text
-WithdrawalRequested
+ProviderPaymentObserved
     ↓
-Validate request
+Verify signed provider evidence
     ↓
-Reserve/authorize funds
+Compare PurchaseOrder/provider state
     ↓
-Call provider
+Retry or await provider confirmation
     ↓
-Wait / retry / callback
+Mismatch?
     ↓
-Success?
- ┌──┴──┐
-Yes   No
- ↓     ↓
-Complete  Compensate/Review
- ↓
-Publish result
+Record verified outcome or alert for controlled review
 ```
 
-Canonical financial state remains in Transaction Core/PostgreSQL.
+Canonical PurchaseOrder/payment state remains in `billing_db`; usable entitlements remain in `auction_db`. Step Functions is optional only if measured long-running workflow needs justify it. It never owns a bid or entitlement-publication transaction.
 
-## Second candidate: reconciliation workflow
+## Other candidate: long-running operational recovery
 
 ```text
 Start
  ↓
-Collect provider transactions
+Collect provider purchase records
  ↓
-Collect internal records
+Collect billing PurchaseOrders
  ↓
 Compare
  ↓
@@ -407,8 +404,8 @@ Use AWS AppConfig for runtime-controlled configuration.
 Examples:
 
 ```text
-payment.provider.enabled
-withdrawal.enabled
+billing.provider.enabled
+listingPackages.enabled
 newBidAlgorithm.enabled
 auction.maxExtensionSeconds
 auction.minimumIncrementRules
@@ -425,9 +422,9 @@ Requirements:
 - CloudWatch alarm rollback;
 - version history;
 - environment-specific configuration;
-- no financial invariant may depend on an unvalidated arbitrary flag.
+- no bid, publication, entitlement or purchase invariant may depend on an unvalidated arbitrary flag.
 
-Feature flags should control behavior rollout, not replace domain authorization or financial validation.
+Feature flags control rollout, not domain authorization or bid/purchase validation.
 
 ---
 
@@ -435,12 +432,14 @@ Feature flags should control behavior rollout, not replace domain authorization 
 
 ## 11.1 PostgreSQL ownership
 
-| Database         | Core aggregates                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------- |
-| `identity_db`    | users, profiles, roles, restrictions, audit, idempotency, outbox/inbox                |
-| `auction_db`     | categories, auctions, lifecycle, image metadata, audit, idempotency, outbox/inbox     |
-| `transaction_db` | bids, wallets, holds, ledger, settlement, reconciliation, idempotency, outbox/inbox   |
-| `payment_db`     | deposits, withdrawals, provider state, webhook receipts, reconciliation, outbox/inbox |
+| Database / test database | Core aggregates |
+| --- | --- |
+| `identity_db` / `identity_test_db` | Users, profiles, roles, seller status, restrictions, audit, idempotency, outbox/inbox |
+| `auction_db` / `auction_test_db` | Categories, drafts, publication/lifecycle, media metadata, AuctionResult, free listing allowance, non-monetary entitlement grants/consumption, idempotency, outbox/inbox |
+| `bidding_db` / `bidding_test_db` | BiddingSession, bids, current winner/price, final bid, idempotency, outbox/inbox |
+| `billing_db` / `billing_test_db` | Listing-package catalogue, PurchaseOrder, PSP payment state, webhook receipts, reconciliation, outbox/inbox |
+
+`realtime-gateway` owns no PostgreSQL database. Billing's purchase event is consumed idempotently to grant usable entitlements in Auction. Publication and consumption then occur atomically in `auction_db`; there is no cross-service distributed transaction or money-like entitlement balance.
 
 Rules:
 
@@ -461,11 +460,9 @@ Rules:
 
 Prohibited as sole authority for:
 
-- wallet balance;
-- winning bid;
-- holds;
-- financial ledger;
-- settlement.
+- winning bid/current price/final result;
+- listing entitlement state or publication consumption;
+- platform PurchaseOrder/provider-payment state.
 
 ## 11.3 Valkey/Redis approved workloads
 
@@ -491,10 +488,10 @@ Prohibited as sole authority for:
 | IAM            | Per-service task role, least privilege                       |
 | Network        | Private application/data subnets                             |
 | Edge           | CloudFront + WAF + TLS                                       |
-| Payments       | Signed webhooks, replay protection                           |
+| Platform billing | Licensed PSP adapter, signed webhooks, replay protection; no auction-item payment |
 | Uploads        | Presigned URL constraints, checksum/type/size validation     |
 | Logs           | Redaction of tokens, cookies, secrets and sensitive payloads |
-| Ledger         | Immutable entries, compensating corrections only             |
+| Audit          | Immutable audit/provenance for bids, publication and platform purchases |
 
 ## 12.2 KMS
 
@@ -604,11 +601,11 @@ Prefer VPC endpoints over NAT for high-volume supported AWS service traffic when
   "eventId": "uuid",
   "eventType": "BidPlaced",
   "eventVersion": 1,
-  "aggregateType": "AuctionTransaction",
+  "aggregateType": "BiddingSession",
   "aggregateId": "auction-id",
   "aggregateVersion": 123,
   "occurredAt": "2026-08-15T00:00:00Z",
-  "producer": "transaction-core-service",
+  "producer": "bidding-service",
   "correlationId": "uuid",
   "causationId": "uuid",
   "payload": {}
@@ -643,7 +640,8 @@ Rules:
 - idempotent consumer;
 - aggregate version detects gaps/staleness;
 - controlled DLQ redrive;
-- no consumer may reinterpret an already committed financial decision.
+- no consumer may reinterpret an already committed bid, auction result, entitlement consumption or platform-purchase decision.
+- a verified platform listing purchase may emit an entitlement-grant integration signal; the exact event name is defined with its later contract, not frozen here.
 
 ---
 
@@ -652,7 +650,7 @@ Rules:
 ```text
 Bid command
     ↓
-Transaction Core transaction
+Bidding-service local transaction
     ↓
 Outbox
     ↓
@@ -794,12 +792,11 @@ burst window: 2 seconds
 
 Prove:
 
-- exactly one canonical winning bid;
-- wallet balance never negative;
-- locked balance never exceeds balance;
-- previous winning hold released once;
-- no duplicated ledger financial effect;
-- idempotent retry returns the same business outcome.
+- exactly one canonical winning state and monotonic aggregate version;
+- minimum-increment and eligibility rules maintained;
+- duplicate command has one business effect and retry returns a compatible prior result;
+- no bid is accepted after Bidding's authoritative session fence;
+- bid/close race resolves deterministically.
 
 ---
 
@@ -810,11 +807,11 @@ Prove:
 | Versioning          | `/api/v1`                                       |
 | Auth                | Cognito OAuth/OIDC                              |
 | Error format        | RFC 9457 Problem Details + stable domain code   |
-| Financial commands  | `Idempotency-Key` mandatory                     |
+| Bid, publication, close and platform-purchase commands | `Idempotency-Key` mandatory |
 | Trace               | W3C Trace Context                               |
 | Pagination          | Cursor pagination                               |
 | Time                | UTC ISO-8601                                    |
-| Money               | `BigDecimal` / PostgreSQL `numeric`             |
+| Bid and package price | `BigDecimal` / PostgreSQL `numeric`; listing entitlements are not money |
 | Concurrency control | ETag/If-Match or aggregate version where useful |
 | API docs            | OpenAPI 3.1                                     |
 | Compatibility       | N/N-1 during rolling deployment                 |
@@ -853,11 +850,10 @@ Track at minimum:
 ## Business
 
 - bid success/failure rate;
-- auction settlement age;
+- auction close/final-result age;
 - active auctions;
-- wallet reconciliation mismatch;
-- payment webhook failures;
-- withdrawal failures;
+- entitlement-grant lag and publication-consumption failures;
+- platform-purchase webhook/reconciliation failures;
 - projection lag.
 
 ## SLO baseline
@@ -869,9 +865,9 @@ Track at minimum:
 | Normal read latency        | p95 < 350 ms                   |
 | Bid placement              | p95 < 500 ms under target load |
 | Realtime propagation       | p95 < 750 ms after commit      |
-| Duplicate financial effect | 0                              |
-| Multiple winning bids      | 0                              |
-| Lost completed settlement  | 0                              |
+| Duplicate bid/entitlement/purchase business effect | 0 |
+| Multiple canonical winners | 0 |
+| Lost finalized auction result | 0 |
 | Outbox oldest event age    | < 60 seconds steady state      |
 | Projection freshness       | p95 < 30 seconds initially     |
 
@@ -927,7 +923,7 @@ Rules:
 - backward-compatible Flyway migration;
 - expand-contract migrations;
 - independent service deployment;
-- no ledger rollback to roll back application code;
+- no destructive rollback of canonical bid, entitlement, result or purchase state to roll back application code;
 - deployment stops on High/Critical findings unless an approved exception exists.
 
 ---
@@ -976,10 +972,10 @@ Backup / Security Account
 
 | Component            | RPO                       | RTO target                   |
 | -------------------- | ------------------------- | ---------------------------- |
-| Transaction DB       | ≤ 5 min                   | ≤ 60 min                     |
+| Bidding DB           | ≤ 5 min                   | ≤ 60 min                     |
 | Auction DB           | ≤ 5 min                   | ≤ 60 min                     |
 | Identity DB          | ≤ 15 min                  | ≤ 60 min                     |
-| Payment DB           | ≤ 5 min                   | ≤ 60 min                     |
+| Billing DB           | ≤ 5 min                   | ≤ 60 min                     |
 | DynamoDB projections | Rebuildable               | ≤ 4 hours full rebuild       |
 | Redis/Valkey         | Ephemeral                 | 15–30 min                    |
 | S3 media             | Versioned durable objects | ≤ 60 min service restoration |
@@ -1002,7 +998,7 @@ Required failure scenarios:
 - Redis unavailable;
 - RDS failover;
 - provider webhook repeated;
-- payment provider timeout;
+- listing-package PSP timeout;
 - Lambda timeout;
 - Lambda partial-batch failure;
 - AppConfig bad deployment rollback;
@@ -1073,14 +1069,14 @@ Operational events / exports
           │
         Athena
           │
- dashboards / reconciliation / BI
+ dashboards / provider reconciliation / BI
 ```
 
 Possible datasets:
 
 - auction lifecycle history;
 - bid volume;
-- payment reconciliation;
+- platform listing-purchase reconciliation;
 - seller performance;
 - notification outcomes;
 - operational latency;
@@ -1144,13 +1140,13 @@ A senior architecture is judged partly by services deliberately **not** introduc
 
 | Layer                | Required coverage                                                 |
 | -------------------- | ----------------------------------------------------------------- |
-| Domain unit tests    | Auction states, bids, holds, ledger, settlement                   |
-| Property-based tests | Money conservation and balance invariants                         |
+| Domain unit tests    | Auction state, listing entitlement, bids, final result and platform PurchaseOrder |
+| Property-based tests | Bid ordering/version, close race and atomic publication/entitlement invariants |
 | Architecture tests   | No cross-service domain/DB dependency                             |
 | Integration tests    | Testcontainers PostgreSQL/Valkey; AWS adapters                    |
 | Contract tests       | OpenAPI/events N/N-1 compatibility                                |
-| Concurrency tests    | Bid races, duplicate requests, settlement races                   |
-| End-to-end tests     | Register → publish → bid → outbid → settle → payment              |
+| Concurrency tests    | Bid/close races, duplicate requests, entitlement publication races |
+| End-to-end tests     | Register → entitlement-backed publish → bid → finalize → authorized buyer/seller handoff; separate platform listing-package checkout/grant |
 | Performance tests    | Normal load, hot-auction burst, realtime connection load          |
 | Recovery tests       | Redis loss, worker restart, DB restore, DLQ redrive               |
 | Security tests       | IDOR, token misuse, role escalation, webhook replay, upload abuse |
@@ -1179,7 +1175,9 @@ A senior architecture is judged partly by services deliberately **not** introduc
 
 ## Phase 0 — Architecture and Java engineering foundation
 
-**Goal:** lock domain boundaries before AWS complexity.
+**Goal:** lock corrected marketplace, bidding, platform billing and non-monetary entitlement boundaries before AWS/product complexity.
+
+The five core service identities are `identity-profile-service`, `auction-service`, `bidding-service`, `billing-service` and `realtime-gateway` (four relational services and one database-free gateway). This is technical foundation work; Phase 0 exit does not require product bidding or billing behavior.
 
 Deliver:
 
@@ -1227,7 +1225,7 @@ Exit:
 
 ---
 
-## Phase 2 — Auction catalog and media
+## Phase 2 — Auction catalog, media and listing-entitlement foundation
 
 Deliver:
 
@@ -1236,13 +1234,16 @@ Deliver:
 - seller authorization;
 - S3 presigned uploads;
 - Lambda image processing;
-- PostgreSQL search.
+- PostgreSQL-first search;
+- initial free listing allowance and non-monetary listing-entitlement state;
+- atomic consume-one-entitlement-on-publication invariant in `auction_db`.
 
 Exit:
 
 - invalid media rejected;
 - lifecycle/domain tests pass;
-- search SLO passes test dataset.
+- search SLO passes on the test dataset;
+- publication and entitlement consumption commit or roll back together; entitlements cannot be withdrawn, transferred or used as money.
 
 ---
 
@@ -1262,55 +1263,49 @@ Exit:
 
 ---
 
-## Phase 4 — Transaction Core
+## Phase 4 — Concurrent Bidding Core
 
 Deliver:
 
-- wallet;
-- holds;
-- ledger;
-- bid placement;
-- idempotency;
-- concurrency control;
-- reconciliation;
+- BiddingSession, PlaceBid and bid history;
+- current winner/current price and minimum increment;
+- idempotency, aggregate versioning and concurrency control;
+- deterministic Bidding-local close-vs-bid race behavior;
 - property-based tests.
 
 Exit:
 
-- 1,000-concurrent-bid hot-auction test satisfies invariants.
+- 1,000-concurrent-bid hot-auction test proves one canonical winning state, bid rules, one effect per duplicate, compatible retry result, no bid after Bidding's local close fence, deterministic local close race and monotonic version.
 
 ---
 
-## Phase 5 — Settlement
+## Phase 5 — Auction Completion and Winner Handoff
 
 Deliver:
 
-- settlement workflow;
-- winner capture;
-- losing hold release;
-- immutable ledger;
-- Auction/Transaction integration;
-- reconciliation tooling.
+- auction close protocol and final winner freeze;
+- no-bid outcome, idempotent close and a versioned Auction→Bidding fence/final-bid acknowledgement;
+- Auction/Bidding integration and stable AuctionResult;
+- authorized buyer/seller handoff and notifications.
 
 Exit:
 
-- duplicate settlement request has one business effect.
+- duplicate close has one business effect; final result agrees with canonical final bid and supports authorized handoff. Auctioned-goods payment, escrow, seller payout, commission and financial settlement are out of scope.
 
 ---
 
-## Phase 6 — Payment orchestration
+## Phase 6 — Listing Entitlements and Platform Billing
 
 Deliver:
 
-- payment provider abstraction;
-- signed webhook processing;
-- deposit/withdrawal;
-- provider reconciliation;
-- optional Step Functions withdrawal/reconciliation experiment.
+- listing packages and PurchaseOrder for Auction ProMax's own listing service;
+- licensed PSP checkout adapter, signed webhooks, replay protection and payment idempotency;
+- provider reconciliation and event-driven entitlement grant to `auction-service`;
+- at-least-once delivery with exactly one entitlement-grant business effect.
 
 Exit:
 
-- replayed webhook produces no duplicate financial effect.
+- replayed webhook/purchase event cannot duplicate entitlement grant. Buyer auction-item payment, user monetary wallet, deposits, withdrawals, escrow and seller payout remain excluded.
 
 ---
 
@@ -1443,6 +1438,7 @@ No fixed date.
 | Streaming analytics requirement    | Kinesis for selected flow                               |
 | Analytics demand                   | S3 + Glue + Athena                                      |
 | Regional DR requirement            | Cross-region recovery architecture                      |
+| Meaningful advertising traffic/revenue | Third-party ad network/client integration first; dedicated backend only if measured need |
 
 ---
 
@@ -1453,11 +1449,11 @@ No fixed date.
 3. Hexagonal architecture inside services.
 4. Cognito owns credentials; app owns business roles.
 5. PostgreSQL ownership per bounded context.
-6. Transaction Core owns bid/wallet/hold/ledger/settlement.
+6. Bidding Core owns bid/current-winner/final-bid consistency; Auction owns usable listing entitlements and atomic publication consumption; Billing owns platform-service purchases. [ADR-026](adr/ADR-026-marketplace-transaction-and-monetization-boundary.md) and [ADR-027](adr/ADR-027-bidding-billing-and-listing-entitlement-ownership.md) supersede historical financial assumptions.
 7. ECS for core long-running domain services.
 8. Lambda only for approved supporting workloads.
 9. DynamoDB only for projection/inbox/TTL workloads.
-10. Valkey is ephemeral, never financial truth.
+10. Valkey is ephemeral, never canonical bid, result or entitlement truth.
 11. Transactional outbox + EventBridge + SQS.
 12. EventBridge Scheduler for auction lifecycle.
 13. Step Functions only for long-running orchestration.
@@ -1468,6 +1464,8 @@ No fixed date.
 18. Multi-account production governance.
 19. Immutable deployment digest and blue/green production rollout.
 20. Backup/restore and fault-testing policy.
+
+The Sprint 001 [20-row decision matrix](decisions/S001-T09_BLUEPRINT_ADR_MATRIX.md) records the then-approved historical baseline and is not retroactively rewritten. ADR-005 and ADR-012 retain historical approval/provenance; their financial-domain requirements no longer govern the V1 target where superseded by ADR-026/027. General idempotency and append-only audit principles remain applicable.
 
 ---
 
@@ -1480,17 +1478,17 @@ No fixed date.
 - no cross-service table access;
 - API/event compatibility supports rolling deployment;
 - outbox/inbox behavior proven;
-- Lambda functions do not own cross-domain financial transactions.
+- Lambda functions do not own bid placement or atomic auction-publication/entitlement consumption.
 
 ## Java/backend correctness
 
-- one winning bid per auction;
-- wallet/hold invariants cannot be violated;
+- at most one winning bid and exactly one canonical finalized result per closed auction, including no-bid outcomes;
+- one canonical current winner/price and monotonic bidding version;
+- publication and entitlement consumption are atomic and non-monetary;
 - duplicate commands produce one business effect;
 - serialization/deadlock retry proven;
-- settlement recoverable;
-- ledger immutable;
-- reconciliation passes.
+- close/final-result handoff is idempotent and recoverable;
+- platform-purchase webhook replay and entitlement-grant reconciliation pass.
 
 ## Reliability
 
@@ -1528,7 +1526,7 @@ No fixed date.
 
 The final target architecture is:
 
-> A Java 21 / Spring Boot microservice platform in which core domain behavior, transaction correctness, concurrency control and distributed-system semantics remain inside coarse-grained Spring services on ECS Fargate; PostgreSQL remains the canonical transactional authority; Lambda handles selected event-driven supporting workloads; EventBridge/SQS provide durable asynchronous integration; DynamoDB serves rebuildable projections and notification inboxes; Valkey supports realtime ephemeral state; Step Functions is restricted to explicit long-running orchestration; and AWS platform services provide enterprise-grade security, observability, CI/CD, configuration, backup, governance and evidence-based scalability.
+> A Java 21 / Spring Boot marketplace platform in which auction publication and non-monetary listing-entitlement consumption are atomic in Auction, bid/current-winner consistency belongs to Bidding, and only purchases of the platform's own listing service belong to Billing. Buyer/seller payment and delivery for auctioned goods remain outside Auction ProMax. PostgreSQL remains canonical for each bounded context; Lambda handles selected supporting workloads; EventBridge/SQS provide durable asynchronous integration; DynamoDB serves rebuildable projections and notification inboxes; Valkey is ephemeral; Step Functions is restricted to justified long-running orchestration; AWS platform services provide security, observability, CI/CD, backup, governance and evidence-based scalability.
 
 The architecture intentionally favors **depth in Java/Spring/PostgreSQL and distributed systems**, while using AWS to provide a production platform around that core.
 

@@ -93,14 +93,17 @@ test("CLI classifies a real push diff and writes exact GitHub job outputs", (t) 
 });
 
 test("aggregate accepts applicable success and justified skips only", () => {
-  assert.equal(evaluateAggregate({ classify: "success", apiRequired: "true", webRequired: "false", apiResult: "success", webResult: "skipped" }), true);
-  assert.equal(evaluateAggregate({ classify: "success", apiRequired: "false", webRequired: "false", apiResult: "skipped", webResult: "skipped" }), true);
+  assert.equal(evaluateAggregate({ classify: "success", apiRequired: "true", webRequired: "false", apiResult: "success", webResult: "skipped", lifecycleResult: "success" }), true);
+  assert.equal(evaluateAggregate({ classify: "success", apiRequired: "false", webRequired: "false", apiResult: "skipped", webResult: "skipped", lifecycleResult: "success" }), true);
   for (const result of ["failure", "cancelled", "skipped", "", "timed_out"]) {
-    assert.equal(evaluateAggregate({ classify: "success", apiRequired: "true", webRequired: "false", apiResult: result, webResult: "skipped" }), false, result);
+    assert.equal(evaluateAggregate({ classify: "success", apiRequired: "true", webRequired: "false", apiResult: result, webResult: "skipped", lifecycleResult: "success" }), false, result);
   }
-  assert.equal(evaluateAggregate({ classify: "failure", apiRequired: "true", webRequired: "true", apiResult: "success", webResult: "success" }), false);
-  assert.equal(evaluateAggregate({ classify: "success", apiRequired: "", webRequired: "true", apiResult: "skipped", webResult: "success" }), false);
-  assert.equal(evaluateAggregate({ classify: "success", apiRequired: "false", webRequired: "false", apiResult: "success", webResult: "skipped" }), false);
+  assert.equal(evaluateAggregate({ classify: "failure", apiRequired: "true", webRequired: "true", apiResult: "success", webResult: "success", lifecycleResult: "success" }), false);
+  assert.equal(evaluateAggregate({ classify: "success", apiRequired: "", webRequired: "true", apiResult: "skipped", webResult: "success", lifecycleResult: "success" }), false);
+  assert.equal(evaluateAggregate({ classify: "success", apiRequired: "false", webRequired: "false", apiResult: "success", webResult: "skipped", lifecycleResult: "success" }), false);
+  for (const lifecycleResult of ["failure", "cancelled", "skipped", ""]) {
+    assert.equal(evaluateAggregate({ classify: "success", apiRequired: "false", webRequired: "false", apiResult: "skipped", webResult: "skipped", lifecycleResult }), false);
+  }
 });
 
 test("required workflow owns one unique always-concluding check without PR path filters", () => {
@@ -118,7 +121,10 @@ test("required workflow owns one unique always-concluding check without PR path 
   assert.equal(workflow.on.pull_request?.["paths-ignore"], undefined);
   assert.deepEqual(workflow.permissions, { contents: "read" });
   assert.equal(workflow.jobs["monorepo-required"].if, "${{ always() }}");
-  assert.deepEqual(workflow.jobs["monorepo-required"].needs, ["classify", "api", "web"]);
+  assert.deepEqual(workflow.jobs["monorepo-required"].needs, ["classify", "api", "web", "lifecycle"]);
+  assert.ok(workflow.jobs.lifecycle, "always-run lifecycle job is required");
+  assert.equal(workflow.jobs.lifecycle.if, undefined);
+  assert.ok(workflow.jobs.lifecycle.steps.some((step) => step.run?.includes("Test-S002-Lifecycle.mjs --repository")));
   assert.ok(workflow.jobs["monorepo-required"].steps.every((step) => !step.uses));
   assert.equal(workflow.jobs.classify.steps[0].with["fetch-depth"], 0);
   assert.equal(workflow.jobs.classify.steps[0].with.ref, undefined);
@@ -158,11 +164,13 @@ test("the actual aggregate job command rejects required failures and accepts doc
   const source = command.match(/^node -e '\n([\s\S]*?)\n'\s*$/)?.[1];
   assert.ok(source, "aggregate command must be executable Node.js with no checkout");
   const run = (env) => spawnSync(process.execPath, ["-e", source], { env: { ...process.env, ...env }, encoding: "utf8" }).status;
-  const baseline = { CLASSIFY_RESULT: "success", API_REQUIRED: "true", WEB_REQUIRED: "false", API_RESULT: "success", WEB_RESULT: "skipped" };
+  const baseline = { CLASSIFY_RESULT: "success", API_REQUIRED: "false", WEB_REQUIRED: "false", API_RESULT: "skipped", WEB_RESULT: "skipped", LIFECYCLE_RESULT: "success" };
   assert.equal(run(baseline), 0);
-  assert.equal(run({ ...baseline, API_RESULT: "skipped" }), 1);
-  assert.equal(run({ ...baseline, API_RESULT: "cancelled" }), 1);
+  for (const result of ["failure", "cancelled", "skipped", ""]) {
+    assert.equal(run({ ...baseline, LIFECYCLE_RESULT: result }), 1, result);
+  }
+  assert.equal(run({ ...baseline, API_REQUIRED: "true", API_RESULT: "skipped" }), 1);
+  assert.equal(run({ ...baseline, CLASSIFY_RESULT: "failure" }), 1);
   assert.equal(run({ ...baseline, WEB_RESULT: "success" }), 1);
   assert.equal(run({ ...baseline, API_REQUIRED: "" }), 1);
-  assert.equal(run({ CLASSIFY_RESULT: "success", API_REQUIRED: "false", WEB_REQUIRED: "false", API_RESULT: "skipped", WEB_RESULT: "skipped" }), 0);
 });

@@ -1,6 +1,8 @@
 # Sprint 002 — reusable service foundation and independent core builds
 
-Status: DESIGN_REVIEW_PENDING. The owner approved the scope in conversation; this written specification requires review before the implementation plan is written. Sprint 002 is not activated by this document.
+Status: APPROVED_DESIGN. AkaDNT (Project Owner / Repository Owner) approved this written design on 2026-10-05 ("Ok chốt vậy đi, bắt đầu lên plan đi"). This authorizes implementation planning, not Sprint 002 activation, implementation, merge, risk disposition or phase advancement.
+
+V1 architecture amendment (Project Owner instruction, 2026-10-05): the [revised blueprint](../../../api/docs/Auction_Platform_Final_Production_Architecture_Blueprint_and_Roadmap.md), [ADR-026](../../../api/docs/adr/ADR-026-marketplace-transaction-and-monetization-boundary.md) and [ADR-027](../../../api/docs/adr/ADR-027-bidding-billing-and-listing-entitlement-ownership.md) now govern the five service identities and marketplace boundary. This amends planning authority before activation/T02; it does not grant activation, merge or Phase 1 implementation. The prior design approval and Sprint 001 evidence remain historical facts.
 
 ## Intent and baseline
 
@@ -16,6 +18,7 @@ Authority:
 - [Delivery State](../../../api/docs/DELIVERY_STATE.md).
 - [Sprint Index](../../../api/docs/SPRINT_INDEX.md).
 - [ADR-017 implementation addendum](../../../api/docs/adr/ADR-017-repository-topology-and-contract-governance.md).
+- [V1 marketplace decision BD-008](../../../api/docs/decisions/BUSINESS_DECISIONS.md) and superseding ADR-026/027 above.
 - [Consumer-gate addendum](2026-09-27-s001-t09-phase0-consumer-gate-addendum.md).
 - [Sprint 001 review](../../../api/docs/sprints/S001-T08_REVIEW_EVIDENCE.md).
 
@@ -29,11 +32,13 @@ The template is derived from proven technical patterns in Identity, not by copyi
 | --- | --- | --- | --- |
 | identity-profile-service | Relational | identity_db / identity_test_db | Preserve existing service and verify common baseline conformance |
 | auction-service | Relational | auction_db / auction_test_db | New technical skeleton; no categories, auctions or S3 integration |
-| transaction-core-service | Relational | transaction_db / transaction_test_db | New technical skeleton; no bids, wallet, ledger or financial schema |
-| payment-service | Relational | payment_db / payment_test_db | New technical skeleton; no provider/webhook/payment flow |
+| bidding-service | Relational | bidding_db / bidding_test_db | New technical shell, package `com.auctionpromax.biddingservice`, entry `BiddingServiceApplication`; no bid product use case or monetary schema |
+| billing-service | Relational | billing_db / billing_test_db | New technical shell, package `com.auctionpromax.billingservice`, entry `BillingServiceApplication`; no listing purchase, PSP or webhook behavior |
 | realtime-gateway | Gateway | Future Valkey ephemeral state | New technical skeleton; no PostgreSQL, JPA, Flyway or fake datastore readiness |
 
 The gateway variant has no external datastore integration in this sprint. Readiness proves only the dependencies it actually uses; it cannot claim Valkey, WebSocket authentication or fanout readiness. Adding an actual Valkey adapter requires separate scoped approval and evidence.
+
+For the Phase 0 independent-build exit criterion, "each service" means the five core Spring Boot services listed in Blueprint §4.1 and above: four relational services and one database-free gateway. The exit matrix must record this scope explicitly. Serverless supporting workloads in §4.2 and optional later services in §4.3 are not Phase 0 service-build obligations; this does not remove their later roadmap obligations.
 
 ## Template contract and safety
 
@@ -41,7 +46,7 @@ Template inputs are an allowlisted service identifier and its registered variant
 
 Generation must be deterministic, produce LF text, stay within the approved service destination and fail before writing if the destination already exists or input is invalid. Tests cover path traversal, unknown identifiers, inconsistent variants, existing destinations and repeat generation into separate empty destinations. No generated credentials, ignored local configuration, caches, binaries or scanner output enter Git.
 
-Keep the existing baseline versions: Java 21, Spring Boot 3.5.16 and Maven Wrapper 3.9.16. Reuse committed trust/image pins and scanner contracts without substitution. Dependency additions must be minimal, justified and reviewed; no automatic upgrades or vulnerability bypasses.
+Keep the existing baseline versions: Java 21, Spring Boot 3.5.16 and Maven Wrapper 3.3.4 pinning Maven distribution 3.9.16. This clarifies the earlier shorthand "Maven Wrapper 3.9.16" against the committed wrapper properties and BUILD_VERSION_BASELINE; it changes no version or approved tooling behavior. Reuse committed trust/image pins and scanner contracts without substitution. Dependency additions must be minimal, justified and reviewed; no automatic upgrades or vulnerability bypasses.
 
 ## Technical behavior
 
@@ -67,6 +72,7 @@ Local launch conventions must reject inherited Spring/JVM/Maven configuration ca
 8. Supply-chain tooling must cover every new shipped service artifact rather than silently scanning Identity alone. Produce validated revision-bound sanitized evidence per supported artifact; keep execution PASS distinct from BLOCKED release policy. If current tooling is single-service, extend it only through a reviewed explicit interface, tests and trusted scan path.
 9. Runbook, service inventory, coverage and sprint evidence contain actual commands/results/revisions and scoped claims. Independent final review and protected PR/postmerge execution verification precede delivered completion.
 10. A Phase 0 exit matrix maps every blueprint Phase 0 deliverable and all three exit criteria to exact revision-bound evidence or an explicit applicable approved decision. No unresolved mandatory Phase 0 gap may be silently classified as later-phase work. Historical decision approval is not implementation proof.
+    The matrix must include Inherited Gap Reconciliation: identify each inherited Sprint 001 gap, its source, owning requirement/phase, disposition and evidence or authority. Resolve the service-template gap through executed Sprint 002 evidence. Product/auth/producer-contract and production gaps remain open in their owning later phases, not mandatory Phase 0 exit blockers only where the blueprint and applicable approved addendum substantiate that classification. Preserve Sprint 001 historical statements; never relabel a deferred check as PASS.
 11. Lifecycle tests reject inconsistent current-phase claims across the active sprint, Delivery State and Sprint Index, including the previously deferred Sprint-only phase-mutation case. Distinguish a sprint's historical delivery phase from the authoritative current phase after transition. Preserve Sprint 001 closeout/provenance tests; support evidenced Sprint 002 activation, completion and the separately approved Phase 0-to-Phase 1 transition without inventing a generic lifecycle framework.
 12. Owner acceptance of Phase 0 exit, protected publication, actual postmerge verification and a reviewed Phase 1 handoff complete before the authoritative current-phase state becomes Phase 1. Missing approval, incomplete exit evidence or failed/missing required checks must prevent advancement. Sprint 002 completion alone is not sufficient.
 
@@ -74,9 +80,9 @@ Test assertions must exercise behavior and real launch/build boundaries. Source-
 
 ## Exclusions and carried risks
 
-No Cognito/auth product flow, auction/category functionality, bidding/financial invariants, payment integration, WebSocket product flow, EventBridge/SQS transport, AWS deployment, ECR publication or production recovery drill. Supporting Lambda workloads are outside the five-core-service scope. Do not provision every service with PostgreSQL.
+No Cognito/auth product flow, auction/category or listing-entitlement functionality, bid placement, winner handoff, platform listing-package billing/PSP integration, advertising integration, WebSocket product flow, EventBridge/SQS transport, AWS deployment, ECR publication or production recovery drill. Auction-item payment, commission, escrow, seller payout, monetary wallet, deposit/withdrawal and financial settlement are excluded V1 capabilities, not deferred Phase 0 implementation. Supporting Lambda workloads are outside the five-core-service scope. Do not provision every service with PostgreSQL.
 
-Consumer compatibility stays deferred under the existing addendum until authoritative producer contracts exist in later product tasks. Its applicability and residual boundary must be stated in the Phase 0 exit review; this is not consumer compatibility PASS. Security findings require fresh revision-specific assessment, remediation or exact approved unexpired dispositions; no risk acceptance is implied here. The Sprint-only phase-mutation regression is IN SCOPE for Sprint 002 under acceptance 11, with tracking reference S002-LIFECYCLE-01. It must be fixed before phase-transition closeout, but does not create a fourth blueprint technical exit criterion.
+Consumer compatibility stays deferred under the existing addendum until authoritative producer contracts exist in later product tasks. Its applicability and residual boundary must be stated in the Phase 0 exit review; this is not consumer compatibility PASS. Security findings require fresh revision-specific assessment, remediation or exact approved unexpired dispositions; no risk acceptance is implied here. The Sprint-only phase-mutation regression is IN SCOPE for Sprint 002 under acceptance 11, with tracking reference S002-LIFECYCLE-01. It must be proven before or atomically with Sprint 002 activation and remain green through completion and Phase 0 transition closeout. It does not create a fourth blueprint technical exit criterion.
 
 The Phase 1 handoff must distinguish planning/non-deployment work from image publication/deployment/release activities and identify the applicable existing security-policy prerequisites for each. BLOCKED policy cannot be bypassed by advancing the roadmap phase. If an intended Phase 1 activity lacks an approved applicable policy route, record it as blocked; any new exception requires separate owner/security approval, not an implementation-plan assumption.
 
@@ -86,9 +92,13 @@ After written-design approval, write a detailed plan with independently testable
 
 The plan must identify coupled CI/scanner/lifecycle changes before execution and size the sprint accordingly. Dates and capacity are owner planning inputs, not inherited automatically from Sprint 001. If estimates exceed available capacity, present the total effort, uncertainty and options to revise duration/capacity or split delivery for owner decision. Do not reduce verification gates to fit a sprint. Any split must retain CI/security coverage for artifacts introduced by each delivered increment, and the final increment must still satisfy the phase-exit goal; incomplete work is not Phase 0 completion.
 
-Sprint activation requires approval of the written plan and an execution method. Implementation uses isolated worktrees and preserves primary edits. Publication requires protected PR checks; merge authorization remains separate. Do not change Delivery State to an active Sprint 002 while this design is awaiting review.
+Sprint activation requires approval of the written plan and an execution method. Implementation uses isolated worktrees and preserves primary edits. Publication requires protected PR checks; merge authorization remains separate. Design approval alone does not change Delivery State to an active Sprint 002.
+
+The plan must put lifecycle RED/GREEN proof before or in the same reviewed change as the valid Sprint 002 activation state. The corrected validator must reject the Sprint-only phase mutation and accept the intended activation state before that state is published. Authoritative activation requires protected publication and actual postmerge verification; planning/preparatory lifecycle work is not itself an active-sprint claim.
 
 Closing Phase 0 requires an explicit owner review of all three blueprint exit criteria and the approved deliverables on the exact published revision: independent core-service builds, data isolation and the sample request/event trace. Five skeleton directories alone do not satisfy this gate. Prepare acceptance against a frozen candidate, publish only with separate merge authorization, then verify the actual published revision before recording the verified exit and phase transition. A follow-up bookkeeping PR may be required to record postmerge facts; the implementation plan must define this sequence without circularly demanding a commit contain its own final merge SHA.
+
+Any required transition/bookkeeping PR is part of Sprint 002 closeout, not deferred to the next sprint. After published-candidate verification, obtain explicit owner confirmation of the actual Phase 0 exit and handoff, record the verified facts through a separately authorized protected transition change, and verify its actual published revision and authoritative lifecycle state. Until those gates complete, retain an explicit closeout-pending state rather than claiming Sprint 002 COMPLETE or Phase 0 CLOSED. The intended final outcome is Sprint 002 COMPLETE, Phase 0 CLOSED and authoritative current phase Phase 1, with Phase 1 implementation not begun. The plan must define evidence references for final bookkeeping without requiring a commit to contain its own merge identity.
 
 The handoff records the accepted Phase 0 evidence, carried risks/deferred product contracts, Phase 1 entry prerequisites, proposed backlog and owner approval. Sprint 001 remains historical Phase 0 COMPLETED/PUBLISHED_VERIFIED; it is not relabeled Phase 1. Current Delivery State and Sprint Index advance consistently only after the transition gate. Phase 1 implementation belongs to a subsequent approved sprint and is not started during this closeout. Phase advancement, vulnerability disposition and release readiness remain separate decisions.
 

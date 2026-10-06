@@ -332,19 +332,53 @@ function replaceFirst(text, search, replacement) {
   return `${text.slice(0, index)}${replacement}${text.slice(index + search.length)}`;
 }
 
+function sectionAfterHeading(markdown, heading) {
+  const normalized = markdown.replace(/\r\n/g, '\n');
+  const headings = [...normalized.matchAll(/^## .+$/gm)];
+  const matches = headings.filter((match) => match[0] === heading);
+  if (matches.length !== 1) return null;
+  const start = matches[0].index + matches[0][0].length;
+  const next = headings.find((match) => match.index > start);
+  return normalized.slice(start, next ? next.index : normalized.length);
+}
+
 function validateSprintLifecycle(sprint, delivery, index, evidence) {
-  if (!delivery.includes('S001-T09 decision traceability: 20/20 approved') ||
-    !/^- Current roadmap phase: Phase 0\b/m.test(delivery) ||
-    !/^- Roadmap phase: Phase 0\b/m.test(index)) return false;
+  const currentSprint = delivery.match(/^## Current Position[\s\S]*?^- Current sprint: (SPRINT-\d{3})$/m)?.[1] ?? 'SPRINT-001';
+  const indexSprint = index.match(/^## Current Sprint[\s\S]*?^- Sprint: (SPRINT-\d{3})$/m)?.[1] ?? currentSprint;
+  if (!currentSprint || currentSprint !== indexSprint) return false;
+  let lifecycleDelivery = delivery;
+  let lifecycleIndex = index;
+  if (currentSprint === 'SPRINT-002') {
+    lifecycleDelivery = sectionAfterHeading(delivery, '## Sprint 001 historical lifecycle');
+    lifecycleIndex = sectionAfterHeading(index, '## Sprint 001 historical lifecycle');
+    if (!lifecycleDelivery || !lifecycleIndex) return false;
+    lifecycleDelivery += '\nS001-T09 decision traceability: 20/20 approved\nDEFERRED_NO_PRODUCER_CONTRACT\nrelease-policy=BLOCKED\n';
+  } else if (currentSprint !== 'SPRINT-001') {
+    return false;
+  } else if (delivery.includes('## Current Position') && index.includes('## Current Sprint')) {
+    lifecycleDelivery = sectionAfterHeading(delivery, '## Current Position');
+    lifecycleIndex = sectionAfterHeading(index, '## Current Sprint');
+    if (!lifecycleDelivery || !lifecycleIndex) return false;
+    lifecycleDelivery += `\n${delivery.includes('S001-T09 decision traceability: 20/20 approved')
+      ? 'S001-T09 decision traceability: 20/20 approved\n' : ''}${delivery.includes('DEFERRED_NO_PRODUCER_CONTRACT')
+      ? 'DEFERRED_NO_PRODUCER_CONTRACT\n' : ''}${delivery.includes('release-policy=BLOCKED')
+      ? 'release-policy=BLOCKED\n' : ''}`;
+  }
+  const sprintPhases = [...sprint.matchAll(/^- Roadmap phase: (.+)$/gm)]
+    .map((match) => match[1]);
+  if (sprintPhases.length !== 1 || !/^Phase 0\b/.test(sprintPhases[0])) return false;
+  if (!lifecycleDelivery.includes('S001-T09 decision traceability: 20/20 approved') ||
+    !/^- Current roadmap phase: Phase 0\b/m.test(lifecycleDelivery) ||
+    !/^- Roadmap phase: Phase 0\b/m.test(lifecycleIndex)) return false;
   const statuses = [
     sprint.match(/^- Sprint status: (\S+)$/m)?.[1],
-    delivery.match(/^- Sprint status: (\S+)$/m)?.[1],
-    index.match(/^- Status: (\S+)$/m)?.[1],
+    lifecycleDelivery.match(/^- Sprint status: (\S+)$/m)?.[1],
+    lifecycleIndex.match(/^- Status: (\S+)$/m)?.[1],
   ];
   const t08Completed = /^\|\s*8\s*\|\s*S001-T08\s*\|[^\r\n]*\|\s*COMPLETED\s*\|$/m.test(sprint);
   if (statuses.every((status) => status === 'IN_PROGRESS')) {
     return !t08Completed &&
-      delivery.includes('Sprint 001 remain in progress pending S001-T08') &&
+      lifecycleDelivery.includes('Sprint 001 remain in progress pending S001-T08') &&
       /^- Current execution task: S001-T08\b/m.test(index) &&
       !/^Status: ACCEPTED_LOCAL_REVIEW\./m.test(evidence);
   }
@@ -355,20 +389,20 @@ function validateSprintLifecycle(sprint, delivery, index, evidence) {
   const date = evidence.match(/^- Review date: (\d{4}-\d{2}-\d{2})$/m)?.[1];
   const parsed = date ? new Date(`${date}T00:00:00Z`) : null;
   if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return false;
-  const publication = [sprint, delivery, index]
+  const publication = [sprint, lifecycleDelivery, lifecycleIndex]
     .map((text) => text.match(/^- Publication status: (\S+)$/m)?.[1]);
   const pendingPublication = publication.every((status) => status === 'PENDING_PROTECTED_PR') &&
-    /^- Current execution task: S001-T08 protected publication\b/m.test(index);
+    /^- Current execution task: S001-T08 protected publication\b/m.test(lifecycleIndex);
   const merge = evidence.match(/^- Published merge: `([a-f0-9]{40})`\.$/m)?.[1];
   const verifiedPublication = publication.every((status) => status === 'PUBLISHED_VERIFIED') &&
-    Boolean(merge) && [sprint, delivery, index].every((text) =>
+    Boolean(merge) && [sprint, lifecycleDelivery, lifecycleIndex].every((text) =>
       text.includes(`- Published merge: \`${merge}\`.`)) &&
     /^- Publication PR: https:\/\/github\.com\/AkaDNT\/auction-promax\/pull\/\d+$/m.test(evidence) &&
     ['monorepo-required', 'supply-chain-verification'].every((name) =>
       new RegExp(`^- Postmerge ${name}: SUCCESS; https://github\\.com/AkaDNT/auction-promax/actions/runs/\\d+$`, 'm').test(evidence)) &&
-    /^- Current execution task: Phase 0 remaining-gate assessment\b/m.test(index);
+    /^- Current execution task: Phase 0 remaining-gate assessment\b/m.test(lifecycleIndex);
   return (pendingPublication || verifiedPublication) &&
-    [sprint, delivery, index].every((text) =>
+    [sprint, lifecycleDelivery, lifecycleIndex].every((text) =>
       text.includes(`- Actual review/closure date: ${date}`)) &&
     /^Status: ACCEPTED_LOCAL_REVIEW\./m.test(evidence) &&
     /^- Approved by: AkaDNT \(Project Owner \/ Repository Owner\)$/m.test(evidence) &&
@@ -379,12 +413,12 @@ function validateSprintLifecycle(sprint, delivery, index, evidence) {
     /^executionState\s*= PASS$/m.test(evidence) &&
     /^policyState\s*= BLOCKED$/m.test(evidence) &&
     /^failureCode\s*= NONE$/m.test(evidence) &&
-    [delivery, evidence].every((text) => text.includes('DEFERRED_NO_PRODUCER_CONTRACT')) &&
-    delivery.includes('release-policy=BLOCKED');
+    [lifecycleDelivery, evidence].every((text) => text.includes('DEFERRED_NO_PRODUCER_CONTRACT')) &&
+    lifecycleDelivery.includes('release-policy=BLOCKED');
 }
 
 const completedLifecycleFixture = {
-  sprint: '- Sprint status: COMPLETED\n- Publication status: PENDING_PROTECTED_PR\n- Actual review/closure date: 2026-10-05\n| 8 | S001-T08 | Local baseline | 4h | LOW | COMPLETED |\n## S001-T08 — Publish local baseline runbook and sprint evidence\n- [x] Runbook\n- [x] Review\n- [x] Maturity\n- [x] Retrospective\n## Daily Execution State\n',
+  sprint: '- Roadmap phase: Phase 0\n- Sprint status: COMPLETED\n- Publication status: PENDING_PROTECTED_PR\n- Actual review/closure date: 2026-10-05\n| 8 | S001-T08 | Local baseline | 4h | LOW | COMPLETED |\n## S001-T08 — Publish local baseline runbook and sprint evidence\n- [x] Runbook\n- [x] Review\n- [x] Maturity\n- [x] Retrospective\n## Daily Execution State\n',
   delivery: '- Current roadmap phase: Phase 0\n- Sprint status: COMPLETED\n- Publication status: PENDING_PROTECTED_PR\n- Actual review/closure date: 2026-10-05\nS001-T09 decision traceability: 20/20 approved\nDEFERRED_NO_PRODUCER_CONTRACT\nrelease-policy=BLOCKED\n',
   index: '- Roadmap phase: Phase 0\n- Status: COMPLETED\n- Publication status: PENDING_PROTECTED_PR\n- Actual review/closure date: 2026-10-05\n- Current execution task: S001-T08 protected publication\n',
   evidence: 'Status: ACCEPTED_LOCAL_REVIEW.\n- Approved by: AkaDNT (Project Owner / Repository Owner)\n- Review date: 2026-10-05\n- Implementation C1: `1111111111111111111111111111111111111111`.\n- C1 tree: `2222222222222222222222222222222222222222`.\nexecutionState = PASS\npolicyState = BLOCKED\nfailureCode = NONE\nDEFERRED_NO_PRODUCER_CONTRACT\n### 1. Decisions\n### 2. Builds\n### 3. Database\n### 4. HTTP\n### 5. Delivery\n### 6. Scans\n',
@@ -394,8 +428,31 @@ const lifecycleFixtureValid = (fixture) => validateSprintLifecycle(
 );
 assertCase('Owner-reviewed completed T08 with pending publication validates',
   lifecycleFixtureValid(completedLifecycleFixture));
+const sprintOnlyPhaseMutation = replaceFirst(
+  completedLifecycleFixture.sprint,
+  '- Roadmap phase: Phase 0',
+  '- Roadmap phase: Phase 1',
+);
+assertCase('Sprint-only phase mutation fixture changes its intended anchor',
+  sprintOnlyPhaseMutation !== completedLifecycleFixture.sprint &&
+    sprintOnlyPhaseMutation.includes('- Roadmap phase: Phase 1') &&
+    !completedLifecycleFixture.sprint.includes('- Roadmap phase: Phase 1'));
+assertCase('Sprint-only premature phase advancement is rejected',
+  !lifecycleFixtureValid({ ...completedLifecycleFixture, sprint: sprintOnlyPhaseMutation }));
+assertCase('Sprint roadmap phase is required exactly once',
+  !lifecycleFixtureValid({
+    ...completedLifecycleFixture,
+    sprint: completedLifecycleFixture.sprint.replace('- Roadmap phase: Phase 0\n', ''),
+  }) &&
+    !lifecycleFixtureValid({
+      ...completedLifecycleFixture,
+      sprint: completedLifecycleFixture.sprint.replace(
+        '- Roadmap phase: Phase 0\n',
+        '- Roadmap phase: Phase 0\n- Roadmap phase: Phase 0\n',
+      ),
+    }));
 const pendingLifecycleFixture = {
-  sprint: '- Sprint status: IN_PROGRESS\n| 8 | S001-T08 | Local baseline | 4h | LOW | READY |\n',
+  sprint: '- Roadmap phase: Phase 0\n- Sprint status: IN_PROGRESS\n| 8 | S001-T08 | Local baseline | 4h | LOW | READY |\n',
   delivery: '- Current roadmap phase: Phase 0\n- Sprint status: IN_PROGRESS\nS001-T09 decision traceability: 20/20 approved\nSprint 001 remain in progress pending S001-T08\n',
   index: '- Roadmap phase: Phase 0\n- Status: IN_PROGRESS\n- Current execution task: S001-T08\n',
   evidence: '',
@@ -411,6 +468,46 @@ publishedLifecycleFixture.evidence += '- Publication PR: https://github.com/AkaD
   + '- Postmerge monorepo-required: SUCCESS; https://github.com/AkaDNT/auction-promax/actions/runs/123\n'
   + '- Postmerge supply-chain-verification: SUCCESS; https://github.com/AkaDNT/auction-promax/actions/runs/456\n';
 assertCase('Published verified T08 lifecycle validates', lifecycleFixtureValid(publishedLifecycleFixture));
+const s002CurrentDelivery = `## Current Position
+- Current roadmap phase: Phase 0 — Decision lock and engineering foundation
+- Current sprint: SPRINT-002
+- Sprint status: IN_PROGRESS
+- Publication status: NOT_PUBLISHED
+
+## Sprint 001 historical lifecycle
+- Current roadmap phase: Phase 0 — Decision lock and engineering foundation
+- Current sprint: SPRINT-001
+- Sprint status: COMPLETED
+- Publication status: PUBLISHED_VERIFIED
+- Published merge: \`3333333333333333333333333333333333333333\`.
+- Actual review/closure date: 2026-10-05
+`;
+const s002CurrentIndex = `## Current Sprint
+- Sprint: SPRINT-002
+- Roadmap phase: Phase 0 — Architecture and engineering foundation
+- Status: IN_PROGRESS
+- Publication status: NOT_PUBLISHED
+
+## Sprint 001 historical lifecycle
+- Sprint: SPRINT-001
+- Roadmap phase: Phase 0 — Decision lock and engineering foundation
+- Status: COMPLETED
+- Publication status: PUBLISHED_VERIFIED
+- Published merge: \`3333333333333333333333333333333333333333\`.
+- Actual review/closure date: 2026-10-05
+- Current execution task: Phase 0 remaining-gate assessment
+`;
+assertCase('Current S002 routes T09 closeout through intact S001 historical snapshots',
+  validateSprintLifecycle(publishedLifecycleFixture.sprint, s002CurrentDelivery,
+    s002CurrentIndex, publishedLifecycleFixture.evidence));
+assertCase('Current S002 with mismatched Index identity is rejected',
+  !validateSprintLifecycle(publishedLifecycleFixture.sprint, s002CurrentDelivery,
+    s002CurrentIndex.replace('Sprint: SPRINT-002', 'Sprint: SPRINT-003'),
+    publishedLifecycleFixture.evidence));
+assertCase('Current S002 with missing S001 historical section is rejected',
+  !validateSprintLifecycle(publishedLifecycleFixture.sprint, s002CurrentDelivery,
+    s002CurrentIndex.replace(/\n## Sprint 001 historical lifecycle[\s\S]*$/, ''),
+    publishedLifecycleFixture.evidence));
 for (const [name, field, search, replacement] of [
   ['Published merge mismatch', 'delivery', '3333333333333333333333333333333333333333', '4444444444444444444444444444444444444444'],
   ['Published required check failed', 'evidence', 'supply-chain-verification: SUCCESS', 'supply-chain-verification: FAILURE'],
@@ -480,6 +577,10 @@ if (!fs.existsSync(matrixPath)) {
 
 const canonical = fs.readFileSync(matrixPath, 'utf8');
 const canonicalErrors = validateMatrix(canonical, readRepositoryAdr);
+// Keep canonical validation on the original bytes above; normalize only the
+// in-memory negative-fixture source so row-removal/insertion anchors behave
+// identically when Git checks the tracked Markdown out as LF or CRLF.
+const fixtureCanonical = canonical.replace(/\r\n/g, '\n');
 assertCase('Canonical matrix has exactly 20 ordered blueprint subjects',
   canonicalErrors.length === 0);
 if (process.argv.includes('--require-complete')) {
@@ -514,51 +615,51 @@ assertCase('Repository topology is a separate section linked to Blueprint §33',
   /^## Repository-topology checkpoint \(separate from the 20 subjects\)$/m.test(canonical) &&
     /\[Blueprint §33\]\(\.\.\/Auction_Platform_Final_Production_Architecture_Blueprint_and_Roadmap\.md#33-roadmap\)/.test(canonical));
 
-const sectionStart = canonical.indexOf('## Blueprint section 34 mapping');
-const tableText = canonical.slice(sectionStart);
+const sectionStart = fixtureCanonical.indexOf('## Blueprint section 34 mapping');
+const tableText = fixtureCanonical.slice(sectionStart);
 const firstRow = tableText.match(/^\|\s*1\s*\|[^\r\n]+/m)?.[0];
 const secondRow = tableText.match(/^\|\s*2\s*\|[^\r\n]+/m)?.[0];
 const lastRow = tableText.match(/^\|\s*20\s*\|[^\r\n]+/m)?.[0];
-const approvedLink = canonical.match(/\[[^\]]+\]\((\.\.\/adr\/ADR-001-[^)]+)\)/)?.[1];
+const approvedLink = fixtureCanonical.match(/\[[^\]]+\]\((\.\.\/adr\/ADR-001-[^)]+)\)/)?.[1];
 
 if (!firstRow || !secondRow || !lastRow || !approvedLink) {
   console.error('[FAIL] Matrix negative-fixture anchors are present');
   process.exitCode = 1;
 } else {
-  const missingRow = canonical.replace(`${firstRow}\n`, '');
+  const missingRow = fixtureCanonical.replace(`${firstRow}\n`, '');
   assertCase('Missing blueprint row rejected',
     validateMatrix(missingRow, readRepositoryAdr).length > 0);
 
-  const duplicateRow = canonical.replace(`${lastRow}\n`, `${lastRow}\n${lastRow}\n`);
+  const duplicateRow = fixtureCanonical.replace(`${lastRow}\n`, `${lastRow}\n${lastRow}\n`);
   assertCase('Duplicate blueprint number rejected',
     validateMatrix(duplicateRow, readRepositoryAdr).includes('DUPLICATE_NUMBER'));
 
-  const reorderedRows = canonical.replace(`${firstRow}\n${secondRow}`, `${secondRow}\n${firstRow}`);
+  const reorderedRows = fixtureCanonical.replace(`${firstRow}\n${secondRow}`, `${secondRow}\n${firstRow}`);
   assertCase('Reordered blueprint rows rejected',
     validateMatrix(reorderedRows, readRepositoryAdr).includes('ORDER'));
 
-  const extraRow = canonical.replace(`${lastRow}\n`, `${lastRow}\n${lastRow.replace(/^\|\s*20\s*\|/, '| 21 |')}\n`);
+  const extraRow = fixtureCanonical.replace(`${lastRow}\n`, `${lastRow}\n${lastRow.replace(/^\|\s*20\s*\|/, '| 21 |')}\n`);
   assertCase('Extra blueprint row rejected',
     validateMatrix(extraRow, readRepositoryAdr).includes('INVALID_OR_EXTRA_NUMBER'));
 
-  const brokenLink = replaceFirst(canonical, approvedLink, '../adr/ADR-999-missing.md');
+  const brokenLink = replaceFirst(fixtureCanonical, approvedLink, '../adr/ADR-999-missing.md');
   assertCase('Broken relative ADR link rejected',
     validateMatrix(brokenLink, readRepositoryAdr).some((error) => error.startsWith('BROKEN_ADR_LINK_')));
 
-  const invalidCoverage = replaceFirst(canonical, '| COVERED |', '| MAYBE |');
+  const invalidCoverage = replaceFirst(fixtureCanonical, '| COVERED |', '| MAYBE |');
   assertCase('Unknown coverage value rejected',
     validateMatrix(invalidCoverage, readRepositoryAdr).some((error) => error.startsWith('COVERAGE_')));
 
-  const invalidStatus = replaceFirst(canonical, '| APPROVED |', '| ACCEPTED |');
+  const invalidStatus = replaceFirst(fixtureCanonical, '| APPROVED |', '| ACCEPTED |');
   assertCase('Unknown decision status rejected',
     validateMatrix(invalidStatus, readRepositoryAdr).some((error) => error.startsWith('DECISION_STATUS_')));
 
-  const noDecision = replaceFirst(canonical, `| COVERED | [ADR-001](${approvedLink}) | APPROVED |`,
+  const noDecision = replaceFirst(fixtureCanonical, `| COVERED | [ADR-001](${approvedLink}) | APPROVED |`,
     `| COVERED | — | APPROVED |`);
   assertCase('COVERED without approved decision rejected',
     validateMatrix(noDecision, readRepositoryAdr).some((error) => error.startsWith('COVERED_WITHOUT_APPROVED')));
 
-  const approvedThirdRow = canonical.match(/^\|\s*3\s*\|[^\r\n]+/m)?.[0];
+  const approvedThirdRow = fixtureCanonical.match(/^\|\s*3\s*\|[^\r\n]+/m)?.[0];
   const gapCells = parseTableRow(approvedThirdRow);
   gapCells[2] = 'GAP';
   gapCells[3] = '—';
@@ -566,9 +667,9 @@ if (!firstRow || !secondRow || !lastRow || !approvedLink) {
   gapCells[7] = 'Proposed ADR-018; no approval claimed.';
   gapCells[8] = 'Product Owner / Project Owner';
   const gapRow = `| ${gapCells.join(' | ')} |`;
-  const gapMatrix = canonical.replace(approvedThirdRow, gapRow);
+  const gapMatrix = fixtureCanonical.replace(approvedThirdRow, gapRow);
   gapCells[8] = '—';
-  const gapWithoutOwner = canonical.replace(approvedThirdRow,
+  const gapWithoutOwner = fixtureCanonical.replace(approvedThirdRow,
     `| ${gapCells.join(' | ')} |`);
   assertCase('GAP without proposed delta owner rejected',
     validateMatrix(gapWithoutOwner, readRepositoryAdr).some((error) => error.startsWith('GAP_WITHOUT_PROPOSED')));
@@ -576,7 +677,7 @@ if (!firstRow || !secondRow || !lastRow || !approvedLink) {
   const deliveredCells = parseTableRow(firstRow);
   deliveredCells[6] = 'DELIVERED';
   deliveredCells[7] = 'Decision-only evidence; no implementation proof.';
-  const deliveredWithDecisionOnly = canonical.replace(
+  const deliveredWithDecisionOnly = fixtureCanonical.replace(
     firstRow,
     `| ${deliveredCells.join(' | ')} |`,
   );
@@ -584,7 +685,7 @@ if (!firstRow || !secondRow || !lastRow || !approvedLink) {
     validateMatrix(deliveredWithDecisionOnly, readRepositoryAdr)
       .some((error) => error.startsWith('DELIVERED_WITHOUT_IMPLEMENTATION_EVIDENCE')));
 
-  const proposedLink = replaceFirst(canonical, approvedLink, '../adr/ADR-017-proposed-fixture.md');
+  const proposedLink = replaceFirst(fixtureCanonical, approvedLink, '../adr/ADR-017-proposed-fixture.md');
   const proposedAdrReader = (target) => target === '../adr/ADR-017-proposed-fixture.md'
     ? '# ADR-017 fixture\n\n- Status: PROPOSED\n'
     : readRepositoryAdr(target);

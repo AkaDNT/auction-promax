@@ -78,6 +78,22 @@ try {
         if (Test-Path -LiteralPath (Join-Path $snapshotRoot '.env.local')) { throw '.env.local was copied into snapshot.' }
         if (Test-Path -LiteralPath (Join-Path $snapshotRoot 'ignored/ignored.txt')) { throw 'Ignored file was copied into snapshot.' }
     }
+    Invoke-TestCase -Name 'Tracked and untracked web route paths are copied literally' -Body {
+        $routePaths = @('web/app/(admin)/auctions/[id]/page.tsx', 'web/app/(public)/layout.tsx')
+        foreach ($route in $routePaths) {
+            $target = Join-Path $testRepository $route
+            [void][System.IO.Directory]::CreateDirectory((Split-Path -Parent $target))
+            [System.IO.File]::WriteAllText($target, 'route-fixture')
+        }
+        & git --literal-pathspecs -C $testRepository add -- $routePaths[0]
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to stage route fixture.' }
+        $routeSnapshot = Join-Path $testRoot 'route-snapshot'
+        $result = New-WorkingTreeSnapshot -RepositoryRoot $testRepository -TemporaryRoot $routeSnapshot
+        Assert-Equal $result.candidateCount 6 'Web route candidates were omitted'
+        foreach ($route in $routePaths) {
+            Assert-Equal ([System.IO.File]::ReadAllText((Join-Path $routeSnapshot $route))) 'route-fixture' 'Route path was not copied literally'
+        }
+    }
     Invoke-TestCase -Name 'Tracked env-local candidate fails closed before content copy' -Body {
         & git -C $testRepository add -f .env.local
         if ($LASTEXITCODE -ne 0) { throw 'Unable to stage env-local rejection fixture.' }
@@ -95,7 +111,7 @@ try {
     if (Test-Path -LiteralPath $testRoot) { Remove-Item -LiteralPath $testRoot -Recurse -Force }
 }
 
-Write-Output "Tests: $($failures.Count + 5)"
+Write-Output 'Tests: 6'
 Write-Output "Failures: $($failures.Count)"
 if ($failures.Count -gt 0) {
     $failures | ForEach-Object { Write-Output "[DETAIL] $_" }

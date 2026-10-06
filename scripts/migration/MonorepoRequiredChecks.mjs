@@ -67,8 +67,8 @@ export function selectDiff(eventName, event, githubSha, git) {
   }
 }
 
-export function evaluateAggregate({ classify, apiRequired, webRequired, apiResult, webResult }) {
-  if (classify !== "success") return false;
+export function evaluateAggregate({ classify, apiRequired, webRequired, apiResult, webResult, lifecycleResult }) {
+  if (classify !== "success" || lifecycleResult !== "success") return false;
   for (const [required, actual] of [[apiRequired, apiResult], [webRequired, webResult]]) {
     if (required !== "true" && required !== "false") return false;
     if (actual !== (required === "true" ? "success" : "skipped")) return false;
