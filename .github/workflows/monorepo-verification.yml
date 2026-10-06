@@ -116,9 +116,28 @@ jobs:
         working-directory: web
         run: npm run build
 
+  lifecycle:
+    name: Monorepo lifecycle gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the same merge result or push tip
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 24.15.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: api/.nvmrc
+      - name: Verify Sprint 002 lifecycle and Sprint 001 closeout
+        run: |
+          node api/scripts/decisions/Test-S002-Lifecycle.mjs
+          node api/scripts/decisions/Test-S001-T09-Decisions.mjs --require-complete --require-closeout
+          node api/scripts/decisions/Test-S002-Lifecycle.mjs --repository
+
   monorepo-required:
     name: monorepo-required
-    needs: [classify, api, web]
+    needs: [classify, api, web, lifecycle]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -130,10 +149,11 @@ jobs:
           WEB_REQUIRED: ${{ needs.classify.outputs.web }}
           API_RESULT: ${{ needs.api.result }}
           WEB_RESULT: ${{ needs.web.result }}
+          LIFECYCLE_RESULT: ${{ needs.lifecycle.result }}
         run: |
           node -e '
-          const { CLASSIFY_RESULT, API_REQUIRED, WEB_REQUIRED, API_RESULT, WEB_RESULT } = process.env;
-          const ok = CLASSIFY_RESULT === "success" &&
+          const { CLASSIFY_RESULT, API_REQUIRED, WEB_REQUIRED, API_RESULT, WEB_RESULT, LIFECYCLE_RESULT } = process.env;
+          const ok = CLASSIFY_RESULT === "success" && LIFECYCLE_RESULT === "success" &&
             [[API_REQUIRED, API_RESULT], [WEB_REQUIRED, WEB_RESULT]].every(
               ([required, actual]) =>
                 (required === "true" || required === "false") &&

@@ -19,6 +19,17 @@
 - Target environment: Local developer environment and CI baseline
 - Last updated: 2026-10-05
 
+## Sprint 001 historical lifecycle
+
+- Current roadmap phase: Phase 0 — Decision lock and engineering foundation
+- Current sprint: SPRINT-001
+- Sprint status: COMPLETED
+- Publication status: PUBLISHED_VERIFIED
+- Published merge: `ab2d8256b25919cc7479fa6d6aad7a41eb964f83`.
+- Actual review/closure date: 2026-10-05
+- Current execution task: Phase 0 remaining-gate assessment (no next sprint or phase advancement authorized)
+S001-T09 decision traceability: 20/20 approved
+
 ## Current Phase Goal
 
 Establish reproducible, independently buildable service foundations with approved decisions, contract governance, isolated local data stores, observable request/event handling, and supply-chain scan evidence.
@@ -74,4 +85,4 @@ S001-T01 through S001-T09 have accepted technical task outcomes. S001-T09 decisi
 
 ## Next Action
 
-Assess service-template gaps and authoritative producer contracts before proposing the next Phase 0 sprint; no Phase 1 start or Sprint 002 commitment is implied. Keep release-policy visible and BLOCKED until findings are remediated or receive exact approved unexpired dispositions.
+Sprint 002 full-plan execution is owner-approved within the recorded capacity/duration envelope; T01 local lifecycle work is in progress while current published sprint remains SPRINT-001. Activation and every PR merge require separate authorization. Keep Phase 0 open, prohibit Phase 1 implementation, and keep release-policy visible and BLOCKED until findings are remediated or receive exact approved unexpired dispositions.

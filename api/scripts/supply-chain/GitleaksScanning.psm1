@@ -45,7 +45,9 @@ function Get-WorkingTreeCandidatePaths {
         if ([string]::IsNullOrWhiteSpace($candidate)) {
             Throw-GitleaksScanFailure -Code 'GITLEAKS_WORKING_TREE_PATH_UNSAFE'
         }
-        if ($candidate -notmatch '^[A-Za-z0-9._/-]+$' -or $candidate -match '(^|/)\.\.(/|$)' -or $candidate.StartsWith('/') -or $candidate -match '^[A-Za-z]:') {
+        # Route groups and dynamic route segments use () and [] as literal
+        # filename characters. They are never evaluated as wildcard patterns.
+        if ($candidate -notmatch '^[A-Za-z0-9._/()\[\]-]+$' -or $candidate -match '(^|/)\.\.(/|$)' -or $candidate.StartsWith('/') -or $candidate -match '^[A-Za-z]:') {
             Throw-GitleaksScanFailure -Code 'GITLEAKS_WORKING_TREE_PATH_UNSAFE'
         }
         if ($candidate -match '(^|/)\.env\.local$') {
@@ -225,7 +227,7 @@ function ConvertTo-GitleaksRepositoryRelativePath {
         $relative = $ReportedPath
     }
     $relative = $relative.Replace('\\', '/')
-    if ($relative -notmatch '^[A-Za-z0-9._/-]+$' -or $relative -match '(^|/)\.\.(/|$)' -or $relative.StartsWith('/') -or $relative -match '^[A-Za-z]:') {
+    if ($relative -notmatch '^[A-Za-z0-9._/()\[\]-]+$' -or $relative -match '(^|/)\.\.(/|$)' -or $relative.StartsWith('/') -or $relative -match '^[A-Za-z]:') {
         Throw-GitleaksScanFailure -Code 'GITLEAKS_REPORT_PATH_UNSAFE'
     }
     return $relative

@@ -38,6 +38,22 @@ try {
         $inventory = @(ConvertTo-SanitizedGitleaksInventory -ReportPath (Write-TestReport @((New-Finding -Mode 'git'))) -ScanMode git -RepositoryRoot $testRoot)
         if ($inventory[0].commitId -ne ('a' * 40)) { throw 'Git commit was not retained.' }
     }
+    Invoke-TestCase -Name 'Web route paths are sanitized literally in directory and Git reports' -Body {
+        foreach ($mode in @('dir', 'git')) {
+            $finding = New-Finding -Mode $mode
+            $finding.File = 'web/app/(admin)/auctions/[id]/page.tsx'
+            $finding.Fingerprint = if ($mode -eq 'git') { "$($finding.Commit):$($finding.File):fixture-rule:1" } else { "$($finding.File):fixture-rule:1" }
+            $inventory = @(ConvertTo-SanitizedGitleaksInventory -ReportPath (Write-TestReport @($finding)) -ScanMode $mode -RepositoryRoot $testRoot -SnapshotRoot $testRoot)
+            if ($inventory.Count -ne 1 -or $inventory[0].repositoryRelativePath -cne $finding.File -or $inventory[0].scannerFingerprint -cne $finding.Fingerprint) { throw 'Route identity changed during sanitization.' }
+        }
+    }
+    Invoke-TestCase -Name 'Unsafe report paths remain rejected with route characters present' -Body {
+        foreach ($unsafe in @('web/(admin)/../secret.txt', 'web/[id]/../../secret.txt', 'web/(admin)/file:stream', 'web/(admin)/file*.txt', 'web/(admin)/file?.txt')) {
+            $finding = New-Finding
+            $finding.File = $unsafe
+            Assert-ThrowsCode -Code 'GITLEAKS_REPORT_PATH_UNSAFE' -Body { ConvertTo-SanitizedGitleaksInventory -ReportPath (Write-TestReport @($finding)) -ScanMode dir -RepositoryRoot $testRoot -SnapshotRoot $testRoot | Out-Null }
+        }
+    }
     Invoke-TestCase -Name 'Malformed raw report rejected' -Body {
         $path = Join-Path $testRoot 'malformed.json'; Set-Content -LiteralPath $path -Value '{not-json' -NoNewline
         Assert-ThrowsCode -Code 'GITLEAKS_RAW_REPORT_MALFORMED' -Body { ConvertTo-SanitizedGitleaksInventory -ReportPath $path -ScanMode dir -RepositoryRoot $testRoot -SnapshotRoot $testRoot | Out-Null }
@@ -79,7 +95,7 @@ try {
     }
 } finally { if (Test-Path -LiteralPath $testRoot) { Remove-Item -LiteralPath $testRoot -Recurse -Force } }
 
-Write-Output "Tests: $($failures.Count + 11)"
+Write-Output 'Tests: 13'
 Write-Output "Failures: $($failures.Count)"
 if ($failures.Count -gt 0) { $failures | ForEach-Object { Write-Output "[DETAIL] $_" }; exit 1 }
 Write-Output 'Gitleaks scanning sanitizer and policy tests: PASS'
