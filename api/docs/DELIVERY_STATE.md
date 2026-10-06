@@ -10,14 +10,14 @@
 
 - Current roadmap phase: Phase 0 — Decision lock and engineering foundation
 - Active milestone: R0 — Engineering Baseline
-- Current sprint: SPRINT-001
-- Sprint status: COMPLETED
-- Publication status: PUBLISHED_VERIFIED
-- Published merge: `ab2d8256b25919cc7479fa6d6aad7a41eb964f83`.
-- Actual review/closure date: 2026-10-05
-- Delivery scope: owner-accepted technical closure delivered through PR16; required postmerge execution checks verified. Phase 0 and release readiness remain open.
+- Current sprint: SPRINT-002
+- Sprint status: IN_PROGRESS
+- Publication status: NOT_PUBLISHED
+- Activation evidence: [S002 review evidence](sprints/S002_REVIEW_EVIDENCE.md)
+- Activation record publication: PENDING_PROTECTED_PR; this candidate is not yet authoritative default-branch activation.
+- Delivery scope: Phase 0 foundation execution; prerequisite PR18 verified. This factual record must pass its own protected publication/read-back before T01 delivery or T02 start. Phase 0 exit and release readiness remain open.
 - Target environment: Local developer environment and CI baseline
-- Last updated: 2026-10-05
+- Last updated: 2026-10-06
 
 ## Sprint 001 historical lifecycle
 
@@ -36,7 +36,7 @@ Establish reproducible, independently buildable service foundations with approve
 
 ## Current Sprint Goal
 
-An engineer can build and verify the initial service baseline with versioned contracts, isolated local PostgreSQL, and one traced, idempotent outbox-to-inbox sample flow.
+Complete the approved Sprint 002 Phase 0 service-foundation and exit obligations through T01–T07. Current-S002 metadata is a factual-record candidate pending its own protected publication; no Phase 0 exit is claimed.
 
 ## Phase Exit Gate Progress
 
@@ -62,7 +62,7 @@ An engineer can build and verify the initial service baseline with versioned con
   - Evidence: Previously verified hosted PR/push and default-branch freshness executions recorded execution integrity `PASS`, release policy `BLOCKED`, and `failureCode=NONE`. Their downloaded artifacts passed the exact seven-file sanitized-evidence allowlist validation and had 30-day retention. The freshness artifact recorded `deltaState=BASELINE_UNAVAILABLE`; this does not weaken the policy block. Phase 0 requires `supply-chain-verification`; the visible `release-policy` check is not required while policy remains blocked. Retained container counts were 29 High, 37 Medium, and 0 Critical; no disposition was created automatically. Legacy run, revision, and artifact identifiers are intentionally omitted from this public snapshot.
   - Covered by sprint/task: S001-T07.
 
-## Current Sprint Progress
+## Historical Sprint 001 Progress
 
 S001-T01 through S001-T09 have accepted technical task outcomes. S001-T09 decision traceability: 20/20 approved mandatory blueprint subjects with no GAP/PARTIAL rows; these are architecture decisions, not AWS delivery. T09 is published via PR #15/default merge `0bd0f70a3324738fde08e3d104955e6b2d054742`. The owner accepted T08's [technical review](sprints/S001-T08_REVIEW_EVIDENCE.md) on 2026-10-05: fresh builds/contracts/database/sample evidence and canonical supply-chain execution PASS. PR16 delivered Sprint 001's technical outcome with required postmerge execution checks verified. The overall Phase 0 exit gate remains open. Consumer compatibility is DEFERRED_NO_PRODUCER_CONTRACT; release-policy=BLOCKED. Cognito, EventBridge/SQS, ECS, RDS, ElastiCache and multi-service choreography remain later-phase work.
 
@@ -85,4 +85,4 @@ S001-T01 through S001-T09 have accepted technical task outcomes. S001-T09 decisi
 
 ## Next Action
 
-Sprint 002 full-plan execution is owner-approved within the recorded capacity/duration envelope; T01 local lifecycle work is in progress while current published sprint remains SPRINT-001. Activation and every PR merge require separate authorization. Keep Phase 0 open, prohibit Phase 1 implementation, and keep release-policy visible and BLOCKED until findings are remediated or receive exact approved unexpired dispositions.
+Publish and verify this factual activation-record candidate after the verified PR18 prerequisite. Current default-branch metadata remains S001 until this patch is merged; local proposed current is S002/Phase 0. Separate authorization is required for this PR's merge. T02 must wait for exact factual-record merge/push read-back. Keep Phase 0 open, prohibit Phase 1 implementation, and keep release-policy visible and BLOCKED.

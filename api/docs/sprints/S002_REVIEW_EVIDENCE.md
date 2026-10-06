@@ -1,6 +1,6 @@
 # SPRINT-002 lifecycle and review evidence
 
-Status: ACTIVATION_PENDING; owner approved the local candidate activation scope on 2026-10-06. Protected publication and Phase 0 exit remain pending.
+Status: FACTUAL_ACTIVATION_RECORD_PUBLICATION_PENDING. PR18 prerequisite publication is verified; this record's own protected merge/push read-back is pending. T01 is not delivered; T02 must not start. Phase 0 exit remains open.
 
 ## Lifecycle Evidence
 
@@ -10,11 +10,13 @@ Status: ACTIVATION_PENDING; owner approved the local candidate activation scope 
 - Capacity approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | CAPACITY | OWNER-DECISION-2026-10-05-S002-EXECUTION | 72-114 | 14-22 | 136 | UNSET
 - Execution method approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | EXECUTION_METHOD | OWNER-DECISION-2026-10-05-S002-EXECUTION | DIRECT_SEQUENTIAL_ISOLATED_WORKTREE
 - Activation approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-06 | SPRINT_ACTIVATION | OWNER-DECISION-2026-10-06-S002-ACTIVATION candidate 5524dace463be247cdbcf71ba88b894df1b3d20a
-- Activation publication: PENDING_PROTECTED_PR | — | — | — | — | —
+- Activation publication: PUBLISHED_VERIFIED | 747e62552a3ecff08fcf0580a55c5b03099a36fc | 2ab4b0023d74d288393644d695eceef7b78c29ef | https://github.com/AkaDNT/auction-promax/pull/18 | monorepo-required=SUCCESS,https://github.com/AkaDNT/auction-promax/actions/runs/37409286415,747e62552a3ecff08fcf0580a55c5b03099a36fc | supply-chain-verification=SUCCESS,https://github.com/AkaDNT/auction-promax/actions/runs/37409286418,747e62552a3ecff08fcf0580a55c5b03099a36fc
 
-Owner decision OWNER-DECISION-2026-10-06-S002-ACTIVATION approves activation for candidate `5524dace463be247cdbcf71ba88b894df1b3d20a` (tree `009d1a911ebefbb1ca90b8edb436d760b5eeb293`) and preparation of the protected prerequisite PR. This approval does not authorize merge. Current Sprint 001 remains unchanged until protected prerequisite publication, exact postmerge verification and the separate factual activation-record publication. No branch protection change, Phase 0 exit, Phase 1 implementation, runtime acceptance or hosted publication evidence is claimed.
+Owner decision OWNER-DECISION-2026-10-06-S002-ACTIVATION approves activation for candidate `5524dace463be247cdbcf71ba88b894df1b3d20a` (tree `009d1a911ebefbb1ca90b8edb436d760b5eeb293`) and preparation of the protected prerequisite PR. That approval did not itself authorize merge; PR18 subsequently received separate conditional merge authorization. Current published Sprint 001 remains unchanged until the separate factual activation-record publication. No branch protection change, Phase 0 exit, Phase 1 implementation, runtime acceptance or publication of this follow-up record is claimed. Verified prerequisite publication is recorded below.
 
-The subsequent V1 architecture amendment updates the blueprint/ADR/spec/parent-plan references before activation/T02. T01 lifecycle semantics and historical Sprint 001 proof remain unchanged; existing test outcomes must be rerun against changed documents. This note is not activation approval or a publication claim.
+PR18 actual merge has parents `9a625b96e97cac9900046a89131184e2d4427402` and `e514329457b59c5917d1b3f00953c3c85723da50`; its tree equals the reviewed approval-record candidate. Both referenced checks are push executions on the actual merge, not PR checks. Default tip matched that merge at read-back. Owner separately authorized PR18 merge conditional on required checks/protection, with no bypass. Protection was owner-provided read-back, not authenticated admin verification by the agent. Release-policy remains BLOCKED/failure, not vulnerability acceptance.
+
+The current-S002 fields in this patch describe the factual activation-record candidate only. Their default-branch publication, exact merge identity and push checks must be verified separately; PR18 evidence cannot substitute for that gate. No future self-merge SHA is fabricated. Separate merge authorization is required for this follow-up PR.
 
 ## V1 amendment applicability to T01
 
