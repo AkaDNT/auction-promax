@@ -12,7 +12,7 @@ Status: T02_DETAIL_APPROVED_FOR_EXECUTION. Owner explicitly approved the amended
 
 ## 1. Published context và authority
 
-Execution evidence: [2026-10-07 T02 log](2026-10-07-s002-t02-execution-log.md). Local implementation and source checks are recorded there; acceptance remains PENDING_HOSTED_PROOF until the protected Linux route is observed. Earlier command/bootstrap descriptions are historical, not the current implementation state.
+Execution evidence: [2026-10-07 T02 log](2026-10-07-s002-t02-execution-log.md). Source acceptance is verified at 5184a62 by PR run 37603539934; publication/merge remain separate. Earlier bootstrap descriptions are historical.
 
 PR18 prerequisite merge: `747e62552a3ecff08fcf0580a55c5b03099a36fc`, tree `2ab4b0023d74d288393644d695eceef7b78c29ef`; push runs 37409286415 / 37409286418 SUCCESS.
 
@@ -196,7 +196,7 @@ All expected CLI errors output codes only; no credentials, environment dump or w
 - [x] Write strict-registry fixtures exact five ids, unknown fields/duplicates/db mismatch/preservedIdentity; missing module is bootstrap RED only.
 - [x] Implement strict records and inventory validation then prove behavioral RED/GREEN for malformed registry injected into isolated fixture repo.
 - [x] Add deterministicLfOutput fixture using two separate temporary roots, no clocks/random IDs in generated file content; assert identical sorted path→SHA256 maps, all bytes no CR/no BOM/no unresolved token.
-- [ ] Add generatedFileModesMatchInventory RED: POSIX actual stat mode & 0o777 must equal 0o755 for mvnw and 0o644 for every other file in both generated variants. Implementation applies explicit chmod after writes before stage verification/publication; hostile umask must not change final modes. Conformance rejects missing/unknown mode, mvnw other than0755 and unauthorized non-mvnw0755. Windows proves inventory semantics only and reports POSIX mode proof unavailable; protected Linux run is mandatory for actual executable bits.
+- [x] Add generatedFileModesMatchInventory RED: POSIX actual stat mode & 0o777 must equal 0o755 for mvnw and 0o644 for every other file in both generated variants. Implementation applies explicit chmod after writes before stage verification/publication; hostile umask must not change final modes. Conformance rejects missing/unknown mode, mvnw other than0755 and unauthorized non-mvnw0755. Windows proves inventory semantics only and reports POSIX mode proof unavailable; protected Linux run is mandatory for actual executable bits.
 - [x] Add unknownIdNoWrites, variantMismatchNoWrites, traversalNoWrites, duplicate/case-collision inventory and source link rejection; snapshot tree before/after rejection.
 - [x] Implement minimal literal renderer, no runtime dependency/eval.
 
@@ -218,7 +218,7 @@ Test-file local hashInventory(root,files) joins root/api/services/registered-id 
 ### T02-C — Destination and interruption safety
 
 - [x] existingDestinationUnchanged: empty/nonempty/file/case-alias; sentinel hash identical, no added files.
-- [ ] linkedDestinationRejected: destination symlink/dangling symlink, api/services linked ancestor, repository ancestor link, template-source link; Windows actual junction and Unix symlink. Report unavailable capabilities explicitly.
+- [x] linkedDestinationRejected: destination symlink/dangling symlink, api/services linked ancestor, repository ancestor link, template-source link; Windows actual junction and Unix symlink. Report unavailable capabilities explicitly.
 - [x] interruptedGenerationNoPublishedPartialTree: throw during render, stage write, before publish; subprocess termination while staged; assert target absent, only owned stage possible. After publish target must exactly match inventory.
 - [x] Race fixture creates destination after preflight, before publish; concurrent generator completes once or rejects safely, no overwrites or mixed inventories.
 - [x] CLI run from foreign cwd still resolves fixed module-root repository; unknown/duplicate arguments do not create stage. Missing backend fails before final writes.
