@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "services": [
+    {
+      "id": "identity-profile-service",
+      "variant": "relational",
+      "preserved": true,
+      "groupId": "com.auctionpromax",
+      "artifactId": "identity-profile-service",
+      "version": "0.0.1-SNAPSHOT",
+      "packageName": "com.auctionpromax.identityprofileservice",
+      "entryClass": "IdentityProfileServiceApplication",
+      "destination": "api/services/identity-profile-service",
+      "database": "identity_db",
+      "testDatabase": "identity_test_db",
+      "schema": "identity",
+      "environmentPrefix": "IDENTITY"
+    },
+    {
+      "id": "auction-service",
+      "variant": "relational",
+      "preserved": false,
+      "groupId": "com.auctionpromax",
+      "artifactId": "auction-service",
+      "version": "0.0.1-SNAPSHOT",
+      "packageName": "com.auctionpromax.auctionservice",
+      "entryClass": "AuctionServiceApplication",
+      "destination": "api/services/auction-service",
+      "database": "auction_db",
+      "testDatabase": "auction_test_db",
+      "schema": "auction",
+      "environmentPrefix": "AUCTION"
+    },
+    {
+      "id": "bidding-service",
+      "variant": "relational",
+      "preserved": false,
+      "groupId": "com.auctionpromax",
+      "artifactId": "bidding-service",
+      "version": "0.0.1-SNAPSHOT",
+      "packageName": "com.auctionpromax.biddingservice",
+      "entryClass": "BiddingServiceApplication",
+      "destination": "api/services/bidding-service",
+      "database": "bidding_db",
+      "testDatabase": "bidding_test_db",
+      "schema": "bidding",
+      "environmentPrefix": "BIDDING"
+    },
+    {
+      "id": "billing-service",
+      "variant": "relational",
+      "preserved": false,
+      "groupId": "com.auctionpromax",
+      "artifactId": "billing-service",
+      "version": "0.0.1-SNAPSHOT",
+      "packageName": "com.auctionpromax.billingservice",
+      "entryClass": "BillingServiceApplication",
+      "destination": "api/services/billing-service",
+      "database": "billing_db",
+      "testDatabase": "billing_test_db",
+      "schema": "billing",
+      "environmentPrefix": "BILLING"
+    },
+    {
+      "id": "realtime-gateway",
+      "variant": "gateway",
+      "preserved": false,
+      "groupId": "com.auctionpromax",
+      "artifactId": "realtime-gateway",
+      "version": "0.0.1-SNAPSHOT",
+      "packageName": "com.auctionpromax.realtimegateway",
+      "entryClass": "RealtimeGatewayApplication",
+      "destination": "api/services/realtime-gateway",
+      "database": null,
+      "testDatabase": null,
+      "schema": null,
+      "environmentPrefix": null
+    }
+  ]
+}

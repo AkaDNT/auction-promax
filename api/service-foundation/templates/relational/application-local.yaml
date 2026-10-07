@@ -1,0 +1,44 @@
+spring:
+  datasource:
+    url: ${__ENV_PREFIX___DB_URL}
+    username: ${__ENV_PREFIX___DB_APP_USERNAME}
+    password: ${__ENV_PREFIX___DB_APP_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    clean-disabled: true
+    validate-on-migrate: true
+    url: ${__ENV_PREFIX___DB_URL}
+    user: ${__ENV_PREFIX___DB_MIGRATOR_USERNAME}
+    password: ${__ENV_PREFIX___DB_MIGRATOR_PASSWORD}
+    default-schema: __SCHEMA_NAME__
+    schemas: __SCHEMA_NAME__
+    table: flyway_schema_history
+    placeholders:
+      runtimeRole: ${__ENV_PREFIX___DB_APP_USERNAME}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db
+  tracing:
+    sampling:
+      probability: 1.0
+
+logging:
+  structured:
+    format:
+      console: ecs
+    ecs:
+      service:
+        name: __SERVICE_ID__
+        environment: local
