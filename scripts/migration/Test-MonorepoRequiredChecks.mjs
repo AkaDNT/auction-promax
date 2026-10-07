@@ -11,6 +11,7 @@ import {
   parseNameStatus,
   selectDiff,
   evaluateAggregate,
+  validateServiceMatrixResults,
 } from "./MonorepoRequiredChecks.mjs";
 
 const sha = (digit) => digit.repeat(40);
@@ -45,6 +46,8 @@ test("PR classification uses base and head while execution revision stays the me
   assert.deepEqual(result, { api: false, web: true, contracts: false, shared: false });
   assert.deepEqual(calls, [["merge-base", sha("a"), sha("b")], ["diff", sha("d"), sha("b")]]);
   assert.deepEqual(selectDiff("pull_request", event, sha("c"), () => { throw new Error("missing PR head object"); }), { api: true, web: true, contracts: true, shared: true });
+  assert.deepEqual(selectDiff("pull_request", event, sha("c"), (...args) => args[0] === "merge-base" ? sha("d") : Buffer.from("R100\0api/services/auction-service/old.java\0api/services/realtime-gateway/new.java\0D\0api/services/billing-service/pom.xml\0")).removedServiceIds, ["billing-service"]);
+  assert.deepEqual(selectDiff("pull_request", event, sha("c"), (...args) => args[0] === "merge-base" ? sha("d") : Buffer.from("D\0api/services/billing-service/pom.xml\0")).services, ["billing-service"]);
 });
 
 test("normal push uses before and after; new branch and untrusted diff run all", () => {
@@ -89,7 +92,7 @@ test("CLI classifies a real push diff and writes exact GitHub job outputs", (t) 
     encoding: "utf8",
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(fs.readFileSync(outputPath, "utf8"), "api=false\nweb=true\ncontracts=false\nshared=false\n");
+  assert.equal(fs.readFileSync(outputPath, "utf8"), "api=false\nweb=true\ncontracts=false\nshared=false\nservices=[]\nremovedServices=[]\n");
 });
 
 test("aggregate accepts applicable success and justified skips only", () => {
@@ -103,6 +106,55 @@ test("aggregate accepts applicable success and justified skips only", () => {
   assert.equal(evaluateAggregate({ classify: "success", apiRequired: "false", webRequired: "false", apiResult: "success", webResult: "skipped", lifecycleResult: "success" }), false);
   for (const lifecycleResult of ["failure", "cancelled", "skipped", ""]) {
     assert.equal(evaluateAggregate({ classify: "success", apiRequired: "false", webRequired: "false", apiResult: "skipped", webResult: "skipped", lifecycleResult }), false);
+  }
+});
+
+test("service matrix aggregate requires exactly one successful result for every selected service at the execution revision", () => {
+  const commit = sha("a");
+  const identity = { schemaVersion: 1, serviceId: "identity-profile-service", variant: "relational", commit, result: "success" };
+  const gateway = { schemaVersion: 1, serviceId: "realtime-gateway", variant: "gateway", commit, result: "success" };
+  assert.deepEqual(validateServiceMatrixResults({
+    selectedServiceIds: ["identity-profile-service", "realtime-gateway"], commit, results: [identity, gateway],
+  }), { serviceIds: ["identity-profile-service", "realtime-gateway"], commit });
+  const rejects = (results, code, selectedServiceIds = ["identity-profile-service", "realtime-gateway"]) => {
+    assert.throws(() => validateServiceMatrixResults({ selectedServiceIds, commit, results }), { message: code });
+  };
+  rejects([identity], "SERVICE_MATRIX_RESULT_MISSING");
+  rejects([identity, gateway, gateway], "SERVICE_MATRIX_RESULT_DUPLICATE");
+  rejects([identity, { ...gateway, serviceId: "unknown-service" }], "SERVICE_MATRIX_RESULT_UNKNOWN");
+  rejects([identity, { ...gateway, commit: sha("b") }], "SERVICE_MATRIX_REVISION_MISMATCH");
+  rejects([identity, { ...gateway, result: "cancelled" }], "SERVICE_MATRIX_RESULT_FAILED");
+  rejects([], "SERVICE_MATRIX_RESULT_MISSING", ["identity-profile-service"]);
+  rejects([identity], "SERVICE_MATRIX_RESULT_EXTRA", []);
+  assert.deepEqual(validateServiceMatrixResults({ selectedServiceIds: [], commit, results: [] }), { serviceIds: [], commit });
+});
+
+test("service matrix classifier selects registry targets without allowing Identity success to mask gateway failure", () => {
+  const registry = JSON.parse(fs.readFileSync(path.join(root, "api/service-foundation/services.json"), "utf8"));
+  const all = registry.services.map(({ id }) => id).sort();
+  assert.deepEqual(classifyChangedPaths(["api/services/auction-service/pom.xml"]).services, ["auction-service"]);
+  for (const serviceId of all) {
+    assert.deepEqual(classifyChangedPaths([`api/services/${serviceId}/pom.xml`]).services, [serviceId]);
+  }
+  assert.deepEqual(classifyChangedPaths(["api/contracts/openapi.yaml"]).services, []);
+  assert.deepEqual(classifyChangedPaths(["docs/guide.md"]).services, []);
+  assert.deepEqual(classifyChangedPaths(["api/service-foundation/templates/common/pom.xml"]).services, all);
+  assert.deepEqual(classifyChangedPaths(["api/security/tooling/hosted-supply-chain-contract.json"]).services, all);
+  assert.deepEqual(classifyChangedPaths(["api/services/auction-service/pom.xml", "api/services/realtime-gateway/pom.xml"]).services, ["auction-service", "realtime-gateway"]);
+  assert.deepEqual(classifyChangedPaths(["api/services/no-such-service/pom.xml"]).services, all);
+  assert.deepEqual(classifyChangedPaths(["api/services/realtime-gateway/pom.xml", "api/services/old-gateway/pom.xml"]).services, all);
+});
+
+test("invalid classifier inputs select every registry target and retain a sanitized diagnostic", () => {
+  const registryIds = JSON.parse(fs.readFileSync(path.join(root, "api/service-foundation/services.json"), "utf8"))
+    .services.map(({ id }) => id).sort();
+  for (const result of [
+    classifyChangedPaths([]),
+    classifyChangedPaths(["api/services/not-registered/pom.xml"]),
+    selectDiff("push", { before: "bad", after: sha("b") }, sha("b"), () => Buffer.from("")),
+  ]) {
+    assert.deepEqual(result.services, registryIds);
+    assert.match(result.diagnostic, /^CLASSIFICATION_[A-Z_]+$/);
   }
 });
 

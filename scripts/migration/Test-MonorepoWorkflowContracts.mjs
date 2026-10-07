@@ -11,7 +11,25 @@ const pins = Object.freeze({
   "actions/setup-java": "cf277c60eb25467037889841efdb72551f06f6c3",
   "actions/setup-node": "49933ea5288caeca8642d1e84afbd3f7d6820020",
   "actions/upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+  "actions/download-artifact": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
 });
+
+const serviceResultDownloadContract = Object.freeze({
+  uses: `actions/download-artifact@${pins["actions/download-artifact"]}`,
+  with: Object.freeze({
+    pattern: "s002-service-result-*",
+    path: "${{ runner.temp }}/s002-service-results",
+    "merge-multiple": false,
+    "digest-mismatch": "error",
+  }),
+});
+
+function validateServiceResultDownload(step) {
+  check(step?.uses === serviceResultDownloadContract.uses, "SERVICE_RESULT_DOWNLOAD_PIN_INVALID");
+  for (const [key, value] of Object.entries(serviceResultDownloadContract.with)) {
+    check(step.with?.[key] === value, `SERVICE_RESULT_DOWNLOAD_INPUT_INVALID: ${key}`);
+  }
+}
 
 function check(ok, code) { assert.ok(ok, code); }
 function step(job, idOrName) { return job.steps.find((item) => item.id === idOrName || item.name === idOrName); }
@@ -100,6 +118,19 @@ function loadRootWorkflows() {
 }
 
 function runFixtures() {
+  validateServiceResultDownload(serviceResultDownloadContract);
+  for (const mutation of [
+    (candidate) => { candidate.uses = "actions/download-artifact@v8"; },
+    (candidate) => { candidate.uses = "actions/download-artifact@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"; },
+    (candidate) => { candidate.with["merge-multiple"] = true; },
+    (candidate) => { candidate.with.path = "${{ runner.temp }}/merged-results"; },
+    (candidate) => { candidate.with["digest-mismatch"] = "ignore"; },
+  ]) {
+    const candidate = structuredClone(serviceResultDownloadContract);
+    mutation(candidate);
+    assert.throws(() => validateServiceResultDownload(candidate));
+  }
+  process.stdout.write("Service result download pin and isolation contract: PASS (v8.0.2, signed commit reviewed)\n");
   expectRejected("mutable web checkout rejected", (w) => { w["web-baseline.yml"].jobs["lint-and-build"].steps[0].uses = "actions/checkout@v4"; });
   expectRejected("stale web lock path rejected", (w) => { w["web-baseline.yml"].jobs["lint-and-build"].steps[1].with["cache-dependency-path"] = "package-lock.json"; });
   expectRejected("PR path skip rejected", (w) => { w["api-baseline.yml"].on.pull_request = { paths: ["api/**"] }; });
