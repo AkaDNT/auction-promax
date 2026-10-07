@@ -32,8 +32,8 @@
 -- Targets:
 --   identity_db, identity_test_db,
 --   auction_db, auction_test_db,
---   transaction_db, transaction_test_db,
---   payment_db, payment_test_db
+--   bidding_db, bidding_test_db,
+--   billing_db, billing_test_db
 --
 -- This script is convergent but intentionally non-atomic because CREATE DATABASE
 -- cannot execute inside a transaction. A failed run may leave partial local
@@ -104,10 +104,10 @@ VALUES
   (:'identity_test_db_name', :'identity_test_db_schema', :'identity_test_db_owner', :'identity_test_db_migrator_username', convert_from(decode(:'identity_test_db_migrator_password_b64', 'base64'), 'UTF8'), :'identity_test_db_app_username', convert_from(decode(:'identity_test_db_app_password_b64', 'base64'), 'UTF8')),
   (:'auction_db_name', :'auction_db_schema', :'auction_db_owner', :'auction_db_migrator_username', convert_from(decode(:'auction_db_migrator_password_b64', 'base64'), 'UTF8'), :'auction_db_app_username', convert_from(decode(:'auction_db_app_password_b64', 'base64'), 'UTF8')),
   (:'auction_test_db_name', :'auction_test_db_schema', :'auction_test_db_owner', :'auction_test_db_migrator_username', convert_from(decode(:'auction_test_db_migrator_password_b64', 'base64'), 'UTF8'), :'auction_test_db_app_username', convert_from(decode(:'auction_test_db_app_password_b64', 'base64'), 'UTF8')),
-  (:'transaction_db_name', :'transaction_db_schema', :'transaction_db_owner', :'transaction_db_migrator_username', convert_from(decode(:'transaction_db_migrator_password_b64', 'base64'), 'UTF8'), :'transaction_db_app_username', convert_from(decode(:'transaction_db_app_password_b64', 'base64'), 'UTF8')),
-  (:'transaction_test_db_name', :'transaction_test_db_schema', :'transaction_test_db_owner', :'transaction_test_db_migrator_username', convert_from(decode(:'transaction_test_db_migrator_password_b64', 'base64'), 'UTF8'), :'transaction_test_db_app_username', convert_from(decode(:'transaction_test_db_app_password_b64', 'base64'), 'UTF8')),
-  (:'payment_db_name', :'payment_db_schema', :'payment_db_owner', :'payment_db_migrator_username', convert_from(decode(:'payment_db_migrator_password_b64', 'base64'), 'UTF8'), :'payment_db_app_username', convert_from(decode(:'payment_db_app_password_b64', 'base64'), 'UTF8')),
-  (:'payment_test_db_name', :'payment_test_db_schema', :'payment_test_db_owner', :'payment_test_db_migrator_username', convert_from(decode(:'payment_test_db_migrator_password_b64', 'base64'), 'UTF8'), :'payment_test_db_app_username', convert_from(decode(:'payment_test_db_app_password_b64', 'base64'), 'UTF8'));
+  (:'bidding_db_name', :'bidding_db_schema', :'bidding_db_owner', :'bidding_db_migrator_username', convert_from(decode(:'bidding_db_migrator_password_b64', 'base64'), 'UTF8'), :'bidding_db_app_username', convert_from(decode(:'bidding_db_app_password_b64', 'base64'), 'UTF8')),
+  (:'bidding_test_db_name', :'bidding_test_db_schema', :'bidding_test_db_owner', :'bidding_test_db_migrator_username', convert_from(decode(:'bidding_test_db_migrator_password_b64', 'base64'), 'UTF8'), :'bidding_test_db_app_username', convert_from(decode(:'bidding_test_db_app_password_b64', 'base64'), 'UTF8')),
+  (:'billing_db_name', :'billing_db_schema', :'billing_db_owner', :'billing_db_migrator_username', convert_from(decode(:'billing_db_migrator_password_b64', 'base64'), 'UTF8'), :'billing_db_app_username', convert_from(decode(:'billing_db_app_password_b64', 'base64'), 'UTF8')),
+  (:'billing_test_db_name', :'billing_test_db_schema', :'billing_test_db_owner', :'billing_test_db_migrator_username', convert_from(decode(:'billing_test_db_migrator_password_b64', 'base64'), 'UTF8'), :'billing_test_db_app_username', convert_from(decode(:'billing_test_db_app_password_b64', 'base64'), 'UTF8'));
 
 WITH managed_roles AS (
   SELECT owner_role AS role_name FROM bootstrap_targets
@@ -378,14 +378,14 @@ DROP TABLE bootstrap_targets;
 \unset auction_db_app_password_b64
 \unset auction_test_db_migrator_password_b64
 \unset auction_test_db_app_password_b64
-\unset transaction_db_migrator_password_b64
-\unset transaction_db_app_password_b64
-\unset transaction_test_db_migrator_password_b64
-\unset transaction_test_db_app_password_b64
-\unset payment_db_migrator_password_b64
-\unset payment_db_app_password_b64
-\unset payment_test_db_migrator_password_b64
-\unset payment_test_db_app_password_b64
+\unset bidding_db_migrator_password_b64
+\unset bidding_db_app_password_b64
+\unset bidding_test_db_migrator_password_b64
+\unset bidding_test_db_app_password_b64
+\unset billing_db_migrator_password_b64
+\unset billing_db_app_password_b64
+\unset billing_test_db_migrator_password_b64
+\unset billing_test_db_app_password_b64
 
 RESET password_encryption;
 
@@ -434,36 +434,36 @@ SELECT pg_advisory_unlock(
 \connect :auction_test_db_name
 \ir bootstrap-schema.sql
 
-\set active_database_name :transaction_db_name
-\set active_schema_name :transaction_db_schema
-\set active_owner_role :transaction_db_owner
-\set active_migrator_role :transaction_db_migrator_username
-\set active_app_role :transaction_db_app_username
-\connect :transaction_db_name
+\set active_database_name :bidding_db_name
+\set active_schema_name :bidding_db_schema
+\set active_owner_role :bidding_db_owner
+\set active_migrator_role :bidding_db_migrator_username
+\set active_app_role :bidding_db_app_username
+\connect :bidding_db_name
 \ir bootstrap-schema.sql
 
-\set active_database_name :transaction_test_db_name
-\set active_schema_name :transaction_test_db_schema
-\set active_owner_role :transaction_test_db_owner
-\set active_migrator_role :transaction_test_db_migrator_username
-\set active_app_role :transaction_test_db_app_username
-\connect :transaction_test_db_name
+\set active_database_name :bidding_test_db_name
+\set active_schema_name :bidding_test_db_schema
+\set active_owner_role :bidding_test_db_owner
+\set active_migrator_role :bidding_test_db_migrator_username
+\set active_app_role :bidding_test_db_app_username
+\connect :bidding_test_db_name
 \ir bootstrap-schema.sql
 
-\set active_database_name :payment_db_name
-\set active_schema_name :payment_db_schema
-\set active_owner_role :payment_db_owner
-\set active_migrator_role :payment_db_migrator_username
-\set active_app_role :payment_db_app_username
-\connect :payment_db_name
+\set active_database_name :billing_db_name
+\set active_schema_name :billing_db_schema
+\set active_owner_role :billing_db_owner
+\set active_migrator_role :billing_db_migrator_username
+\set active_app_role :billing_db_app_username
+\connect :billing_db_name
 \ir bootstrap-schema.sql
 
-\set active_database_name :payment_test_db_name
-\set active_schema_name :payment_test_db_schema
-\set active_owner_role :payment_test_db_owner
-\set active_migrator_role :payment_test_db_migrator_username
-\set active_app_role :payment_test_db_app_username
-\connect :payment_test_db_name
+\set active_database_name :billing_test_db_name
+\set active_schema_name :billing_test_db_schema
+\set active_owner_role :billing_test_db_owner
+\set active_migrator_role :billing_test_db_migrator_username
+\set active_app_role :billing_test_db_app_username
+\connect :billing_test_db_name
 \ir bootstrap-schema.sql
 
 \connect postgres

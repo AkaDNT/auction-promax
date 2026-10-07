@@ -12,7 +12,7 @@ SELECT database.datname AS database_name,
 FROM pg_database database
 JOIN pg_roles owner ON owner.oid = database.datdba
 WHERE database.datname IN ('identity_db', 'identity_test_db', 'auction_db', 'auction_test_db',
-                           'transaction_db', 'transaction_test_db', 'payment_db', 'payment_test_db')
+                           'bidding_db', 'bidding_test_db', 'billing_db', 'billing_test_db')
 ORDER BY database.datname;
 
 -- Service role attributes and any inherited membership (must return no membership rows).
@@ -21,7 +21,7 @@ SELECT role.rolname, role.rolcanlogin, role.rolsuper, role.rolcreatedb, role.rol
 FROM pg_roles role
 LEFT JOIN pg_auth_members membership ON membership.member = role.oid
 LEFT JOIN pg_roles parent ON parent.oid = membership.roleid
-WHERE role.rolname ~ '^(identity|auction|transaction|payment)(_test)?_(owner|migrator|app)$'
+WHERE role.rolname ~ '^(identity|auction|bidding|billing)(_test)?_(owner|migrator|app)$'
 ORDER BY role.rolname;
 
 -- Per-database schema grants are intentionally verified by the automated script while connected

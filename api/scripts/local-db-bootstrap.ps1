@@ -41,16 +41,8 @@ $SqlPath = Join-Path $ApiRoot 'infra\local\postgres\bootstrap.sql'
 $SchemaSqlPath = Join-Path $ApiRoot 'infra\local\postgres\bootstrap-schema.sql'
 $VerifyPath = Join-Path $PSScriptRoot 'local-db-verify.ps1'
 
-$Targets = @(
-    @{ Prefix = 'IDENTITY_DB';         Label = 'Identity development';        Db = 'identity_db';         Schema = 'identity';         Owner = 'identity_owner';         Migrator = 'identity_migrator';         App = 'identity_app' },
-    @{ Prefix = 'IDENTITY_TEST_DB';    Label = 'Identity integration test';   Db = 'identity_test_db';    Schema = 'identity';         Owner = 'identity_test_owner';    Migrator = 'identity_test_migrator';    App = 'identity_test_app' },
-    @{ Prefix = 'AUCTION_DB';          Label = 'Auction development';         Db = 'auction_db';          Schema = 'auction';          Owner = 'auction_owner';          Migrator = 'auction_migrator';          App = 'auction_app' },
-    @{ Prefix = 'AUCTION_TEST_DB';     Label = 'Auction integration test';    Db = 'auction_test_db';     Schema = 'auction';          Owner = 'auction_test_owner';     Migrator = 'auction_test_migrator';     App = 'auction_test_app' },
-    @{ Prefix = 'TRANSACTION_DB';      Label = 'Transaction development';     Db = 'transaction_db';      Schema = 'transaction_core'; Owner = 'transaction_owner';      Migrator = 'transaction_migrator';      App = 'transaction_app' },
-    @{ Prefix = 'TRANSACTION_TEST_DB'; Label = 'Transaction integration test';Db = 'transaction_test_db'; Schema = 'transaction_core'; Owner = 'transaction_test_owner'; Migrator = 'transaction_test_migrator'; App = 'transaction_test_app' },
-    @{ Prefix = 'PAYMENT_DB';          Label = 'Payment development';         Db = 'payment_db';          Schema = 'payment';          Owner = 'payment_owner';          Migrator = 'payment_migrator';          App = 'payment_app' },
-    @{ Prefix = 'PAYMENT_TEST_DB';     Label = 'Payment integration test';    Db = 'payment_test_db';     Schema = 'payment';          Owner = 'payment_test_owner';     Migrator = 'payment_test_migrator';     App = 'payment_test_app' }
-)
+Import-Module (Join-Path $PSScriptRoot 'LocalDbTopology.psm1') -Force
+$Targets = @(Get-LocalDatabaseTopology)
 
 function Read-DotEnv {
     param([Parameter(Mandatory)][string]$Path)
