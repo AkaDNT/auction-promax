@@ -32,7 +32,13 @@ function Remove-FixtureDirectoryLink([string] $Path) {
     $entry = Get-Item -LiteralPath $full -Force
     Assert-True (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) 'FIXTURE_NOT_A_LINK'
     # Delete the link itself, never its contents; PS5.1 Remove-Item prompts for nonempty junctions.
-    [IO.Directory]::Delete($full, $false)
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        [IO.Directory]::Delete($full, $false)
+    } else {
+        # Unix directory symlinks are unlinked as entries, including dangling links.
+        [IO.File]::Delete($full)
+    }
+    Assert-True ($null -eq (Get-Item -LiteralPath $full -Force -ErrorAction SilentlyContinue)) 'FIXTURE_LINK_NOT_REMOVED'
 }
 
 try {
@@ -84,6 +90,7 @@ try {
 
     $outsideTarget = Join-Path $fixtureRoot 'outside-target'
     [void][IO.Directory]::CreateDirectory($outsideTarget)
+    [IO.File]::WriteAllText((Join-Path $outsideTarget 'owner.txt'), 'link-target-owner')
     $junctionTarget = Join-Path $services 'billing-service'
     if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
         New-Item -ItemType Junction -Path $junctionTarget -Target $outsideTarget | Out-Null
@@ -96,6 +103,7 @@ try {
     Assert-True ((Get-Item -LiteralPath $junctionTarget -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) 'LINK_REMOVED'
     Assert-True ([IO.File]::ReadAllText((Join-Path $stage 'sentinel.txt')) -eq 'complete-stage') 'JUNCTION_REJECTION_CHANGED_STAGE'
     Remove-FixtureDirectoryLink $junctionTarget
+    Assert-True ([IO.File]::ReadAllText((Join-Path $outsideTarget 'owner.txt')) -eq 'link-target-owner') 'LINK_CLEANUP_CHANGED_TARGET'
     [IO.Directory]::Delete($outsideTarget, $true)
     $passed++
 
