@@ -1,6 +1,12 @@
 # T02 execution log — 2026-10-07
 
-Status: LOCAL_IMPLEMENTATION_VERIFIED_PENDING_HOSTED_PROOF. T02 DONE remains pending the protected Linux run. Parent task remains unchecked until that evidence exists.
+Status: SOURCE_ACCEPTANCE_VERIFIED_AT_5184a62. Protected Linux source gates passed at the exact revision below. PR20 remains unmerged; release-policy remains BLOCKED. Any later documentation candidate requires its own hosted read-back before claiming current-tip GREEN.
+
+## Protected Linux acceptance — observed
+
+Revision `5184a622061dd380e2fed6c585619fd30cf533c8`; PR20 monorepo run [37603539934](https://github.com/AkaDNT/auction-promax/actions/runs/37603539934), lifecycle job `112733432147`: generator 39/39, conformance 30/30, zero failures/skips; publisher `SERVICE_DIRECTORY_PUBLISHER_FIXTURES_PASS executed=11`. Actual Linux symlinks, parent-replacement safety and hostile-umask POSIX mode assertions executed. `monorepo-required` SUCCESS in both PR run and push run `37603532676`. Windows PS7/PS5.1 publisher reruns also passed 11 fixtures each.
+
+Observed supply-chain-verification SUCCESS in the push check; the PR supply-chain check was still running at this read-back. release-policy FAILURE is retained and not bypassed. This evidence supersedes historical pending-hosted statements below for revision 5184a62 only. No merge or generated-service/runtime claim is made.
 
 Authority: OWNER-DECISION-2026-10-06-S002-T02-EXECUTION, and the separately approved OWNER-DECISION-2026-10-06-S002-TOPOLOGY-RECONCILIATION prerequisite. User rulings on 2026-10-07 permit destination reuse only across disjoint variants and exactly three native wrapper placeholders in `mvnw.cmd`.
 
