@@ -61,6 +61,12 @@ The older local ledger recorded `33a049c3c2bb6e6f38ca8ac5aa710ef8ddf68e775de371b
 
 ## Remaining acceptance and publication
 
+### PR20 Linux failure and narrow correction
+
+Owner authorized branch push/PR publication; PR20 is open against `migration/monorepo`, head `f7cf1465e960dd297aba09931766bebb09458d14`. Monorepo run `37596959288` failed in the foundation step: generator 34/39 passed, four service mode assertions and their parent failed (`0 !== 420`). Conformance/publisher commands were not reached. API/web and supply-chain-verification checks passed; release-policy remains outside T02 and unchanged.
+
+Root cause: `await lstat(path).mode` reads `.mode` from the Promise, not the resolved stat. A minimal reproduction returns 0 for the old expression and a real mode for `(await lstat(path)).mode`. The correction adds parentheses in the fixture only; generator chmod, output bytes/paths and mandatory mode expectations are unchanged. Local rerun: generator 39/39 and conformance 30/30, exits 0. Linux GREEN remains pending a new hosted run; Windows does not execute the POSIX assertion.
+
 Local prerequisite commit: `c8a00ca395aa6fb55fe6e51827a1b90bda469450`, tree `0e6125bbc34ccaac76351f944154da5e10c89d34`. Both PowerShell hosts passed `Test-LocalDbTopology.ps1` (metadata only). This is a local source commit, not a published/native-topology claim.
 
 The approved Linux route must run on the published candidate revision and retain the exact SHA, workflow/run identity and successful fixture evidence. Local Windows success does not establish Linux symlink, parent replacement, hostile-umask mode or publication behavior.

@@ -93,7 +93,7 @@ test('relational and gateway generation are deterministic complete LF UTF-8 tree
           ? ['__MVNW_ARG0_NAME__', '__MVNW_CMD__', '__MVNW_ERROR__'] : [],
           `${relativePath} has unexpected unresolved tokens`);
         const expectedMode = relativePath === 'mvnw' ? 0o755 : 0o644;
-        if (process.platform !== 'win32') assert.equal((await lstat(path.join(firstRoot, 'api/services', first.serviceId, ...relativePath.split('/'))).mode & 0o777), expectedMode,
+        if (process.platform !== 'win32') assert.equal(((await lstat(path.join(firstRoot, 'api/services', first.serviceId, ...relativePath.split('/')))).mode & 0o777), expectedMode,
           `${relativePath} mode`);
       }
     });
