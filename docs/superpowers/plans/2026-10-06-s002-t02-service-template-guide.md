@@ -239,7 +239,7 @@ Test-file local hashInventory(root,files) joins root/api/services/registered-id 
 
 - [x] Run both generator and templates suites, all lifecycle/CI regression commands, changed Markdown links, staged exact-path whitespace and trusted redacted scan.
 - [x] Independent scoped review: five Review Focus inputs, concrete publication backend limitations, missing IT selection, no source→runtime claim.
-- [ ] Commit exact template/foundation/docs paths only after GREEN. Record local SHA/tree and observed tests; no generated services, targets, caches, .env.local, raw scanner reports or credentials staged.
+- [x] Commit exact template/foundation/docs paths only after GREEN. Record local SHA/tree and observed tests; no generated services, targets, caches, .env.local, raw scanner reports or credentials staged. Source commit and tree are recorded in the execution log; protected Linux acceptance remains pending.
 - [ ] If protected publication is requested, fresh remote/protection/check review + separate merge authorization. Never reuse PR18/19 merge authority.
 - [x] Log pending/not-run gates rather than marking T02 delivered from a plan. Update parent checkbox/evidence only with observed completion.
 

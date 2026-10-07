@@ -65,6 +65,8 @@ Local prerequisite commit: `c8a00ca395aa6fb55fe6e51827a1b90bda469450`, tree `0e6
 
 The approved Linux route must run on the published candidate revision and retain the exact SHA, workflow/run identity and successful fixture evidence. Local Windows success does not establish Linux symlink, parent replacement, hostile-umask mode or publication behavior.
 
-The local candidate will be committed with source and documentation only after final local checks. Push/PR publication needs owner authorization under the plan; no merge authority is implied. After Linux acceptance, update this log and the parent task with observed evidence. A hosted failure must be diagnosed before T02 can be marked DONE.
+Local T02 source commit: `a0b4a3eb9d9cd28d200caa81663f569a11017e09`, tree `0b7ff987db7d62df6f15d86219d7c7394aebda9b`. Exact staged-path whitespace verification passed before commit. This follow-up documentation records the source commit; the final candidate revision includes this evidence update.
+
+Push/PR publication needs owner authorization under the plan; no merge authority is implied. Proposed publication: a dedicated `work/s002-t02-service-foundation` branch and PR for the already-approved protected Linux route, without merging. After Linux acceptance, update this log and the parent task with observed evidence. A hosted failure must be diagnosed before T02 can be marked DONE.
 
 Generated Maven/Failsafe execution, resolved transitive dependency exclusion, native PostgreSQL isolation and artifact/SBOM scans remain T04/T05 obligations. No generated service, business/domain implementation, native database operation or credentials were delivered in T02.
