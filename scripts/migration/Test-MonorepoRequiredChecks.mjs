@@ -106,6 +106,17 @@ test("aggregate accepts applicable success and justified skips only", () => {
   }
 });
 
+test("unconditional lifecycle gate runs T02 source suites and Linux publisher fixtures", () => {
+  const workflow = YAML.parse(fs.readFileSync(path.join(root, ".github/workflows/monorepo-verification.yml"), "utf8"));
+  const lifecycle = workflow.jobs.lifecycle;
+  const commands = lifecycle.steps.map((step) => step.run ?? "").join("\n");
+  assert.match(commands, /node api\/scripts\/foundation\/Test-ServiceGenerator\.mjs/);
+  assert.match(commands, /node api\/scripts\/foundation\/Test-ServiceConformance\.mjs --templates/);
+  assert.match(commands, /pwsh -NoProfile -NonInteractive -File api\/scripts\/foundation\/Test-PublishServiceDirectory\.ps1/);
+  assert.equal(lifecycle["runs-on"], "ubuntu-24.04");
+  assert.equal(lifecycle.if, undefined);
+});
+
 test("required workflow owns one unique always-concluding check without PR path filters", () => {
   const directory = path.join(root, ".github/workflows");
   const names = fs.readdirSync(directory).filter((name) => /\.ya?ml$/.test(name));

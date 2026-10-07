@@ -134,6 +134,11 @@ jobs:
           node api/scripts/decisions/Test-S002-Lifecycle.mjs
           node api/scripts/decisions/Test-S001-T09-Decisions.mjs --require-complete --require-closeout
           node api/scripts/decisions/Test-S002-Lifecycle.mjs --repository
+      - name: Verify service foundation generator and publisher
+        run: |
+          node api/scripts/foundation/Test-ServiceGenerator.mjs
+          node api/scripts/foundation/Test-ServiceConformance.mjs --templates
+          pwsh -NoProfile -NonInteractive -File api/scripts/foundation/Test-PublishServiceDirectory.ps1
 
   monorepo-required:
     name: monorepo-required

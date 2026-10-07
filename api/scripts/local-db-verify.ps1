@@ -18,16 +18,8 @@ if (Test-Path -LiteralPath 'Variable:\PSNativeCommandUseErrorActionPreference') 
 $Root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $EnvPath = Join-Path $Root '.env.local'
 
-$Targets = @(
-    @{ Prefix = 'IDENTITY_DB';         Db = 'identity_db';         Schema = 'identity';         Owner = 'identity_owner';         Migrator = 'identity_migrator';         App = 'identity_app' },
-    @{ Prefix = 'IDENTITY_TEST_DB';    Db = 'identity_test_db';    Schema = 'identity';         Owner = 'identity_test_owner';    Migrator = 'identity_test_migrator';    App = 'identity_test_app' },
-    @{ Prefix = 'AUCTION_DB';          Db = 'auction_db';          Schema = 'auction';          Owner = 'auction_owner';          Migrator = 'auction_migrator';          App = 'auction_app' },
-    @{ Prefix = 'AUCTION_TEST_DB';     Db = 'auction_test_db';     Schema = 'auction';          Owner = 'auction_test_owner';     Migrator = 'auction_test_migrator';     App = 'auction_test_app' },
-    @{ Prefix = 'TRANSACTION_DB';      Db = 'transaction_db';      Schema = 'transaction_core'; Owner = 'transaction_owner';      Migrator = 'transaction_migrator';      App = 'transaction_app' },
-    @{ Prefix = 'TRANSACTION_TEST_DB'; Db = 'transaction_test_db'; Schema = 'transaction_core'; Owner = 'transaction_test_owner'; Migrator = 'transaction_test_migrator'; App = 'transaction_test_app' },
-    @{ Prefix = 'PAYMENT_DB';          Db = 'payment_db';          Schema = 'payment';          Owner = 'payment_owner';          Migrator = 'payment_migrator';          App = 'payment_app' },
-    @{ Prefix = 'PAYMENT_TEST_DB';     Db = 'payment_test_db';     Schema = 'payment';          Owner = 'payment_test_owner';     Migrator = 'payment_test_migrator';     App = 'payment_test_app' }
-)
+Import-Module (Join-Path $PSScriptRoot 'LocalDbTopology.psm1') -Force
+$Targets = @(Get-LocalDatabaseTopology)
 
 function Read-DotEnv {
     param([Parameter(Mandatory)][string]$Path)

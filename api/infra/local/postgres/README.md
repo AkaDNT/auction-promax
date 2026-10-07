@@ -3,6 +3,26 @@
 This directory provisions the ADR-016 local development and local-integration
 PostgreSQL baseline. It is not AWS infrastructure and does not provision RDS.
 
+## V1 topology reconciliation (ADR-027)
+
+Canonical pairs are identity_db/identity_test_db, auction_db/auction_test_db,
+bidding_db/bidding_test_db and billing_db/billing_test_db. Bidding uses schema
+`bidding`, BIDDING_DB/BIDDING_TEST_DB environment prefixes and bidding[_test]_
+owner/migrator/app roles. Billing uses the equivalent `billing` names.
+The gateway has no PostgreSQL database. `scripts/LocalDbTopology.psm1` supplies
+the bootstrap/verifier's shared fixed metadata; Identity/Auction are unchanged.
+
+This source reconciliation does not migrate existing installations. If local
+transaction_db/payment_db databases, their test databases or old roles exist,
+STOP before bootstrap. Preserve data and obtain a separately reviewed inventory,
+backup and migration decision. Do not create another four databases alongside
+them, reuse old financial names, rename/drop/reset them or automatically replace
+your existing .env.local. The example contains placeholders only.
+
+Reset/drop tooling remains the historical allowlist and is NOT reconciled or
+authorized by this change. Do not use the reset command below as a migration.
+No real database bootstrap/isolation result is implied by metadata tests.
+
 ## Ownership model
 
 For each relational service and its separate test database, the scripts create:
