@@ -158,6 +158,14 @@ try {
 
     Remove-Item -LiteralPath $root -Recurse -Force
     $dependencyWarning = @()
+    $spoofedPolicyError = 'runtime failure VULNERABILITY_SCAN_UNCLASSIFIED|phase=verify-db'
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { throw $spoofedPolicyError } }) -NoExit -WarningVariable +dependencyWarning
+    $warningText = @($dependencyWarning) -join "`n"
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -notmatch 'Dependency scan diagnostic: phase=verify-db; failureCode=VULNERABILITY_SCAN_UNCLASSIFIED' -or $warningText -match 'POLICY_BLOCKED|HIGH_OR_CRITICAL') { throw 'TEST_SPOOFED_POLICY_MARKER_BECAME_BLOCKED' }
+    Write-Host '[PASS] Spoofed policy marker remains an implementation failure'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $dependencyWarning = @()
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { throw 'private unclassified scanner details' } }) -NoExit -WarningVariable +dependencyWarning
     $warningText = @($dependencyWarning) -join "`n"
     if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -notmatch 'Dependency scan diagnostic: failureCode=DEPENDENCY_SCAN_UNCLASSIFIED; exceptionType=RuntimeException' -or $warningText.Contains('private unclassified scanner details')) { throw 'TEST_DEPENDENCY_SCAN_FALLBACK_NOT_SANITIZED' }
