@@ -136,6 +136,12 @@ try {
   rejects("Unavailable PASS image fails", "SERVICE_EVIDENCE_PASS_INCOMPLETE", wrongCommit.root, wrongCommit.revision, { file: "image-identity.json", fields: { imageId: "unavailable" } });
   rejects("Readiness failure cannot be hidden behind PASS", "SERVICE_EVIDENCE_PASS_INCOMPLETE", wrongCommit.root, wrongCommit.revision, { file: "smoke-summary.json", fields: { readiness: "unavailable" } });
 
+  const commentedPom = newRepository(true);
+  const commentedEvidence = makeEvidence(commentedPom.root, commentedPom.revision);
+  write(commentedPom.root, `${service.destination}/pom.xml`, `<project><!-- <groupId>${service.groupId}</groupId><artifactId>${service.artifactId}</artifactId><version>${service.version}</version> --><groupId>attacker.group</groupId><artifactId>attacker-artifact</artifactId><version>9.9.9</version></project>`);
+  assert.throws(() => validateServiceEvidence({ serviceId: service.id, commit: commentedPom.revision, directory: commentedEvidence.evidenceDirectory }), { message: "SERVICE_EVIDENCE_ARTIFACT_MISMATCH" }, "commented coordinates cannot impersonate project GAV");
+  process.stdout.write("[PASS] Commented-out Maven coordinates cannot spoof project GAV\n");
+
   const failed = newRepository(true);
   const failedEvidence = makeEvidence(failed.root, failed.revision, { executionState: "IMPLEMENTATION_FAILURE" });
   assert.equal(validateServiceEvidence({ serviceId: service.id, commit: failed.revision, directory: failedEvidence.evidenceDirectory }).files.length, 7);
@@ -166,7 +172,7 @@ try {
   fs.writeFileSync(path.join(extraFileEvidence.evidenceDirectory, "raw-report.json"), "{}");
   rejects("Raw or unexpected artifact files fail closed", "SERVICE_EVIDENCE_FILESET_INVALID", extraFile.root, extraFile.revision);
 
-  process.stdout.write("SERVICE_SUPPLY_CHAIN_EVIDENCE_FIXTURES_PASS cases=15\n");
+  process.stdout.write("SERVICE_SUPPLY_CHAIN_EVIDENCE_FIXTURES_PASS cases=16\n");
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });
 }

@@ -108,10 +108,93 @@ function validateFindingList(value, allowed, code) {
   if (!Array.isArray(value)) fail(code);
   for (const finding of value) exactKeys(finding, allowed, "SERVICE_EVIDENCE_FINDING_INVALID");
 }
-function extractPomCoordinate(pom, element) {
-  const projectCoordinates = pom.replace(/<(?:[A-Za-z0-9_-]+:)?parent(?:\s[^>]*)?>[\s\S]*?<\/(?:[A-Za-z0-9_-]+:)?parent\s*>/i, "");
-  const match = projectCoordinates.match(new RegExp(`<(?:[A-Za-z0-9_-]+:)?${element}\\s*>([^<]*)<\\/(?:[A-Za-z0-9_-]+:)?${element}\\s*>`));
-  return match?.[1]?.trim();
+function parsePomProjectCoordinates(pom) {
+  if (typeof pom !== "string" || pom.length > 2_000_000 || /<!DOCTYPE|<!ENTITY/i.test(pom)) throw new Error("invalid POM XML");
+  const document = { children: [] };
+  const stack = [];
+  const appendText = (value) => {
+    if (stack.length) stack.at(-1).text += value;
+    else if (value.trim() !== "") throw new Error("text outside project");
+  };
+  let offset = 0;
+  while (offset < pom.length) {
+    const start = pom.indexOf("<", offset);
+    if (start < 0) { appendText(pom.slice(offset)); break; }
+    appendText(pom.slice(offset, start));
+    if (pom.startsWith("<!--", start)) {
+      const end = pom.indexOf("-->", start + 4);
+      if (end < 0) throw new Error("unterminated XML comment");
+      offset = end + 3;
+      continue;
+    }
+    if (pom.startsWith("<![CDATA[", start)) {
+      if (!stack.length) throw new Error("CDATA outside project");
+      const end = pom.indexOf("]]>", start + 9);
+      if (end < 0) throw new Error("unterminated CDATA");
+      stack.at(-1).text += pom.slice(start + 9, end);
+      offset = end + 3;
+      continue;
+    }
+    if (pom.startsWith("<?", start)) {
+      const end = pom.indexOf("?>", start + 2);
+      if (end < 0) throw new Error("unterminated processing instruction");
+      offset = end + 2;
+      continue;
+    }
+    if (pom.startsWith("<!", start)) throw new Error("unsupported XML declaration");
+
+    let end = start + 1;
+    let quote = null;
+    for (; end < pom.length; end += 1) {
+      const character = pom[end];
+      if (quote) { if (character === quote) quote = null; }
+      else if (character === "\"" || character === "'") quote = character;
+      else if (character === ">") break;
+    }
+    if (end >= pom.length || quote) throw new Error("unterminated XML tag");
+    const raw = pom.slice(start + 1, end).trim();
+    if (raw.startsWith("/")) {
+      const closingName = raw.slice(1).trim();
+      if (!/^[A-Za-z_][A-Za-z0-9_.:-]*$/.test(closingName) || stack.at(-1)?.name !== closingName) throw new Error("mismatched XML close tag");
+      stack.pop();
+    } else {
+      const match = raw.match(/^([A-Za-z_][A-Za-z0-9_.:-]*)([\s\S]*)$/);
+      if (!match) throw new Error("invalid XML element");
+      let attributes = match[2].trim();
+      const selfClosing = attributes.endsWith("/");
+      if (selfClosing) attributes = attributes.slice(0, -1).trim();
+      while (attributes.length) {
+        const attribute = attributes.match(/^([A-Za-z_][A-Za-z0-9_.:-]*)\s*=\s*(["'])(.*?)\2\s*/s);
+        if (!attribute || attribute[3].includes("<")) throw new Error("invalid XML attribute");
+        attributes = attributes.slice(attribute[0].length);
+      }
+      const node = { name: match[1], text: "", children: [] };
+      const parent = stack.at(-1) ?? document;
+      parent.children.push(node);
+      if (!selfClosing) stack.push(node);
+    }
+    offset = end + 1;
+  }
+  if (stack.length !== 0 || document.children.length !== 1) throw new Error("invalid POM document root");
+  const project = document.children[0];
+  if (project.name.split(":").at(-1) !== "project") throw new Error("POM root is not project");
+  const readCoordinate = (localName) => {
+    const matches = project.children.filter((child) => child.name.split(":").at(-1) === localName);
+    if (matches.length !== 1 || matches[0].children.length !== 0) throw new Error("invalid project coordinate");
+    const value = matches[0].text.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (_entity, token) => {
+      if (token === "amp") return "&";
+      if (token === "lt") return "<";
+      if (token === "gt") return ">";
+      if (token === "quot") return "\"";
+      if (token === "apos") return "'";
+      const codePoint = token.startsWith("#x") ? Number.parseInt(token.slice(2), 16) : Number.parseInt(token.slice(1), 10);
+      if (!Number.isInteger(codePoint) || codePoint < 0x20 || codePoint > 0x10ffff || (codePoint >= 0xd800 && codePoint <= 0xdfff)) throw new Error("invalid XML character reference");
+      return String.fromCodePoint(codePoint);
+    }).trim();
+    if (!value || value.includes("&")) throw new Error("invalid project coordinate value");
+    return value;
+  };
+  return { groupId: readCoordinate("groupId"), artifactId: readCoordinate("artifactId"), version: readCoordinate("version") };
 }
 function validateArtifactBinding(root, service, imageEvidence, requireComplete) {
   const apiRoot = path.join(root, "api");
@@ -121,9 +204,10 @@ function validateArtifactBinding(root, service, imageEvidence, requireComplete) 
   if (fs.existsSync(pomPath)) {
     let pom;
     try { pom = fs.readFileSync(pomPath, "utf8"); } catch { fail("SERVICE_EVIDENCE_ARTIFACT_MISMATCH"); }
-    if (extractPomCoordinate(pom, "groupId") !== service.groupId
-      || extractPomCoordinate(pom, "artifactId") !== service.artifactId
-      || extractPomCoordinate(pom, "version") !== service.version) fail("SERVICE_EVIDENCE_ARTIFACT_MISMATCH");
+    let coordinates;
+    try { coordinates = parsePomProjectCoordinates(pom); } catch { fail("SERVICE_EVIDENCE_ARTIFACT_MISMATCH"); }
+    if (coordinates.groupId !== service.groupId || coordinates.artifactId !== service.artifactId
+      || coordinates.version !== service.version) fail("SERVICE_EVIDENCE_ARTIFACT_MISMATCH");
   } else if (requireComplete) {
     fail("SERVICE_EVIDENCE_ARTIFACT_MISSING");
   }
