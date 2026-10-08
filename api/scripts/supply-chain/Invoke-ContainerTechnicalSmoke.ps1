@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 [CmdletBinding()]
-param([string]$StatusPath, [ValidateNotNullOrEmpty()][string]$ServiceId = 'identity-profile-service', [switch]$ResolverContractTest, [switch]$StatusContractTest, [switch]$StartupEnvelopeContractTest, [switch]$FailureClassifierContractTest)
+param([string]$StatusPath, [ValidateNotNullOrEmpty()][string]$ServiceId = 'identity-profile-service', [switch]$ResolverContractTest, [switch]$StatusContractTest, [switch]$StartupEnvelopeContractTest, [switch]$FailureClassifierContractTest, [switch]$SmokeConfigurationContractTest)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -188,11 +188,50 @@ function Invoke-ContainerSmokeFailureClassifierContractTest {
     Write-Output '[PASS] Docker failure classifier maps known classes and fails closed for unknown output'
     Write-Output 'Container smoke Docker failure classifier contract tests: PASS'
 }
+function Get-ContainerSmokeConfiguration {
+    param([Parameter(Mandatory)]$Artifact, [Parameter(Mandatory)]$SmokeContract)
+    $profile = 'local'
+    $readinessPath = if ($Artifact.serviceId -ceq 'identity-profile-service') { '/actuator/health' } else { [string]$SmokeContract.readinessPath }
+    $databaseEnvironment = @()
+    $appUsername = $null
+    $migratorUsername = $null
+    if ($Artifact.variant -ceq 'relational') {
+        $appUsername = $Artifact.environmentPrefix.ToLowerInvariant() + '_test_app'
+        $migratorUsername = $Artifact.environmentPrefix.ToLowerInvariant() + '_test_migrator'
+        $appPassword = if ($Artifact.serviceId -ceq 'identity-profile-service') { 'test-only-identity-app-not-a-secret' } else { 'test-only-app-not-a-secret' }
+        $migratorPassword = if ($Artifact.serviceId -ceq 'identity-profile-service') { 'test-only-identity-migrator-not-a-secret' } else { 'test-only-migrator-not-a-secret' }
+        $prefix = [string]$Artifact.environmentPrefix
+        $databaseEnvironment = @(
+            ($prefix + '_DB_APP_USERNAME=' + $appUsername),
+            ($prefix + '_DB_APP_PASSWORD=' + $appPassword),
+            ($prefix + '_DB_MIGRATOR_USERNAME=' + $migratorUsername),
+            ($prefix + '_DB_MIGRATOR_PASSWORD=' + $migratorPassword)
+        )
+    }
+    return [pscustomobject]@{ profile=$profile; readinessPath=$readinessPath; databaseEnvironment=@($databaseEnvironment); appUsername=$appUsername; migratorUsername=$migratorUsername }
+}
+function Invoke-ContainerSmokeConfigurationContractTest {
+    $identity = [pscustomobject]@{ serviceId='identity-profile-service'; variant='relational'; environmentPrefix='IDENTITY'; testDatabase='identity_test_db'; databaseHost='identity-db' }
+    $smokeContract = [pscustomobject]@{ profile='technical-local'; readinessPath='/actuator/health/readiness' }
+    $identitySettings = Get-ContainerSmokeConfiguration -Artifact $identity -SmokeContract $smokeContract
+    if ($identitySettings.profile -cne 'local' -or $identitySettings.readinessPath -cne '/actuator/health' -or $identitySettings.appUsername -cne 'identity_test_app' -or $identitySettings.migratorUsername -cne 'identity_test_migrator' -or $identitySettings.databaseEnvironment -notcontains 'IDENTITY_DB_APP_PASSWORD=test-only-identity-app-not-a-secret' -or $identitySettings.databaseEnvironment -notcontains 'IDENTITY_DB_MIGRATOR_PASSWORD=test-only-identity-migrator-not-a-secret') { throw 'CONTAINER_SMOKE_IDENTITY_DATABASE_CONFIGURATION_INVALID' }
+    $generated = [pscustomobject]@{ serviceId='auction-service'; variant='relational'; environmentPrefix='AUCTION'; testDatabase='auction_test_db'; databaseHost='auction-db' }
+    $generatedSettings = Get-ContainerSmokeConfiguration -Artifact $generated -SmokeContract $smokeContract
+    if ($generatedSettings.profile -cne 'local' -or $generatedSettings.readinessPath -cne $smokeContract.readinessPath -or $generatedSettings.appUsername -cne 'auction_test_app' -or $generatedSettings.migratorUsername -cne 'auction_test_migrator' -or $generatedSettings.databaseEnvironment -notcontains 'AUCTION_DB_APP_PASSWORD=test-only-app-not-a-secret' -or $generatedSettings.databaseEnvironment -notcontains 'AUCTION_DB_MIGRATOR_PASSWORD=test-only-migrator-not-a-secret') { throw 'CONTAINER_SMOKE_GENERATED_DATABASE_CONFIGURATION_INVALID' }
+    $gateway = [pscustomobject]@{ serviceId='realtime-gateway'; variant='gateway'; environmentPrefix=$null; testDatabase=$null; databaseHost=$null }
+    $gatewaySettings = Get-ContainerSmokeConfiguration -Artifact $gateway -SmokeContract $smokeContract
+    if ($gatewaySettings.profile -cne 'local' -or $gatewaySettings.readinessPath -cne $smokeContract.readinessPath -or $null -ne $gatewaySettings.appUsername -or $null -ne $gatewaySettings.migratorUsername -or @($gatewaySettings.databaseEnvironment).Count -ne 0) { throw 'CONTAINER_SMOKE_GATEWAY_DATABASE_CONFIGURATION_FORBIDDEN' }
+    Write-Output '[PASS] Identity smoke requires its database-enabled profile, aggregate database health, and bootstrap credentials'
+    Write-Output '[PASS] Generated relational smoke keeps generated bootstrap credentials'
+    Write-Output '[PASS] Gateway smoke has no datastore configuration'
+    Write-Output 'Container smoke service configuration contract tests: PASS'
+}
 function Invoke-DockerCommand([string[]]$Arguments, [string]$Code) {
     $output = @(& $script:dockerExe @Arguments 2>&1); $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0) { Fail (Resolve-DockerFailureCode -Output ($output -join [Environment]::NewLine) -FallbackCode $Code) }; return ($output -join [Environment]::NewLine)
 }
 if ($FailureClassifierContractTest) { Invoke-ContainerSmokeFailureClassifierContractTest; return }
+if ($SmokeConfigurationContractTest) { Invoke-ContainerSmokeConfigurationContractTest; return }
 try {
     $smokePhase = 'resolve-docker'
     $runningOnWindows = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)
@@ -212,7 +251,8 @@ try {
     try { $artifact = Resolve-ServiceArtifact -ServiceId $ServiceId -RequireBuiltArtifact }
     catch { Fail 'CONTAINER_SMOKE_SERVICE_ARTIFACT_INVALID' }
     $image = [string]$artifact.imageReference; $smoke = $contract.technicalSmoke; $runtimeUser = [string]$contract.runtime.user
-    $smokeProfile = if ($artifact.serviceId -ceq 'identity-profile-service') { [string]$smoke.profile } else { 'local' }
+    $smokeSettings = Get-ContainerSmokeConfiguration -Artifact $artifact -SmokeContract $smoke
+    $smokeProfile = [string]$smokeSettings.profile
     $name = 'apx-' + $artifact.serviceId + '-t03-smoke-' + [Guid]::NewGuid().ToString('N').Substring(0,12)
     $appArguments = @('--detach','--rm','--name',$name,'--platform',$contract.image.platform,'--user',$runtimeUser,'--read-only','--tmpfs',$smoke.tmpfsPath,'--cap-drop','ALL','--security-opt','no-new-privileges','--pids-limit',[string]$smoke.pidsLimit)
     if ($artifact.variant -ceq 'relational') {
@@ -230,18 +270,18 @@ try {
         $databaseStarted = $true
         $databaseDeadline = [DateTime]::UtcNow.AddSeconds(60)
         $databaseReady = $false
-        $appUsername = $artifact.environmentPrefix.ToLowerInvariant() + '_test_app'
-        $migratorUsername = $artifact.environmentPrefix.ToLowerInvariant() + '_test_migrator'
         do {
             $null = @(& $script:dockerExe exec $databaseName pg_isready -U tc_bootstrap -d $artifact.testDatabase 2>&1)
             if ($LASTEXITCODE -eq 0) {
-                $bootstrapCheck = @(& $script:dockerExe exec $databaseName psql -U tc_bootstrap -d $artifact.testDatabase -Atqc ("SELECT count(*) FROM pg_roles WHERE rolname IN ('$appUsername','$migratorUsername')") 2>&1)
+                $bootstrapCheck = @(& $script:dockerExe exec $databaseName psql -U tc_bootstrap -d $artifact.testDatabase -Atqc ("SELECT count(*) FROM pg_roles WHERE rolname IN ('$($smokeSettings.appUsername)','$($smokeSettings.migratorUsername)')") 2>&1)
                 if ($LASTEXITCODE -eq 0 -and (($bootstrapCheck -join '').Trim() -ceq '2')) { $databaseReady = $true; break }
             }
             Start-Sleep -Seconds 2
         } while ([DateTime]::UtcNow -lt $databaseDeadline)
         if (-not $databaseReady) { Fail 'CONTAINER_SMOKE_DATABASE_READINESS_TIMEOUT' }
-        $appArguments += @('--network',$networkName,'--env',($artifact.environmentPrefix + '_DB_URL=jdbc:postgresql://' + $databaseName + ':5432/' + $artifact.testDatabase),'--env',($artifact.environmentPrefix + '_DB_APP_USERNAME=' + $appUsername),'--env',($artifact.environmentPrefix + '_DB_APP_PASSWORD=test-only-app-not-a-secret'),'--env',($artifact.environmentPrefix + '_DB_MIGRATOR_USERNAME=' + $migratorUsername),'--env',($artifact.environmentPrefix + '_DB_MIGRATOR_PASSWORD=test-only-migrator-not-a-secret'))
+        $appArguments += @('--network',$networkName)
+        $appArguments += @('--env',($artifact.environmentPrefix + '_DB_URL=jdbc:postgresql://' + $databaseName + ':5432/' + $artifact.testDatabase))
+        foreach ($databaseEntry in $smokeSettings.databaseEnvironment) { $appArguments += @('--env',[string]$databaseEntry) }
     }
     $smokePhase = 'reserve-port'
     $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,0)
@@ -261,7 +301,7 @@ try {
     $smokePhase = 'validate-binding'
     $binding = @($state.NetworkSettings.Ports.'8080/tcp' | Where-Object { $_.HostIp -eq '127.0.0.1' })
     if ($binding.Count -ne 1 -or [int]$binding[0].HostPort -ne [int]$hostPort) { Fail 'CONTAINER_SMOKE_LOOPBACK_BINDING_INVALID' }
-    $uri = "http://127.0.0.1:$hostPort$($smoke.readinessPath)"; $deadline = [DateTime]::UtcNow.AddSeconds([int]$smoke.startupTimeoutSeconds); $ready = $false
+    $uri = "http://127.0.0.1:$hostPort$($smokeSettings.readinessPath)"; $deadline = [DateTime]::UtcNow.AddSeconds([int]$smoke.startupTimeoutSeconds); $ready = $false
     do {
         $smokePhase = 'poll-readiness'
         try {

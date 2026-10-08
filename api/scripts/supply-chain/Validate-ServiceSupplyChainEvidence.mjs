@@ -5,6 +5,18 @@ import process from "node:process";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+const apiRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+let validateEvidenceSchema;
+try {
+  const { default: Ajv2020 } = await import(pathToFileURL(path.join(apiRoot, "contracts/node_modules/ajv/dist/2020.js")).href);
+  const schema = JSON.parse(fs.readFileSync(path.join(apiRoot, "security/schemas/service-supply-chain-evidence.schema.json"), "utf8"));
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  if (!ajv.validateSchema(schema)) throw new Error("invalid schema");
+  validateEvidenceSchema = ajv.compile(schema);
+} catch {
+  throw new Error("SERVICE_EVIDENCE_SCHEMA_INVALID");
+}
+
 export const serviceEvidenceFiles = Object.freeze([
   "container-vulnerability-inventory.json",
   "gitleaks-inventory.json",
@@ -247,6 +259,7 @@ export function validateServiceEvidence({ serviceId, commit, directory }) {
     if (!stat.isFile() || stat.isSymbolicLink()) fail("SERVICE_EVIDENCE_FILESET_INVALID");
     const value = readJson(file);
     exactKeys(value, [...commonFields, ...fileSpecificFields.get(name)], "SERVICE_EVIDENCE_FIELD_INVALID");
+    if (!validateEvidenceSchema(value)) fail("SERVICE_EVIDENCE_SCHEMA_INVALID");
     if (value.schemaVersion !== 2 || value.serviceId !== serviceId || value.commit !== commit || value.documentType !== documentTypes.get(name)) fail("SERVICE_EVIDENCE_IDENTITY_MISMATCH");
     entries.set(name, value);
   }
@@ -277,13 +290,25 @@ export function validateServiceEvidence({ serviceId, commit, directory }) {
     || !/^[A-Z][A-Z0-9_]+$/.test(summary.failureCode)) fail("SERVICE_EVIDENCE_STATE_INVALID");
   if (summary.executionState === "PASS") {
     if (summary.failureCode !== "NONE" || image.imageId === "unavailable" || !/^sha256:[a-f0-9]{64}$/.test(image.imageId)
-      || image.jarSha256 === "unavailable" || !/^[a-f0-9]{64}$/.test(image.jarSha256) || smoke.readiness !== "UP") fail("SERVICE_EVIDENCE_PASS_INCOMPLETE");
+      || image.jarSha256 === "unavailable" || !/^[a-f0-9]{64}$/.test(image.jarSha256) || smoke.readiness !== "UP"
+      || summary.policyState === "NOT_EVALUATED") fail("SERVICE_EVIDENCE_PASS_INCOMPLETE");
   } else if (summary.executionState !== "IMPLEMENTATION_FAILURE" || summary.failureCode === "NONE" || summary.policyState !== "NOT_EVALUATED") {
     fail("SERVICE_EVIDENCE_STATE_INVALID");
   }
   if (!["PASS", "BLOCKED", "NOT_EVALUATED"].includes(summary.policyState)
     || policy.policyState !== summary.policyState
     || policy.reviewState !== summary.reviewState || policy.deltaState !== summary.deltaState) fail("SERVICE_EVIDENCE_POLICY_MISMATCH");
+  const findings = [
+    ...entries.get("vulnerability-inventory.json").findings,
+    ...entries.get("container-vulnerability-inventory.json").findings,
+  ];
+  const expectedCounts = Object.fromEntries(["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"].map((severity) => [
+    severity,
+    findings.filter((finding) => finding.severity === severity).length,
+  ]));
+  for (const severity of Object.keys(expectedCounts)) {
+    if (policy.counts[severity] !== expectedCounts[severity]) fail("SERVICE_EVIDENCE_COUNTS_MISMATCH");
+  }
   if (service.variant === "gateway" && JSON.stringify(entries.get("smoke-summary.json")).match(/(?:postgres|datasource|jdbc)/i)) fail("SERVICE_EVIDENCE_GATEWAY_DATASTORE_FORBIDDEN");
   validateArtifactBinding(repositoryRoot, service, image, summary.executionState === "PASS");
   return { serviceId, variant: service.variant, commit, sourceProvenance: summary.sourceProvenance, files: [...serviceEvidenceFiles].sort() };

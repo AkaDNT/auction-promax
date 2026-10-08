@@ -24,8 +24,11 @@ if ($orchestratorSource -notmatch '\$stage\.name -eq ''dependency''' -or $orches
 if ($orchestratorSource -notmatch '\$PSNativeCommandUseErrorActionPreference = \$false' -or $orchestratorSource -notmatch '\$PSNativeCommandUseErrorActionPreference = \$previousNativeErrorPreference' -or $orchestratorSource -notmatch '\$exitCode = \$LASTEXITCODE') {
     throw 'HOSTED_CHILD_NATIVE_EXIT_CAPTURE_NOT_EXPLICIT'
 }
-if ($orchestratorSource -notmatch 'Dependency scan wrapper diagnostic: phase=\{0\}; exceptionType=\{1\}' -or $orchestratorSource -notmatch 'Dependency scan child diagnostic: phase=\{0\}; failureCode=\{1\}' -or $orchestratorSource -notmatch 'Dependency scan child diagnostic: phase=child-exit; failureCode=DEPENDENCY_SCAN_UNCLASSIFIED') {
+if ($orchestratorSource -notmatch 'Dependency scan wrapper diagnostic: phase=\{0\}; exceptionType=\{1\}' -or $orchestratorSource -notmatch 'Read-HostedDependencyScanStatus\s+-Path\s+\$dependencyStatusPath\s+-ExitCode\s+\$exitCode' -or $orchestratorSource -notmatch '\$dependencyStatus\.state -eq ''BLOCKED''' -or $orchestratorSource -notmatch '\$dependencyStatus\.state -eq ''FAILED''') {
     throw 'HOSTED_DEPENDENCY_CHILD_BOUNDARY_DIAGNOSTIC_MISSING'
+}
+if ($orchestratorSource -notmatch '\$stage\.name -eq ''dependency''\) \{ \$isPolicyBlock = \$false \}' -or $orchestratorSource -match '\$text -match .*VULNERABILITY_\[A-Z0-9_\]') {
+    throw 'HOSTED_DEPENDENCY_RAW_OUTPUT_POLICY_CLASSIFICATION_PRESENT'
 }
 if ($orchestratorSource -notmatch 'Container prebuild diagnostic: phase=stage-dispatch; exceptionType=\{0\}') {
     throw 'HOSTED_PREBUILD_FALLBACK_DIAGNOSTIC_MISSING'
@@ -117,6 +120,13 @@ try {
     Write-Host '[PASS] Policy block and mutable-review states remain independent'
 
     Remove-Item -LiteralPath $root -Recurse -Force
+    [System.IO.File]::WriteAllText($vulnerabilityInventory, $fixtureFinding, [System.Text.UTF8Encoding]::new($false))
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { 'POLICY_BLOCKED' } }) -NoExit
+    $dependencyEvidence = Get-Content -LiteralPath (Join-Path $root 'vulnerability-inventory.json') -Raw | ConvertFrom-Json
+    if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'BLOCKED' -or @($dependencyEvidence.findings).Count -ne 1) { throw 'TEST_STRUCTURED_DEPENDENCY_POLICY_BLOCK_EVIDENCE_MISSING' }
+    Write-Host '[PASS] Completed dependency policy block preserves sanitized findings'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
     $prebuildWarning = @()
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ prebuild = { throw 'unclassified prebuild child failure' } }) -NoExit -WarningVariable +prebuildWarning
     if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.failureCode -ne 'SBOM_BUILD_FAILED' -or (@($prebuildWarning) -join "`n") -notmatch 'Container prebuild diagnostic: phase=stage-dispatch; exceptionType=RuntimeException') { throw 'TEST_PREBUILD_FALLBACK_DIAGNOSTIC_LOST' }
@@ -164,10 +174,10 @@ try {
 
     Remove-Item -LiteralPath $root -Recurse -Force
     $dependencyWarning = @()
-    $spoofedPolicyError = 'runtime failure VULNERABILITY_SCAN_UNCLASSIFIED|phase=verify-db'
+$spoofedPolicyError = 'runtime failure /private/runner VULNERABILITY_POLICY_BLOCKED HIGH_OR_CRITICAL_DISPOSITION_REQUIRED'
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { throw $spoofedPolicyError } }) -NoExit -WarningVariable +dependencyWarning
     $warningText = @($dependencyWarning) -join "`n"
-    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -notmatch 'Dependency scan diagnostic: phase=verify-db; failureCode=VULNERABILITY_SCAN_UNCLASSIFIED' -or $warningText -match 'POLICY_BLOCKED|HIGH_OR_CRITICAL') { throw 'TEST_SPOOFED_POLICY_MARKER_BECAME_BLOCKED' }
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -match 'POLICY_BLOCKED|HIGH_OR_CRITICAL') { throw 'TEST_SPOOFED_POLICY_MARKER_BECAME_BLOCKED' }
     Write-Host '[PASS] Spoofed policy marker remains an implementation failure'
 
     Remove-Item -LiteralPath $root -Recurse -Force

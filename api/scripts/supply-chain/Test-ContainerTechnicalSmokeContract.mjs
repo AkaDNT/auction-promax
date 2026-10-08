@@ -9,6 +9,8 @@ const statusHarnessPath = path.join(repoRoot, "scripts/supply-chain/Test-Contain
 const statusHarnessSource = fs.readFileSync(statusHarnessPath, "utf8");
 const resolverPath = path.join(repoRoot, "scripts/supply-chain/ServiceArtifact.psm1");
 const resolverSource = fs.readFileSync(resolverPath, "utf8");
+const identityApplicationPath = path.join(repoRoot, "services/identity-profile-service/src/main/resources/application.yaml");
+const identityLocalPath = path.join(repoRoot, "services/identity-profile-service/src/main/resources/application-local.yaml");
 for (const [name, expected] of [
   ["Contract validation is mandatory", "CONTAINER_SMOKE_CONTRACT_INVALID"],
   ["Image presence is mandatory", "CONTAINER_SMOKE_IMAGE_MISSING"],
@@ -39,13 +41,29 @@ for (const [name, expected] of [
   ["Relational smoke waits for actual PostgreSQL readiness", "pg_isready"],
   ["Relational smoke loads only the generated ephemeral bootstrap", "src=' + $bootstrapPath"],
   ["Relational smoke configures readiness against the private database service", "jdbc:postgresql://' + $databaseName + ':5432/' + $artifact.testDatabase"],
+  ["Identity smoke resolves database-backed settings through a tested helper", "Get-ContainerSmokeConfiguration -Artifact $artifact -SmokeContract $smoke"],
+  ["Relational bootstrap role check uses usernames returned by the selected smoke configuration", "rolname IN ('$($smokeSettings.appUsername)','$($smokeSettings.migratorUsername)')"],
+  ["Optional database role settings are initialized before variant selection", "$appUsername = $null"],
+  ["Identity smoke uses its aggregate health endpoint so DB contributes to UP", "'/actuator/health'"],
+  ["Identity fixture credentials are selected rather than generic generated-service credentials", "test-only-identity-app-not-a-secret"],
 ]) {
   if (!source.includes(expected)) throw new Error(`${name}: missing ${expected}`);
   process.stdout.write(`[PASS] ${name}\n`);
 }
+const identityApplication = fs.readFileSync(identityApplicationPath, "utf8");
+const identityLocal = fs.readFileSync(identityLocalPath, "utf8");
+if (!identityApplication.includes("include: health") || !identityLocal.includes("datasource:") || !identityLocal.includes("flyway:")
+  || !identityLocal.includes("IDENTITY_DB_APP_PASSWORD") || !identityLocal.includes("IDENTITY_DB_MIGRATOR_PASSWORD")) {
+  throw new Error("Identity aggregate health smoke must run with its database-backed local configuration.");
+}
+process.stdout.write("[PASS] Identity aggregate health is enabled and local profile requires datasource and Flyway configuration\n");
 if (!statusHarnessSource.includes("-FailureClassifierContractTest") || !statusHarnessSource.includes("CONTAINER_SMOKE_FAILURE_CLASSIFIER_CONTRACT_FAILED")) {
   throw "Docker failure classifier must run in the hosted PowerShell status harness.";
 }
+if (!statusHarnessSource.includes("Get-HostedChildPowerShellExecutable") || /powershell\.exe/i.test(statusHarnessSource)) {
+  throw "Smoke status harness child PowerShell launches must use the portable hosted executable resolver.";
+}
+process.stdout.write("[PASS] Smoke status harness resolves its child PowerShell executable portably\n");
 if (/\$failureClassifierOutput\s*=\s*@\(&[^\r\n]*-ExecutionPolicy/i.test(statusHarnessSource)) {
   throw "Docker failure classifier fixture must not add an execution-policy override.";
 }

@@ -70,6 +70,7 @@ export function validateServiceMatrixWorkflow(workflow) {
   const repositoryFixtures = String(step(repository, 'matrix-fixtures')?.run ?? '');
   check(repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --fixtures')
     && repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --ownership-fixtures')
+    && repositoryFixtures.includes('Test-ContainerTechnicalSmokeStatus.ps1')
     && repositoryFixtures.includes('Test-ServiceFailsafeExecution.ps1'), 'SERVICE_WORKFLOW_OWNERSHIP_FIXTURES_MISSING');
   check(repositoryRun.includes('-CommitSha') && repositoryRun.includes('steps.revision.outputs.commit')
     && String(step(repository, 'revision')?.run ?? '').includes('needs.classify-services.outputs.execution_sha'), 'SERVICE_WORKFLOW_REPOSITORY_REVISION_INVALID');
@@ -157,6 +158,7 @@ export function validateFreshnessMatrixWorkflow(workflow) {
   const repositoryFixtures = String(step(repository, 'matrix-fixtures')?.run ?? '');
   check(repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --freshness-fixtures')
     && repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --ownership')
+    && repositoryFixtures.includes('Test-ContainerTechnicalSmokeStatus.ps1')
     && repositoryFixtures.includes('Test-ServiceFailsafeExecution.ps1'), 'FRESHNESS_WORKFLOW_OWNERSHIP_FIXTURES_MISSING');
   check(String(step(repository, 'revision')?.run ?? '').includes('needs.resolve-services.outputs.execution_sha'), 'FRESHNESS_WORKFLOW_REPOSITORY_REVISION_INVALID');
 

@@ -4,12 +4,15 @@ $ErrorActionPreference = 'Stop'
 
 $scriptPath = Join-Path $PSScriptRoot 'Invoke-ContainerTechnicalSmoke.ps1'
 Import-Module (Join-Path $PSScriptRoot 'HostedSupplyChain.psm1') -Force
-$resolverOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath -ResolverContractTest 2>&1)
+$childPowerShell = Get-HostedChildPowerShellExecutable
+$resolverOutput = @(& $childPowerShell -NoProfile -NonInteractive -File $scriptPath -ResolverContractTest 2>&1)
 if ($LASTEXITCODE -ne 0 -or ($resolverOutput -join "`n") -notmatch 'Container smoke Docker resolver contract tests: PASS') { throw 'CONTAINER_SMOKE_DOCKER_RESOLVER_CONTRACT_FAILED' }
-$stateContractOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath -StatusContractTest 2>&1)
+$stateContractOutput = @(& $childPowerShell -NoProfile -NonInteractive -File $scriptPath -StatusContractTest 2>&1)
 if ($LASTEXITCODE -ne 0 -or ($stateContractOutput -join "`n") -notmatch 'Container smoke status state contract tests: PASS') { throw 'CONTAINER_SMOKE_STATUS_STATE_CONTRACT_FAILED' }
 $failureClassifierOutput = @(& $scriptPath -FailureClassifierContractTest 2>&1)
 if (($failureClassifierOutput -join "`n") -notmatch 'Container smoke Docker failure classifier contract tests: PASS') { throw 'CONTAINER_SMOKE_FAILURE_CLASSIFIER_CONTRACT_FAILED' }
+$smokeConfigurationOutput = @(& $scriptPath -SmokeConfigurationContractTest 2>&1)
+if (($smokeConfigurationOutput -join "`n") -notmatch 'Container smoke service configuration contract tests: PASS') { throw 'CONTAINER_SMOKE_SERVICE_CONFIGURATION_CONTRACT_FAILED' }
 $tokens = $null
 $errors = $null
 [System.Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$tokens, [ref]$errors) | Out-Null
@@ -48,7 +51,7 @@ try {
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        $startupOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath -StatusPath $statusPath -StartupEnvelopeContractTest 2>&1)
+        $startupOutput = @(& $childPowerShell -NoProfile -NonInteractive -File $scriptPath -StatusPath $statusPath -StartupEnvelopeContractTest 2>&1)
         $startupExitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
@@ -66,6 +69,7 @@ try {
 Write-Host '[PASS] Container smoke script parses'
 Write-Host '[PASS] Container smoke does not bind protected automatic variables'
 Write-Host '[PASS] Container smoke Docker resolver is portable'
+Write-Host '[PASS] Identity smoke uses database-backed local profile, aggregate DB health, and fixture credentials'
 Write-Host '[PASS] Container smoke status states round-trip'
 Write-Host '[PASS] Container smoke status contract is present'
 Write-Host '[PASS] Resolver failure is captured by managed startup envelope'

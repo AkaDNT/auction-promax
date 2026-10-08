@@ -166,9 +166,42 @@ try {
   const extraFieldEvidence = makeEvidence(extraField.root, extraField.revision);
   rejects("Unknown evidence fields fail closed", "SERVICE_EVIDENCE_FIELD_INVALID", extraField.root, extraField.revision, { file: "run-summary.json", fields: { unexpected: true } });
 
+  for (const [name, file, fields] of [
+    ["Unrecognized workflow is rejected by the evidence schema", "run-summary.json", { workflow: "unrecognized" }],
+    ["Non-Linux image platform is rejected by the evidence schema", "image-identity.json", { platform: "windows/arm64" }],
+    ["Malformed base image digest is rejected by the evidence schema", "image-identity.json", { baseManifestDigest: "invalid" }],
+    ["Non-hardened runtime identity is rejected by the evidence schema", "smoke-summary.json", { runtimeUser: "0:0", readOnlyRootFilesystem: false, dropAllCapabilities: false, noNewPrivileges: false }],
+    ["Negative policy counts are rejected by the evidence schema", "policy-summary.json", { counts: { CRITICAL: 0, HIGH: -1, MEDIUM: 0, LOW: 0, UNKNOWN: 0 } }],
+  ]) {
+    const invalid = newRepository(true);
+    const invalidEvidence = makeEvidence(invalid.root, invalid.revision);
+    rejects(name, "SERVICE_EVIDENCE_SCHEMA_INVALID", invalid.root, invalid.revision, { file, fields });
+  }
+
+  const unevaluatedPass = newRepository(true);
+  const unevaluatedPassEvidence = makeEvidence(unevaluatedPass.root, unevaluatedPass.revision);
+  rejects("PASS evidence cannot leave policy unevaluated", "SERVICE_EVIDENCE_PASS_INCOMPLETE", unevaluatedPass.root, unevaluatedPass.revision, { file: "run-summary.json", fields: { policyState: "NOT_EVALUATED" } });
+
+  const inconsistentCounts = newRepository(true);
+  const inconsistentCountsEvidence = makeEvidence(inconsistentCounts.root, inconsistentCounts.revision);
+  fs.writeFileSync(path.join(inconsistentCountsEvidence.evidenceDirectory, "vulnerability-inventory.json"), JSON.stringify({
+    schemaVersion: 2, serviceId: service.id, variant: service.variant, commit: inconsistentCounts.revision,
+    sourceProvenance: { kind: "committed", executionCommit: inconsistentCounts.revision }, documentType: "vulnerability-inventory",
+    findings: [{ scanner: "trivy", findingId: "CVE-2026-0001", source: "nvd", targetType: "sbom", target: "services/auction-service/target/bom.json", "package/component": "pkg:maven/example/component@1.0.0", affectedVersion: "1.0.0", fixedVersion: "1.0.1", severity: "HIGH", severitySource: "nvd", status: "observed", dispositionId: null }],
+  }));
+  const countsPath = path.join(inconsistentCountsEvidence.evidenceDirectory, "policy-summary.json");
+  const matchingCounts = JSON.parse(fs.readFileSync(countsPath, "utf8"));
+  matchingCounts.counts.HIGH = 1;
+  fs.writeFileSync(countsPath, JSON.stringify(matchingCounts));
+  assert.equal(validateServiceEvidence({ serviceId: service.id, commit: inconsistentCounts.revision, directory: inconsistentCountsEvidence.evidenceDirectory }).serviceId, service.id);
+  matchingCounts.counts.HIGH = 0;
+  fs.writeFileSync(countsPath, JSON.stringify(matchingCounts));
+  assert.throws(() => validateServiceEvidence({ serviceId: service.id, commit: inconsistentCounts.revision, directory: inconsistentCountsEvidence.evidenceDirectory }), { message: "SERVICE_EVIDENCE_COUNTS_MISMATCH" }, "severity totals must match sanitized inventory contents");
+  process.stdout.write("[PASS] Matching policy severity totals are accepted and mismatches rejected\n");
+
   const wrongDocumentType = newRepository(true);
   const wrongDocumentEvidence = makeEvidence(wrongDocumentType.root, wrongDocumentType.revision);
-  rejects("File type discriminator must match its basename", "SERVICE_EVIDENCE_IDENTITY_MISMATCH", wrongDocumentType.root, wrongDocumentType.revision, { file: "image-identity.json", fields: { documentType: "smoke-summary" } });
+  rejects("File type discriminator must match its basename", "SERVICE_EVIDENCE_SCHEMA_INVALID", wrongDocumentType.root, wrongDocumentType.revision, { file: "image-identity.json", fields: { documentType: "smoke-summary" } });
 
   const mixedProvenance = newRepository(true);
   const mixedProvenanceEvidence = makeEvidence(mixedProvenance.root, mixedProvenance.revision);
@@ -184,7 +217,7 @@ try {
   fs.writeFileSync(path.join(extraFileEvidence.evidenceDirectory, "raw-report.json"), "{}");
   rejects("Raw or unexpected artifact files fail closed", "SERVICE_EVIDENCE_FILESET_INVALID", extraFile.root, extraFile.revision);
 
-  process.stdout.write("SERVICE_SUPPLY_CHAIN_EVIDENCE_FIXTURES_PASS cases=19\n");
+  process.stdout.write("SERVICE_SUPPLY_CHAIN_EVIDENCE_FIXTURES_PASS cases=26\n");
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });
 }

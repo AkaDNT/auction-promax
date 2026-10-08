@@ -27,7 +27,7 @@ function Invoke-HostedStage {
     return & $DefaultAction @DefaultArguments
 }
 function Invoke-HostedRepositoryScript {
-    param([Parameter(Mandatory)][string]$ScriptName, [string[]]$Arguments = @(), [string]$BootstrapTemporaryRoot, [string]$SmokeTemporaryRoot, [string]$ContainerScanTemporaryRoot)
+    param([Parameter(Mandatory)][string]$ScriptName, [string[]]$Arguments = @(), [string]$BootstrapTemporaryRoot, [string]$SmokeTemporaryRoot, [string]$ContainerScanTemporaryRoot, [string]$DependencyTemporaryRoot)
     $isToolBootstrap = $ScriptName -eq 'Install-SupplyChainTools.ps1'
     $isDependencyScan = $ScriptName -eq 'Invoke-VulnerabilityScanning.ps1'
     $isSmoke = $ScriptName -eq 'Invoke-ContainerTechnicalSmoke.ps1'
@@ -64,6 +64,7 @@ function Invoke-HostedRepositoryScript {
     $bootstrapStatusPath = $null
     $smokeStatusPath = $null
     $containerScanStatusPath = $null
+    $dependencyStatusPath = $null
     if ($isToolBootstrap) {
         $wrapperPhase = 'validate-temp-root'
         if ([string]::IsNullOrWhiteSpace($BootstrapTemporaryRoot) -or -not (Test-Path -LiteralPath $BootstrapTemporaryRoot -PathType Container)) {
@@ -92,6 +93,11 @@ function Invoke-HostedRepositoryScript {
         }
         $containerScanStatusPath = Join-Path $ContainerScanTemporaryRoot ('container-scan-' + [guid]::NewGuid().ToString('N') + '.json')
         $childArguments += @('-StatusPath', $containerScanStatusPath)
+    }
+    if ($isDependencyScan) {
+        if ([string]::IsNullOrWhiteSpace($DependencyTemporaryRoot) -or -not (Test-Path -LiteralPath $DependencyTemporaryRoot -PathType Container)) { throw 'DEPENDENCY_SCAN_WRAPPER_STARTUP_FAILED' }
+        $dependencyStatusPath = Join-Path $DependencyTemporaryRoot ('dependency-scan-' + [guid]::NewGuid().ToString('N') + '.json')
+        $childArguments += @('-StatusPath', $dependencyStatusPath)
     }
     $wrapperPhase = 'launch-child'
     $nativeErrorPreferenceVariable = Get-Variable -Name 'PSNativeCommandUseErrorActionPreference' -ErrorAction SilentlyContinue
@@ -155,17 +161,28 @@ function Invoke-HostedRepositoryScript {
         if ($containerScanStatus.state -eq 'PASS' -and $exitCode -eq 0) { return $output }
         throw 'CONTAINER_SCAN_WRAPPER_STATUS_INVALID'
     }
+    if ($isDependencyScan) {
+        try {
+            $inventoryPath = Join-Path ([string]$serviceArtifact.evidencePath) 'vulnerability-inventory.json'
+            $dependencyStatus = Read-HostedDependencyScanStatus -Path $dependencyStatusPath -ExitCode $exitCode -InventoryPath $inventoryPath
+        } catch {
+            Write-Warning ('Dependency scan wrapper diagnostic: phase=read-status; exceptionType={0}' -f $_.Exception.GetType().Name)
+            throw 'DEPENDENCY_SCAN_WRAPPER_STATUS_INVALID'
+        } finally {
+            if ($dependencyStatusPath -and (Test-Path -LiteralPath $dependencyStatusPath)) { Remove-Item -LiteralPath $dependencyStatusPath -Force -ErrorAction SilentlyContinue }
+        }
+        if ($dependencyStatus.state -eq 'BLOCKED') {
+            Write-Warning ('Dependency scan policy diagnostic: phase={0}; failureCode={1}' -f $dependencyStatus.phase, $dependencyStatus.failureCode)
+            return 'POLICY_BLOCKED'
+        }
+        if ($dependencyStatus.state -eq 'FAILED') {
+            Write-Warning ('Dependency scan diagnostic: phase={0}; failureCode={1}' -f $dependencyStatus.phase, $dependencyStatus.failureCode)
+            throw ('{0}|phase={1}' -f $dependencyStatus.failureCode, $dependencyStatus.phase)
+        }
+        return 'DEPENDENCY_SCAN_PASS'
+    }
     if ($exitCode -ne 0) {
         $text = $output -join [Environment]::NewLine
-        if ($isDependencyScan) {
-            if ($text -match '\b(VULNERABILITY_[A-Z0-9_]+|TRIVY_[A-Z0-9_]+)\|phase=(validate-contracts|load-contract|resolve-trivy|verify-db|scan|sanitize|policy|write-inventory|complete)\b') {
-                Write-Warning ('Dependency scan child diagnostic: phase={0}; failureCode={1}' -f $Matches[2], $Matches[1])
-            } elseif ($text -match '\b(VULNERABILITY_[A-Z0-9_]+|TRIVY_[A-Z0-9_]+)\b') {
-                Write-Warning ('Dependency scan child diagnostic: phase=child-exit; failureCode={0}' -f $Matches[1])
-            } else {
-                Write-Warning 'Dependency scan child diagnostic: phase=child-exit; failureCode=DEPENDENCY_SCAN_UNCLASSIFIED'
-            }
-        }
         if ($isToolBootstrap) {
             if ($text -match '\b(TOOL_BOOTSTRAP_(?:COSIGN|TRIVY|PROVENANCE|TUF_REFRESH|GITLEAKS|MODULE_LOAD|PLATFORM_RESOLUTION|CHILD_PROCESS|WRAPPER|SCRIPT_RESOLUTION|SHELL_RESOLUTION|CHILD_LAUNCH)_FAILED)\b') { throw $Matches[1] }
             throw 'TOOL_BOOTSTRAP_CHILD_PROCESS_FAILED'
@@ -265,7 +282,7 @@ try {
         @(
         @{ name='contract'; code='CONTRACT_VALIDATION_FAILED'; action={ node (Join-Path $PSScriptRoot 'Test-HostedSupplyChainContract.mjs') '--repository'; if ($LASTEXITCODE -ne 0) { throw 'CONTRACT_VALIDATION_FAILED' } } },
         @{ name='tools'; code='TOOL_BOOTSTRAP_FAILED'; arguments=@($temporaryRoot); action={ param([string]$BootstrapTemporaryRoot) Invoke-HostedRepositoryScript -ScriptName 'Install-SupplyChainTools.ps1' -BootstrapTemporaryRoot $BootstrapTemporaryRoot | Out-Null } },
-        @{ name='dependency'; code='DEPENDENCY_SCAN_FAILED'; action={ if ($RefreshDatabase) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-RepositoryOnly') | Out-Null } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-RepositoryOnly','-SkipDatabaseRefresh') | Out-Null } } },
+        @{ name='dependency'; code='DEPENDENCY_SCAN_FAILED'; arguments=@($temporaryRoot); action={ param([string]$DependencyTemporaryRoot) if ($RefreshDatabase) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-RepositoryOnly') -DependencyTemporaryRoot $DependencyTemporaryRoot } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-RepositoryOnly','-SkipDatabaseRefresh') -DependencyTemporaryRoot $DependencyTemporaryRoot } } },
         @{ name='gitleaks'; code='SECRET_SCAN_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Invoke-GitleaksScanning.ps1' | Out-Null } }
         )
     } else {
@@ -273,7 +290,7 @@ try {
         @{ name='contract'; code='CONTRACT_VALIDATION_FAILED'; action={ node (Join-Path $PSScriptRoot 'Test-HostedSupplyChainContract.mjs') '--repository'; if ($LASTEXITCODE -ne 0) { throw 'CONTRACT_VALIDATION_FAILED' } } },
         @{ name='tools'; code='TOOL_BOOTSTRAP_FAILED'; arguments=@($temporaryRoot); action={ param([string]$BootstrapTemporaryRoot) Invoke-HostedRepositoryScript -ScriptName 'Install-SupplyChainTools.ps1' -BootstrapTemporaryRoot $BootstrapTemporaryRoot | Out-Null } },
         @{ name='prebuild'; code='SBOM_BUILD_FAILED'; action={ if ($UseExistingVerifiedArtifact) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerPrebuildArtifact.ps1' -Arguments @('-SkipBuild','-ServiceId',$ServiceId) | Out-Null } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerPrebuildArtifact.ps1' -Arguments @('-ServiceId',$ServiceId) | Out-Null } } },
-        @{ name='dependency'; code='DEPENDENCY_SCAN_FAILED'; action={ if ($RefreshDatabase) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-ServiceId',$ServiceId) | Out-Null } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-SkipDatabaseRefresh','-ServiceId',$ServiceId) | Out-Null } } },
+        @{ name='dependency'; code='DEPENDENCY_SCAN_FAILED'; arguments=@($temporaryRoot); action={ param([string]$DependencyTemporaryRoot) if ($RefreshDatabase) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-ServiceId',$ServiceId) -DependencyTemporaryRoot $DependencyTemporaryRoot } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-SkipDatabaseRefresh','-ServiceId',$ServiceId) -DependencyTemporaryRoot $DependencyTemporaryRoot } } },
         @{ name='gitleaks'; code='SECRET_SCAN_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Invoke-GitleaksScanning.ps1' -Arguments @('-ServiceId',$ServiceId) | Out-Null } },
         @{ name='base'; code='BASE_TRUST_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Test-ContainerBaseImageResolution.ps1' | Out-Null } },
         @{ name='image'; code='IMAGE_BUILD_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerImageBuild.ps1' -Arguments @('-UseExistingVerifiedArtifact','-ServiceId',$ServiceId) | Out-Null } },
@@ -328,7 +345,9 @@ try {
             } elseif ($stage.name -eq 'container' -and $message -match '\b(CONTAINER_SCAN_[A-Z_]+)\b') {
                 Write-Warning ('Container scan diagnostic: failureCode={0}' -f $Matches[1])
             }
-            if ($message -match 'HIGH_OR_CRITICAL_DISPOSITION_REQUIRED|CONTAINER_SCAN_POLICY_BLOCKED|VULNERABILITY_POLICY_BLOCKED|GITLEAKS_POLICY_BLOCKED') {
+            $isPolicyBlock = $message -match 'HIGH_OR_CRITICAL_DISPOSITION_REQUIRED|CONTAINER_SCAN_POLICY_BLOCKED|VULNERABILITY_POLICY_BLOCKED|GITLEAKS_POLICY_BLOCKED'
+            if ($stage.name -eq 'dependency') { $isPolicyBlock = $false }
+            if ($isPolicyBlock) {
                 # A policy block means scanning and sanitization completed; retain its evidence.
                 $null = $completedStages.Add($stage.name)
                 $policyBlocked = $true

@@ -54,6 +54,7 @@ function fixtures() {
     ['preserved Identity keeps the Failsafe runtime proof', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'failsafe-execution').if = "matrix.service != 'identity-profile-service'"; }],
     ['matrix result not always uploaded', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'upload-matrix-result').if = 'success()'; }],
     ['hosted supply-chain job omits ownership contract', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = 'node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --fixtures'; }],
+    ['hosted supply-chain job omits database-backed smoke fixtures', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run.replace('pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-ContainerTechnicalSmokeStatus.ps1', ''); }],
   ];
   for (const [name, mutate] of mutations) {
     const candidate = structuredClone(load());
@@ -74,6 +75,7 @@ function freshnessFixtures() {
     ['freshness gates generated conformance by source provenance', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'generated-conformance').if = undefined; }],
     ['freshness keeps Identity Failsafe proof enabled', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'failsafe-execution').if = "matrix.service != 'identity-profile-service'"; }],
     ['hosted freshness job omits ownership contract', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = 'node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --freshness-fixtures'; }],
+    ['hosted freshness job omits database-backed smoke fixtures', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run.replace('pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-ContainerTechnicalSmokeStatus.ps1', ''); }],
   ];
   for (const [name, mutate] of mutations) {
     const candidate = structuredClone(loadFreshness());
