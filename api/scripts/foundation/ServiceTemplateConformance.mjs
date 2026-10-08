@@ -17,10 +17,12 @@ export function validateTemplateConformance(root) {
   const logging = texts.get('templates/common/StructuredLoggingTest.java') ?? '';
   const probeController = texts.get('templates/common/TechnicalProbeController.java') ?? '';
   requireCondition(/public\s+TechnicalValidationResponse\s+validate\(@Valid\s+@RequestBody\s+TechnicalValidationRequest\s+request\)/.test(probeController));
+  requireCondition((logging.match(/Optional\.ofNullable\(MDC\.getCopyOfContextMap\(\)\)\.orElseGet\(Map::of\)/g) ?? []).length === 2);
   for (const pattern of [/new StructuredLogEncoder\(/, /encoder\.encode\(/,
     /STRICT_DUPLICATE_DETECTION/, /@NullSource/, /fixture-correlation/, /outer-correlation/,
     /TechnicalProbeController\.class/, /new CorrelationIdFilter\(\)\.doFilter/,
-    /prepareForDeferredProcessing/, /MDC\.getCopyOfContextMap\(\)\)\.isEqualTo\(expectedMdc\)/,
+    /prepareForDeferredProcessing/,
+    /assertThat\(actualMdc\)\.isEqualTo\(expectedMdc\)/,
     /doesNotContain\(raw\)/]) requireCondition(pattern.test(logging));
   const architecture = texts.get('templates/common/ArchitectureTest.java') ?? '';
   for (const fixture of ['InvalidAdapterDependency', 'InvalidFrameworkDependency', 'InvalidInboundDependency']) {

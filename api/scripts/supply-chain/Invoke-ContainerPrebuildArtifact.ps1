@@ -135,14 +135,17 @@ if (-not $SkipBuild) {
 
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json -ErrorAction Stop
 $artifact = $null
-try { $artifact = Resolve-ServiceArtifact -ServiceId $ServiceId -RequireBuiltArtifact }
-catch { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_ARTIFACT_MISSING' }
+try { $artifact = Resolve-ServiceArtifact -ServiceId $ServiceId }
+catch { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_SERVICE_IDENTITY_INVALID' }
 $jarRelativePath = [string]$artifact.jarApiRelativePath
 $jarPath = [string]$artifact.jarPath
 $bomPath = [string]$artifact.sbomPath
-if (-not (Test-Path -LiteralPath $jarPath -PathType Leaf) -or -not (Test-Path -LiteralPath $bomPath -PathType Leaf)) {
-    Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_ARTIFACT_MISSING'
-}
+if (-not (Test-Path -LiteralPath $jarPath -PathType Leaf)) { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_JAR_MISSING' }
+if (-not (Test-Path -LiteralPath $bomPath -PathType Leaf)) { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_SBOM_MISSING' }
+$validatedArtifact = $null
+try { $validatedArtifact = Resolve-ServiceArtifact -ServiceId $ServiceId -RequireBuiltArtifact }
+catch { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_ARTIFACT_INVALID' }
+$artifact = $validatedArtifact
 
 $jarCandidates = @(Get-ChildItem -LiteralPath $targetRoot -Filter '*.jar' -File -ErrorAction Stop)
 if ($jarCandidates.Count -ne 1 -or $jarCandidates[0].FullName -cne $jarPath -or $jarCandidates[0].Length -le 0) {
