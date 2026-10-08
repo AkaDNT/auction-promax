@@ -3,6 +3,8 @@
 param(
     [Parameter(Mandatory)][ValidateSet('supply-chain','security-freshness')][string]$WorkflowName,
     [Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{40}$')][string]$CommitSha,
+    [ValidateNotNullOrEmpty()][string]$ServiceId = 'identity-profile-service',
+    [switch]$RepositoryOnly,
     [Parameter(Mandatory)][string]$EvidenceRoot,
     [switch]$RefreshDatabase,
     [switch]$UseExistingVerifiedArtifact,
@@ -13,7 +15,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$serviceEvidenceMode = $PSBoundParameters.ContainsKey('ServiceId')
 Import-Module (Join-Path $PSScriptRoot 'HostedSupplyChain.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'ServiceArtifact.psm1') -Force
+try { $serviceArtifact = Resolve-ServiceArtifact -ServiceId $ServiceId }
+catch { throw 'SERVICE_ARTIFACT_RESOLUTION_FAILED' }
 
 function Invoke-HostedStage {
     param([string]$Name, [scriptblock]$DefaultAction, [object[]]$DefaultArguments = @())
@@ -156,6 +162,35 @@ function Write-HostedJson {
     }
     [System.IO.File]::WriteAllText($Path, ($Value | ConvertTo-Json -Depth 8 -Compress), [System.Text.UTF8Encoding]::new($false))
 }
+function Get-ServiceSourceProvenance {
+    param([Parameter(Mandatory)][string]$ServiceId, [Parameter(Mandatory)][string]$Commit)
+    $repositoryRoot = Split-Path -Parent $repoRoot
+    $relativePath = 'api/services/' + $ServiceId
+    $tracked = @(& git -C $repositoryRoot ls-tree -r --name-only $Commit -- $relativePath 2>$null)
+    if ($LASTEXITCODE -ne 0) { throw 'SERVICE_SOURCE_PROVENANCE_UNAVAILABLE' }
+    if ($tracked.Count -gt 0) {
+        return [ordered]@{ kind='committed'; executionCommit=$Commit }
+    }
+    $historicalAdditions = @(& git -C $repositoryRoot log $Commit --diff-filter=A --format=%H -- $relativePath 2>$null)
+    if ($LASTEXITCODE -ne 0) { throw 'SERVICE_SOURCE_PROVENANCE_UNAVAILABLE' }
+    if ($historicalAdditions.Count -gt 0) { throw 'SERVICE_SOURCE_REMOVED' }
+    if (-not (Test-Path -LiteralPath $serviceArtifact.projectPath -PathType Container)) { throw 'SERVICE_GENERATION_MISSING' }
+    return [ordered]@{ kind='ephemeral-generated'; executionCommit=$Commit; generatorCommit=$Commit; serviceId=$ServiceId }
+}
+function New-ServiceEvidenceRecord {
+    param([Parameter(Mandatory)][System.Collections.IDictionary]$Fields)
+    if (-not $serviceEvidenceMode) {
+        $legacyRecord = [ordered]@{}
+        foreach ($key in $Fields.Keys) { if ($key -cne 'documentType') { $legacyRecord[$key] = $Fields[$key] } }
+        return $legacyRecord
+    }
+    $record = [ordered]@{ schemaVersion=2; serviceId=$serviceArtifact.serviceId; variant=$serviceArtifact.variant; commit=$CommitSha; sourceProvenance=$sourceProvenance }
+    foreach ($key in $Fields.Keys) {
+        if ($record.Contains($key)) { throw 'SERVICE_EVIDENCE_FIELD_COLLISION' }
+        $record[$key] = $Fields[$key]
+    }
+    return $record
+}
 function Get-HostedSha256 {
     param([Parameter(Mandatory)][string]$Path)
     $stream = [System.IO.File]::OpenRead($Path)
@@ -183,22 +218,46 @@ $summary = New-HostedRunSummary -Workflow $WorkflowName -CommitSha $CommitSha
 $policyBlocked = $false
 $reviewRequired = $false
 $primaryFailure = $null
+$sourceProvenance = $null
+$sourceProvenanceFailure = $null
 $currentFailureCode = 'POLICY_EVALUATION_FAILED'
 $completedStages = New-Object System.Collections.Generic.HashSet[string]
 try {
     [void][System.IO.Directory]::CreateDirectory($EvidenceRoot)
     [void][System.IO.Directory]::CreateDirectory($temporaryRoot)
-    $stages = @(
+    $checkedOutSha = @(& git -C $repoRoot rev-parse HEAD 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $checkedOutSha.Count -ne 1 -or [string]$checkedOutSha[0] -notmatch '^[a-f0-9]{40}$') { throw 'CHECKOUT_REVISION_UNAVAILABLE' }
+    $actualExecutionSha = [string]$checkedOutSha[0]
+    $requestedCommitSha = $CommitSha
+    $CommitSha = $actualExecutionSha
+    if ($requestedCommitSha -cne $actualExecutionSha) {
+        $sourceProvenanceFailure = 'CHECKOUT_REVISION_MISMATCH'
+        throw 'CHECKOUT_REVISION_MISMATCH'
+    }
+    if ($serviceEvidenceMode) {
+        try { $sourceProvenance = Get-ServiceSourceProvenance -ServiceId $ServiceId -Commit $CommitSha }
+        catch { $sourceProvenanceFailure = [string]$_.Exception.Message; throw }
+    }
+    $stages = if ($RepositoryOnly) {
+        @(
         @{ name='contract'; code='CONTRACT_VALIDATION_FAILED'; action={ node (Join-Path $PSScriptRoot 'Test-HostedSupplyChainContract.mjs') '--repository'; if ($LASTEXITCODE -ne 0) { throw 'CONTRACT_VALIDATION_FAILED' } } },
         @{ name='tools'; code='TOOL_BOOTSTRAP_FAILED'; arguments=@($temporaryRoot); action={ param([string]$BootstrapTemporaryRoot) Invoke-HostedRepositoryScript -ScriptName 'Install-SupplyChainTools.ps1' -BootstrapTemporaryRoot $BootstrapTemporaryRoot | Out-Null } },
-        @{ name='prebuild'; code='SBOM_BUILD_FAILED'; action={ if ($UseExistingVerifiedArtifact) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerPrebuildArtifact.ps1' -Arguments @('-SkipBuild') | Out-Null } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerPrebuildArtifact.ps1' | Out-Null } } },
-        @{ name='dependency'; code='DEPENDENCY_SCAN_FAILED'; action={ if ($RefreshDatabase) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' | Out-Null } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-SkipDatabaseRefresh') | Out-Null } } },
-        @{ name='gitleaks'; code='SECRET_SCAN_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Invoke-GitleaksScanning.ps1' | Out-Null } },
+        @{ name='dependency'; code='DEPENDENCY_SCAN_FAILED'; action={ if ($RefreshDatabase) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-RepositoryOnly') | Out-Null } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-RepositoryOnly','-SkipDatabaseRefresh') | Out-Null } } },
+        @{ name='gitleaks'; code='SECRET_SCAN_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Invoke-GitleaksScanning.ps1' | Out-Null } }
+        )
+    } else {
+        @(
+        @{ name='contract'; code='CONTRACT_VALIDATION_FAILED'; action={ node (Join-Path $PSScriptRoot 'Test-HostedSupplyChainContract.mjs') '--repository'; if ($LASTEXITCODE -ne 0) { throw 'CONTRACT_VALIDATION_FAILED' } } },
+        @{ name='tools'; code='TOOL_BOOTSTRAP_FAILED'; arguments=@($temporaryRoot); action={ param([string]$BootstrapTemporaryRoot) Invoke-HostedRepositoryScript -ScriptName 'Install-SupplyChainTools.ps1' -BootstrapTemporaryRoot $BootstrapTemporaryRoot | Out-Null } },
+        @{ name='prebuild'; code='SBOM_BUILD_FAILED'; action={ if ($UseExistingVerifiedArtifact) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerPrebuildArtifact.ps1' -Arguments @('-SkipBuild','-ServiceId',$ServiceId) | Out-Null } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerPrebuildArtifact.ps1' -Arguments @('-ServiceId',$ServiceId) | Out-Null } } },
+        @{ name='dependency'; code='DEPENDENCY_SCAN_FAILED'; action={ if ($RefreshDatabase) { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-ServiceId',$ServiceId) | Out-Null } else { Invoke-HostedRepositoryScript -ScriptName 'Invoke-VulnerabilityScanning.ps1' -Arguments @('-SkipDatabaseRefresh','-ServiceId',$ServiceId) | Out-Null } } },
+        @{ name='gitleaks'; code='SECRET_SCAN_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Invoke-GitleaksScanning.ps1' -Arguments @('-ServiceId',$ServiceId) | Out-Null } },
         @{ name='base'; code='BASE_TRUST_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Test-ContainerBaseImageResolution.ps1' | Out-Null } },
-        @{ name='image'; code='IMAGE_BUILD_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerImageBuild.ps1' -Arguments @('-UseExistingVerifiedArtifact') | Out-Null } },
-        @{ name='smoke'; code='SMOKE_FAILED'; arguments=@($temporaryRoot); action={ param([string]$SmokeTemporaryRoot) Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerTechnicalSmoke.ps1' -SmokeTemporaryRoot $SmokeTemporaryRoot | Out-Null } },
-        @{ name='container'; code='CONTAINER_SCAN_FAILED'; arguments=@($temporaryRoot); action={ param([string]$ContainerScanTemporaryRoot) Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerVulnerabilityScanning.ps1' -ContainerScanTemporaryRoot $ContainerScanTemporaryRoot } }
-    )
+        @{ name='image'; code='IMAGE_BUILD_FAILED'; action={ Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerImageBuild.ps1' -Arguments @('-UseExistingVerifiedArtifact','-ServiceId',$ServiceId) | Out-Null } },
+        @{ name='smoke'; code='SMOKE_FAILED'; arguments=@($temporaryRoot); action={ param([string]$SmokeTemporaryRoot) Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerTechnicalSmoke.ps1' -Arguments @('-ServiceId',$ServiceId) -SmokeTemporaryRoot $SmokeTemporaryRoot | Out-Null } },
+        @{ name='container'; code='CONTAINER_SCAN_FAILED'; arguments=@($temporaryRoot); action={ param([string]$ContainerScanTemporaryRoot) Invoke-HostedRepositoryScript -ScriptName 'Invoke-ContainerVulnerabilityScanning.ps1' -Arguments @('-ServiceId',$ServiceId) -ContainerScanTemporaryRoot $ContainerScanTemporaryRoot } }
+        )
+    }
     foreach ($stage in $stages) {
         $currentFailureCode = $stage.code
         try {
@@ -250,12 +309,16 @@ try {
     if ($reviewRequired) { $summary = Set-HostedStageResult -Summary $summary -Result 'REVIEW_REQUIRED' }
 } catch {
     $primaryFailure = [string]$_.Exception.Message
-    if ($primaryFailure -notmatch '^(CHECKOUT_FAILED|CONTRACT_VALIDATION_FAILED|TOOL_BOOTSTRAP_FAILED|TOOL_BOOTSTRAP_COSIGN_FAILED|TOOL_BOOTSTRAP_TRIVY_FAILED|TOOL_BOOTSTRAP_PROVENANCE_FAILED|TOOL_BOOTSTRAP_TUF_REFRESH_FAILED|TOOL_BOOTSTRAP_GITLEAKS_FAILED|TOOL_BOOTSTRAP_MODULE_LOAD_FAILED|TOOL_BOOTSTRAP_PLATFORM_RESOLUTION_FAILED|TOOL_BOOTSTRAP_CHILD_PROCESS_FAILED|TOOL_BOOTSTRAP_WRAPPER_FAILED|TOOL_BOOTSTRAP_SCRIPT_RESOLUTION_FAILED|TOOL_BOOTSTRAP_SHELL_RESOLUTION_FAILED|TOOL_BOOTSTRAP_CHILD_LAUNCH_FAILED|SBOM_BUILD_FAILED|SBOM_VALIDATION_FAILED|DEPENDENCY_SCAN_FAILED|SECRET_SCAN_FAILED|BASE_TRUST_FAILED|IMAGE_BUILD_FAILED|SMOKE_FAILED|CONTAINER_SCAN_FAILED|SCANNER_OUTPUT_INVALID|POLICY_EVALUATION_FAILED|EVIDENCE_SANITIZATION_FAILED|EVIDENCE_VALIDATION_FAILED|EVIDENCE_UPLOAD_FAILED|CLEANUP_FAILED)$') { $primaryFailure = $currentFailureCode }
+    if ($primaryFailure -notmatch '^(CHECKOUT_FAILED|CHECKOUT_REVISION_UNAVAILABLE|CHECKOUT_REVISION_MISMATCH|SERVICE_SOURCE_REMOVED|SERVICE_GENERATION_MISSING|SERVICE_SOURCE_PROVENANCE_UNAVAILABLE|CONTRACT_VALIDATION_FAILED|TOOL_BOOTSTRAP_FAILED|TOOL_BOOTSTRAP_COSIGN_FAILED|TOOL_BOOTSTRAP_TRIVY_FAILED|TOOL_BOOTSTRAP_PROVENANCE_FAILED|TOOL_BOOTSTRAP_TUF_REFRESH_FAILED|TOOL_BOOTSTRAP_GITLEAKS_FAILED|TOOL_BOOTSTRAP_MODULE_LOAD_FAILED|TOOL_BOOTSTRAP_PLATFORM_RESOLUTION_FAILED|TOOL_BOOTSTRAP_CHILD_PROCESS_FAILED|TOOL_BOOTSTRAP_WRAPPER_FAILED|TOOL_BOOTSTRAP_SCRIPT_RESOLUTION_FAILED|TOOL_BOOTSTRAP_SHELL_RESOLUTION_FAILED|TOOL_BOOTSTRAP_CHILD_LAUNCH_FAILED|SBOM_BUILD_FAILED|SBOM_VALIDATION_FAILED|DEPENDENCY_SCAN_FAILED|SECRET_SCAN_FAILED|BASE_TRUST_FAILED|IMAGE_BUILD_FAILED|SMOKE_FAILED|CONTAINER_SCAN_FAILED|SCANNER_OUTPUT_INVALID|POLICY_EVALUATION_FAILED|EVIDENCE_SANITIZATION_FAILED|EVIDENCE_VALIDATION_FAILED|EVIDENCE_UPLOAD_FAILED|CLEANUP_FAILED)$') { $primaryFailure = $currentFailureCode }
     $summary = Set-HostedStageResult -Summary $summary -Result 'IMPLEMENTATION_FAILURE' -FailureCode $primaryFailure
 } finally {
     try {
-        Write-HostedRunSummaryAtomic -Path (Join-Path $EvidenceRoot 'run-summary.json') -Summary $summary
-        $serviceEvidence = Join-Path $repoRoot 'services\identity-profile-service\target\s001-t07-evidence'
+        if ($serviceEvidenceMode -and $null -ne $sourceProvenance) {
+            Write-HostedJson -Path (Join-Path $EvidenceRoot 'run-summary.json') -Value (New-ServiceEvidenceRecord -Fields ([ordered]@{ documentType='run-summary';workflow=$summary.workflow; executionState=$summary.executionState; policyState=$summary.policyState; reviewState=$summary.reviewState; deltaState=$summary.deltaState; failureCode=$summary.failureCode }))
+        } else {
+            Write-HostedRunSummaryAtomic -Path (Join-Path $EvidenceRoot 'run-summary.json') -Summary $summary
+        }
+        $serviceEvidence = [string]$serviceArtifact.evidencePath
         $inventoryMap = @{ dependency='vulnerability-inventory.json'; gitleaks='gitleaks-inventory.json'; container='container-vulnerability-inventory.json' }
         $allFindings = @()
         foreach ($stageName in $inventoryMap.Keys) {
@@ -263,23 +326,28 @@ try {
             if ($summary.executionState -eq 'PASS' -and $completedStages.Contains($stageName)) { $findings = @(Read-HostedSanitizedInventory -Path (Join-Path $serviceEvidence $inventoryMap[$stageName])) }
             $allFindings += $findings
             $destination = switch ($stageName) { 'dependency' { 'vulnerability-inventory.json' } 'gitleaks' { 'gitleaks-inventory.json' } default { 'container-vulnerability-inventory.json' } }
-            Write-HostedJson -Path (Join-Path $EvidenceRoot $destination) -Value ([ordered]@{schemaVersion=1;commit=$CommitSha;findings=$findings})
+            $documentType = [System.IO.Path]::GetFileNameWithoutExtension($destination)
+            Write-HostedJson -Path (Join-Path $EvidenceRoot $destination) -Value (New-ServiceEvidenceRecord -Fields ([ordered]@{ documentType=$documentType;findings=$findings }))
         }
         $imageContract = Get-Content -LiteralPath (Join-Path $repoRoot 'security\tooling\container-image-contract.json') -Raw | ConvertFrom-Json
         $baseTrust = Get-Content -LiteralPath (Join-Path $repoRoot 'security\tooling\container-base-images.json') -Raw | ConvertFrom-Json
-        $jarPath = Join-Path $repoRoot ([string]$imageContract.build.canonicalJarRelativePath).Replace('/','\')
-        $imageId = if ($null -eq $Adapters -and $summary.executionState -eq 'PASS' -and $completedStages.Contains('image')) { ((& docker image inspect $imageContract.image.localReference --format '{{.Id}}' 2>$null) | Select-Object -First 1) } else { 'unavailable' }
+        $jarPath = [string]$serviceArtifact.jarPath
+        $imageId = if ($null -eq $Adapters -and $summary.executionState -eq 'PASS' -and $completedStages.Contains('image')) { ((& docker image inspect $serviceArtifact.imageReference --format '{{.Id}}' 2>$null) | Select-Object -First 1) } else { 'unavailable' }
         $jarHash = if (Test-Path -LiteralPath $jarPath) { Get-HostedSha256 -Path $jarPath } else { 'unavailable' }
-        Write-HostedJson -Path (Join-Path $EvidenceRoot 'image-identity.json') -Value ([ordered]@{schemaVersion=1;commit=$CommitSha;imageId=$imageId;platform=$imageContract.image.platform;jarSha256=$jarHash;baseManifestDigest=$baseTrust.images[0].platformManifestDigest})
+        Write-HostedJson -Path (Join-Path $EvidenceRoot 'image-identity.json') -Value (New-ServiceEvidenceRecord -Fields ([ordered]@{ documentType='image-identity';imageId=$imageId;imageReference=$serviceArtifact.imageReference;platform=$imageContract.image.platform;jarSha256=$jarHash;baseManifestDigest=$baseTrust.images[0].platformManifestDigest }))
         $smokeReady = if ($summary.executionState -eq 'PASS' -and $completedStages.Contains('smoke')) { 'UP' } else { 'unavailable' }
-        Write-HostedJson -Path (Join-Path $EvidenceRoot 'smoke-summary.json') -Value ([ordered]@{schemaVersion=1;commit=$CommitSha;readiness=$smokeReady;platform=$imageContract.image.platform;runtimeUser=$imageContract.runtime.user;readOnlyRootFilesystem=$imageContract.technicalSmoke.readOnlyRootFilesystem;dropAllCapabilities=$imageContract.technicalSmoke.dropAllCapabilities;noNewPrivileges=$imageContract.technicalSmoke.noNewPrivileges})
+        Write-HostedJson -Path (Join-Path $EvidenceRoot 'smoke-summary.json') -Value (New-ServiceEvidenceRecord -Fields ([ordered]@{ documentType='smoke-summary';readiness=$smokeReady;platform=$imageContract.image.platform;runtimeUser=$imageContract.runtime.user;readOnlyRootFilesystem=$imageContract.technicalSmoke.readOnlyRootFilesystem;dropAllCapabilities=$imageContract.technicalSmoke.dropAllCapabilities;noNewPrivileges=$imageContract.technicalSmoke.noNewPrivileges }))
         $counts = @{}; foreach ($severity in @('CRITICAL','HIGH','MEDIUM','LOW','UNKNOWN')) { $counts[$severity] = @($allFindings | Where-Object { $_.severity -eq $severity }).Count }
-        Write-HostedJson -Path (Join-Path $EvidenceRoot 'policy-summary.json') -Value ([ordered]@{schemaVersion=1;commit=$CommitSha;policyState=$summary.policyState;reviewState=$summary.reviewState;deltaState=$summary.deltaState;counts=$counts})
+        Write-HostedJson -Path (Join-Path $EvidenceRoot 'policy-summary.json') -Value (New-ServiceEvidenceRecord -Fields ([ordered]@{ documentType='policy-summary';policyState=$summary.policyState;reviewState=$summary.reviewState;deltaState=$summary.deltaState;counts=$counts }))
     } finally {
         if (Test-Path -LiteralPath $temporaryRoot) { Remove-HostedTemporaryRoot -Root $temporaryRoot }
     }
 }
 
+if ($serviceEvidenceMode -and $null -eq $sourceProvenance) {
+    if ($sourceProvenanceFailure -match '^(CHECKOUT_REVISION_MISMATCH|SERVICE_SOURCE_REMOVED|SERVICE_GENERATION_MISSING|SERVICE_SOURCE_PROVENANCE_UNAVAILABLE)$') { throw $sourceProvenanceFailure }
+    throw 'SERVICE_SOURCE_PROVENANCE_UNAVAILABLE'
+}
 $summaryHash = Get-HostedSha256 -Path (Join-Path $EvidenceRoot 'run-summary.json')
 if (-not [string]::IsNullOrWhiteSpace([string]$env:GITHUB_OUTPUT)) { Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "policy_state=$($summary.policyState)"; Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "review_state=$($summary.reviewState)"; Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "summary_sha256=$summaryHash" }
 if ($NoExit) { return $summary }

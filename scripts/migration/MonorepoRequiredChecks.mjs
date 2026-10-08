@@ -130,14 +130,14 @@ export function validateServiceMatrixResults({ selectedServiceIds, commit, resul
   const seen = new Set();
   for (const result of results) {
     if (!result || typeof result !== "object" || Array.isArray(result)
-      || Object.keys(result).sort().join("|") !== ["commit", "result", "schemaVersion", "serviceId", "variant"].sort().join("|")) {
+      || Object.keys(result).sort().join("|") !== ["commit", "result", "schemaVersion", "serviceId"].sort().join("|")) {
       throw new Error("SERVICE_MATRIX_RESULT_INVALID");
     }
     if (!serviceVariants.has(result.serviceId)) throw new Error("SERVICE_MATRIX_RESULT_UNKNOWN");
     if (!selected.has(result.serviceId)) throw new Error("SERVICE_MATRIX_RESULT_EXTRA");
     if (seen.has(result.serviceId)) throw new Error("SERVICE_MATRIX_RESULT_DUPLICATE");
     seen.add(result.serviceId);
-    if (result.schemaVersion !== 1 || result.variant !== serviceVariants.get(result.serviceId)) throw new Error("SERVICE_MATRIX_RESULT_INVALID");
+    if (result.schemaVersion !== 1) throw new Error("SERVICE_MATRIX_RESULT_INVALID");
     if (result.commit !== commit) throw new Error("SERVICE_MATRIX_REVISION_MISMATCH");
     if (result.result !== "success") throw new Error("SERVICE_MATRIX_RESULT_FAILED");
   }
@@ -191,6 +191,11 @@ function runGit(kind, base, head) {
 }
 
 function main() {
+  if (process.argv[2] === "--list-services" && process.argv.length === 3) {
+    if (!process.env.GITHUB_OUTPUT) throw new Error("GITHUB_OUTPUT_UNAVAILABLE");
+    fs.appendFileSync(process.env.GITHUB_OUTPUT, `services=${JSON.stringify(serviceIds)}\n`);
+    return;
+  }
   if (process.argv[2] !== "--classify") throw new Error("USAGE: --classify");
   const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
   const result = selectDiff(process.env.GITHUB_EVENT_NAME, event, process.env.GITHUB_SHA, runGit);

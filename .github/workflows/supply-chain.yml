@@ -13,33 +13,147 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  supply-chain-verification:
-    name: supply-chain-verification
+  classify-services:
+    name: Classify selected services
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      services: ${{ steps.classify.outputs.services }}
+      removed_services: ${{ steps.classify.outputs.removedServices }}
+      execution_sha: ${{ steps.revision.outputs.commit }}
+    steps:
+      - id: checkout
+        name: Check out the event execution revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: setup-node
+        name: Set up Node.js 24.15.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: api/.nvmrc
+      - id: classify
+        name: Classify service matrix from the event diff
+        run: node scripts/migration/MonorepoRequiredChecks.mjs --classify
+      - id: revision
+        name: Bind selection to checked-out execution SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          [[ "$commit" =~ ^[0-9a-f]{40}$ ]]
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+  repository-security:
+    name: Repository security scans
+    needs: [classify-services]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    env:
-      TRIGGERED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     outputs:
       policy_state: ${{ steps.run-hosted.outputs.policy_state }}
-      review_state: ${{ steps.run-hosted.outputs.review_state }}
     steps:
       - id: initialize-summary
-        name: Initialize fail-closed evidence
+        name: Initialize fail-closed repository evidence
         shell: pwsh
+        env:
+          TRIGGERED_SHA: ${{ github.sha }}
         run: |
           $root = Join-Path $env:RUNNER_TEMP 's001-t07-evidence/hosted'
           New-Item -ItemType Directory -Path $root -Force | Out-Null
           $summary = '{"schemaVersion":1,"workflow":"supply-chain","commit":"' + $env:TRIGGERED_SHA + '","executionState":"IMPLEMENTATION_FAILURE","policyState":"NOT_EVALUATED","reviewState":"NOT_REQUIRED","deltaState":"NOT_APPLICABLE","failureCode":"SUPPLY_CHAIN_NOT_STARTED"}'
           [System.IO.File]::WriteAllText((Join-Path $root 'run-summary.json'), $summary, [System.Text.UTF8Encoding]::new($false))
-
       - id: checkout
-        name: Check out triggered revision
+        name: Check out the event execution revision
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - id: revision
+        name: Resolve canonical execution SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          [[ "$commit" =~ ^[0-9a-f]{40}$ ]]
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          [[ "$commit" == '${{ needs.classify-services.outputs.execution_sha }}' ]]
+      - id: setup-node
+        name: Set up Node.js 24.15.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: api/.nvmrc
+          cache: npm
+          cache-dependency-path: api/contracts/package-lock.json
+      - id: install-contract-tools
+        name: Install pinned contract tooling
+        working-directory: api/contracts
+        run: npm ci
+      - id: matrix-fixtures
+        name: Run service selection, evidence, resolver, and generated-tree fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test scripts/migration/Test-ServiceMatrixResults.mjs scripts/migration/Test-ServiceMatrixEvidence.mjs
+          node --test api/scripts/foundation/Test-GeneratedServiceConformanceFixtures.mjs
+          node api/scripts/supply-chain/Test-ServiceArtifactPropagation.mjs
+          node api/scripts/supply-chain/Test-ServiceSupplyChainEvidence.mjs
+          node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --fixtures
+          node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --ownership-fixtures
+          pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-ServiceArtifact.ps1
+          pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-HostedSupplyChainOrchestration.ps1
+      - id: validate-contract
+        name: Validate hosted workflow and service matrix contract
+        run: node ./api/scripts/supply-chain/Test-HostedSupplyChainContract.mjs --repository
+      - id: run-hosted
+        name: Run repository-only Gitleaks and infrastructure vulnerability scans
+        shell: pwsh
+        run: |
+          ./api/scripts/supply-chain/Invoke-HostedSupplyChain.ps1 `
+            -WorkflowName supply-chain `
+            -CommitSha '${{ steps.revision.outputs.commit }}' `
+            -EvidenceRoot (Join-Path $env:RUNNER_TEMP 's001-t07-evidence/hosted') `
+            -RepositoryOnly `
+            -RefreshDatabase
+      - id: validate-evidence
+        name: Validate sanitized repository evidence
+        if: always()
+        run: node ./api/scripts/supply-chain/Validate-HostedSupplyChainEvidence.mjs "${{ runner.temp }}/s001-t07-evidence/hosted" '${{ steps.revision.outputs.commit }}'
+      - id: upload-evidence
+        name: Upload sanitized repository evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: supply-chain-repository-${{ steps.revision.outputs.commit }}
+          path: ${{ runner.temp }}/s001-t07-evidence/hosted
+          retention-days: 30
+          if-no-files-found: error
 
+  service-matrix:
+    name: Build and scan selected service
+    needs: [classify-services]
+    if: needs.classify-services.outputs.services != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.classify-services.outputs.services) }}
+    steps:
+      - id: checkout
+        name: Check out the event execution revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: revision
+        name: Verify canonical execution SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          [[ "$commit" == '${{ needs.classify-services.outputs.execution_sha }}' ]]
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
       - id: setup-java
         name: Set up Temurin Java 21
         uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
@@ -47,48 +161,180 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-
       - id: setup-node
-        name: Set up Node.js 24
+        name: Set up Node.js 24.15.0
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: api/.nvmrc
           cache: npm
           cache-dependency-path: api/contracts/package-lock.json
-
       - id: install-contract-tools
-        name: Install pinned contract tooling
+        name: Install pinned evidence tooling
         working-directory: api/contracts
         run: npm ci
-
-      - id: validate-contract
-        name: Validate hosted workflow contract
-        run: node ./api/scripts/supply-chain/Test-HostedSupplyChainContract.mjs --repository-supply-chain
-
-      - id: run-hosted
-        name: Run repository-owned hosted verification
+      - id: select-source
+        name: Preserve committed source or generate an undelivered service ephemerally
+        shell: bash
+        env:
+          SERVICE_ID: ${{ matrix.service }}
+        run: |
+          set -euo pipefail
+          source_path="api/services/$SERVICE_ID"
+          if [[ -n "$(git ls-tree -r --name-only HEAD -- "$source_path")" ]]; then
+            test -f "$source_path/pom.xml"
+            echo 'source_kind=committed' >> "$GITHUB_OUTPUT"
+          else
+            if [[ -n "$(git log HEAD --diff-filter=A --format=%H -- "$source_path")" ]]; then
+              echo 'SERVICE_SOURCE_REMOVED' >&2
+              exit 1
+            fi
+            if [[ -e "$source_path" || -L "$source_path" ]]; then
+              echo 'SERVICE_DESTINATION_EXISTS' >&2
+              exit 1
+            fi
+            node api/scripts/foundation/Generate-Service.mjs --service "$SERVICE_ID"
+            echo 'source_kind=ephemeral-generated' >> "$GITHUB_OUTPUT"
+          fi
+      - id: templates
+        name: Verify closed template source conformance
+        run: node api/scripts/foundation/Test-ServiceConformance.mjs --templates
+      - id: generated-conformance
+        name: Verify expanded service tree before Maven
+        env:
+          SERVICE_ID: ${{ matrix.service }}
+        run: node api/scripts/foundation/Test-GeneratedServiceConformance.mjs --service "$SERVICE_ID"
+      - id: maven-verify
+        name: Run standalone canonical Maven verification
+        shell: bash
+        working-directory: api/services/${{ matrix.service }}
+        run: |
+          set -euo pipefail
+          test -x ./mvnw
+          ./mvnw -B verify
+      - id: initialize-evidence
+        name: Initialize fail-closed per-service evidence
+        if: always()
         shell: pwsh
+        env:
+          EXECUTION_SHA: ${{ needs.classify-services.outputs.execution_sha }}
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 's002-service-evidence'
+          New-Item -ItemType Directory -Path $root -Force | Out-Null
+      - id: run-hosted
+        name: Run service artifact-aware supply-chain checks
+        if: steps.maven-verify.outcome == 'success'
+        shell: pwsh
+        env:
+          SERVICE_ID: ${{ matrix.service }}
+          EXECUTION_SHA: ${{ needs.classify-services.outputs.execution_sha }}
         run: |
           ./api/scripts/supply-chain/Invoke-HostedSupplyChain.ps1 `
             -WorkflowName supply-chain `
-            -CommitSha $env:TRIGGERED_SHA `
-            -EvidenceRoot (Join-Path $env:RUNNER_TEMP 's001-t07-evidence/hosted') `
+            -ServiceId $env:SERVICE_ID `
+            -CommitSha $env:EXECUTION_SHA `
+            -EvidenceRoot (Join-Path $env:RUNNER_TEMP 's002-service-evidence') `
+            -UseExistingVerifiedArtifact `
             -RefreshDatabase
-
-      - id: validate-evidence
-        name: Validate sanitized evidence
+      - id: validate-service-evidence
+        name: Validate exact service and revision evidence
+        if: always() && steps.run-hosted.outcome != 'skipped'
+        env:
+          SERVICE_ID: ${{ matrix.service }}
+          EXECUTION_SHA: ${{ needs.classify-services.outputs.execution_sha }}
+        run: node ./api/scripts/supply-chain/Validate-ServiceSupplyChainEvidence.mjs --service "$SERVICE_ID" --commit "$EXECUTION_SHA" --directory "${{ runner.temp }}/s002-service-evidence"
+      - id: upload-service-evidence
+        name: Upload sanitized per-service evidence
+        if: always() && steps.run-hosted.outcome != 'skipped'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: s002-service-evidence-${{ matrix.service }}
+          path: ${{ runner.temp }}/s002-service-evidence
+          retention-days: 30
+          if-no-files-found: error
+      - id: write-matrix-result
+        name: Write sanitized matrix result bound to checked-out HEAD
         if: always()
-        run: node ./api/scripts/supply-chain/Validate-HostedSupplyChainEvidence.mjs "${{ runner.temp }}/s001-t07-evidence/hosted" '${{ env.TRIGGERED_SHA }}'
-
-      - id: upload-evidence
-        name: Upload sanitized evidence
+        env:
+          SERVICE_ID: ${{ matrix.service }}
+          SERVICE_RESULT: ${{ job.status }}
+        run: node scripts/migration/ServiceMatrixResults.mjs --service "$SERVICE_ID" --result "$SERVICE_RESULT" --output "${{ runner.temp }}/s002-service-result-$SERVICE_ID"
+      - id: upload-matrix-result
+        name: Upload one isolated matrix result artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: supply-chain-${{ env.TRIGGERED_SHA }}
-          path: ${{ runner.temp }}/s001-t07-evidence/hosted
+          name: s002-service-result-${{ matrix.service }}
+          path: ${{ runner.temp }}/s002-service-result-${{ matrix.service }}
           retention-days: 30
           if-no-files-found: error
+
+  supply-chain-verification:
+    name: supply-chain-verification
+    needs: [classify-services, repository-security, service-matrix]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      policy_state: ${{ steps.aggregate.outputs.policy_state }}
+    steps:
+      - id: checkout
+        name: Check out the same event execution revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: setup-node
+        name: Set up Node.js 24.15.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: api/.nvmrc
+      - id: job-results
+        name: Fail closed on classifier, repository scan, or service matrix failure
+        shell: bash
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify-services.result }}
+          REPOSITORY_RESULT: ${{ needs.repository-security.result }}
+        run: |
+          set -euo pipefail
+          [[ "$CLASSIFY_RESULT" == success && "$REPOSITORY_RESULT" == success ]]
+      - id: download-results
+        name: Download per-service results without merging
+        if: needs.classify-services.outputs.services != '[]'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: s002-service-result-*
+          path: ${{ runner.temp }}/s002-service-results
+          merge-multiple: false
+          digest-mismatch: error
+      - id: download-service-evidence
+        name: Download per-service evidence without merging
+        if: needs.classify-services.outputs.services != '[]'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: s002-service-evidence-*
+          path: ${{ runner.temp }}/s002-service-evidence
+          merge-multiple: false
+          digest-mismatch: error
+      - id: aggregate
+        name: Validate exact selected result and policy set
+        env:
+          SELECTED_SERVICES: ${{ needs.classify-services.outputs.services }}
+          EXECUTION_SHA: ${{ needs.classify-services.outputs.execution_sha }}
+          REPOSITORY_POLICY_STATE: ${{ needs.repository-security.outputs.policy_state }}
+        run: node scripts/migration/Aggregate-ServiceMatrixEvidence.mjs --services "$SELECTED_SERVICES" --commit "$EXECUTION_SHA" --results-dir "${{ runner.temp }}/s002-service-results" --evidence-dir "${{ runner.temp }}/s002-service-evidence" --repository-policy "$REPOSITORY_POLICY_STATE"
+      - id: matrix-status
+        name: Confirm the matrix job state matches the selection
+        shell: bash
+        env:
+          MATRIX_RESULT: ${{ needs.service-matrix.result }}
+          SELECTED_SERVICES: ${{ needs.classify-services.outputs.services }}
+        run: |
+          set -euo pipefail
+          if [[ "$SELECTED_SERVICES" == '[]' ]]; then
+            [[ "$MATRIX_RESULT" == skipped ]]
+          else
+            [[ "$MATRIX_RESULT" == success ]]
+          fi
 
   release-policy:
     name: release-policy
@@ -100,10 +346,11 @@ jobs:
       contents: read
     steps:
       - name: Enforce separate release policy
-        shell: pwsh
+        shell: bash
         env:
           POLICY_STATE: ${{ needs.supply-chain-verification.outputs.policy_state }}
         run: |
-          if ($env:POLICY_STATE -eq 'PASS') { exit 0 }
-          if ($env:POLICY_STATE -eq 'BLOCKED') { exit 1 }
-          throw 'HOSTED_RELEASE_POLICY_NOT_EVALUATED'
+          if [[ "$POLICY_STATE" == PASS ]]; then exit 0; fi
+          if [[ "$POLICY_STATE" == BLOCKED ]]; then exit 1; fi
+          echo 'HOSTED_RELEASE_POLICY_NOT_EVALUATED' >&2
+          exit 1

@@ -95,6 +95,20 @@ test("CLI classifies a real push diff and writes exact GitHub job outputs", (t) 
   assert.equal(fs.readFileSync(outputPath, "utf8"), "api=false\nweb=true\ncontracts=false\nshared=false\nservices=[]\nremovedServices=[]\n");
 });
 
+test("registry-only freshness selector writes the complete closed service set", (t) => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "s002-service-list-"));
+  t.after(() => fs.rmSync(fixture, { recursive: true, force: true }));
+  const outputPath = path.join(fixture, "outputs.txt");
+  const result = spawnSync(process.execPath, [path.join(root, "scripts/migration/MonorepoRequiredChecks.mjs"), "--list-services"], {
+    cwd: fixture,
+    env: { ...process.env, GITHUB_OUTPUT: outputPath },
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const ids = JSON.parse(fs.readFileSync(path.join(root, "api/service-foundation/services.json"), "utf8")).services.map(({ id }) => id).sort();
+  assert.equal(fs.readFileSync(outputPath, "utf8"), `services=${JSON.stringify(ids)}\n`);
+});
+
 test("aggregate accepts applicable success and justified skips only", () => {
   assert.equal(evaluateAggregate({ classify: "success", apiRequired: "true", webRequired: "false", apiResult: "success", webResult: "skipped", lifecycleResult: "success" }), true);
   assert.equal(evaluateAggregate({ classify: "success", apiRequired: "false", webRequired: "false", apiResult: "skipped", webResult: "skipped", lifecycleResult: "success" }), true);
@@ -111,8 +125,8 @@ test("aggregate accepts applicable success and justified skips only", () => {
 
 test("service matrix aggregate requires exactly one successful result for every selected service at the execution revision", () => {
   const commit = sha("a");
-  const identity = { schemaVersion: 1, serviceId: "identity-profile-service", variant: "relational", commit, result: "success" };
-  const gateway = { schemaVersion: 1, serviceId: "realtime-gateway", variant: "gateway", commit, result: "success" };
+  const identity = { schemaVersion: 1, serviceId: "identity-profile-service", commit, result: "success" };
+  const gateway = { schemaVersion: 1, serviceId: "realtime-gateway", commit, result: "success" };
   assert.deepEqual(validateServiceMatrixResults({
     selectedServiceIds: ["identity-profile-service", "realtime-gateway"], commit, results: [identity, gateway],
   }), { serviceIds: ["identity-profile-service", "realtime-gateway"], commit });

@@ -45,7 +45,10 @@ try {
     if (Test-Path -LiteralPath $boundRoot) { Remove-Item -LiteralPath $boundRoot -Recurse -Force }
 }
 
-$commit = '0123456789abcdef0123456789abcdef01234567'
+$repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+$commit = @(& git -C $repositoryRoot rev-parse HEAD 2>$null)
+if ($LASTEXITCODE -ne 0 -or $commit.Count -ne 1 -or [string]$commit[0] -notmatch '^[a-f0-9]{40}$') { throw 'TEST_CHECKED_OUT_REVISION_UNAVAILABLE' }
+$commit = [string]$commit[0]
 $root = Join-Path ([System.IO.Path]::GetTempPath()) ('apx-hosted-orchestrator-' + [guid]::NewGuid().ToString('N'))
 $serviceEvidence = Join-Path $PSScriptRoot '..\..\services\identity-profile-service\target\s001-t07-evidence'
 $vulnerabilityInventory = Join-Path $serviceEvidence 'vulnerability-inventory.json'
@@ -100,6 +103,20 @@ try {
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ container = { 'POLICY_BLOCKED' }; base = { 'REVIEW_REQUIRED' } }) -NoExit
     if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'BLOCKED' -or $result.reviewState -ne 'REVIEW_REQUIRED') { throw 'TEST_COMBINED_POLICY_REVIEW_FAILED' }
     Write-Host '[PASS] Policy block and mutable-review states remain independent'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $repositoryOnlyAdapters = New-Adapters @{
+        prebuild = { throw 'REPOSITORY_ONLY_RAN_PREBUILD' }
+        base = { throw 'REPOSITORY_ONLY_RAN_BASE_IMAGE_STAGE' }
+        image = { throw 'REPOSITORY_ONLY_RAN_IMAGE_STAGE' }
+        smoke = { throw 'REPOSITORY_ONLY_RAN_SMOKE_STAGE' }
+        container = { throw 'REPOSITORY_ONLY_RAN_CONTAINER_STAGE' }
+    }
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters $repositoryOnlyAdapters -NoExit
+    if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'PASS') { throw 'TEST_REPOSITORY_ONLY_SCENARIO_FAILED' }
+    $repositoryOnlyContainer = Get-Content -LiteralPath (Join-Path $root 'container-vulnerability-inventory.json') -Raw | ConvertFrom-Json
+    if (@($repositoryOnlyContainer.findings).Count -ne 0) { throw 'TEST_REPOSITORY_ONLY_CONTAINER_INVENTORY_NOT_EMPTY' }
+    Write-Host '[PASS] Repository-only execution keeps shared scans without invoking service build/image/smoke stages'
 
     Remove-Item -LiteralPath $root -Recurse -Force
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ container = { throw 'CONTAINER_SCAN_POLICY_BLOCKED' } }) -NoExit
