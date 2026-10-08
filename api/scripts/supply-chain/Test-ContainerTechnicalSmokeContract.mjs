@@ -5,6 +5,8 @@ const repoRoot = path.resolve(import.meta.dirname, "../..");
 const scriptPath = path.join(repoRoot, "scripts/supply-chain/Invoke-ContainerTechnicalSmoke.ps1");
 if (!fs.existsSync(scriptPath)) throw new Error("Container technical smoke runner is missing.");
 const source = fs.readFileSync(scriptPath, "utf8");
+const hostedSupplyChainModulePath = path.join(repoRoot, "scripts/supply-chain/HostedSupplyChain.psm1");
+const hostedSupplyChainModule = fs.readFileSync(hostedSupplyChainModulePath, "utf8");
 const statusHarnessPath = path.join(repoRoot, "scripts/supply-chain/Test-ContainerTechnicalSmokeStatus.ps1");
 const statusHarnessSource = fs.readFileSync(statusHarnessPath, "utf8");
 const resolverPath = path.join(repoRoot, "scripts/supply-chain/ServiceArtifact.psm1");
@@ -51,6 +53,10 @@ for (const [name, expected] of [
   if (!source.includes(expected)) throw new Error(`${name}: missing ${expected}`);
   process.stdout.write(`[PASS] ${name}\n`);
 }
+if (!hostedSupplyChainModule.includes("^CONTAINER_SMOKE_[A-Z0-9_]+$")) {
+  throw new Error("Smoke status reader must accept digits in fixed Docker exit-code diagnostics.");
+}
+process.stdout.write("[PASS] Smoke status reader accepts numeric fixed failure-code suffixes\n");
 const identityApplication = fs.readFileSync(identityApplicationPath, "utf8");
 const identityLocal = fs.readFileSync(identityLocalPath, "utf8");
 if (!identityApplication.includes("include: health") || !identityLocal.includes("datasource:") || !identityLocal.includes("flyway:")

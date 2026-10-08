@@ -104,7 +104,7 @@ function Read-HostedSmokeStatus {
         $expected = if ($status.state -eq 'FAILED') { @('schemaVersion', 'state', 'phase', 'failureCode', 'exceptionType') } else { @('schemaVersion', 'state', 'phase') }
         if ($actual.Count -ne $expected.Count -or @($actual | Where-Object { $_ -notin $expected }).Count -ne 0 -or @($expected | Where-Object { $_ -notin $actual }).Count -ne 0) { throw 'invalid' }
         if ($status.state -eq 'PASS' -and [string]$status.phase -cne 'complete') { throw 'invalid' }
-        if ($status.state -eq 'FAILED' -and ([string]$status.failureCode -notmatch '^CONTAINER_SMOKE_[A-Z_]+$' -or [string]$status.exceptionType -notmatch '^[A-Za-z0-9_.]+$')) { throw 'invalid' }
+        if ($status.state -eq 'FAILED' -and ([string]$status.failureCode -notmatch '^CONTAINER_SMOKE_[A-Z0-9_]+$' -or [string]$status.exceptionType -notmatch '^[A-Za-z0-9_.]+$')) { throw 'invalid' }
         return $status
     } catch {
         if ($_.Exception.Message -match '^CONTAINER_SMOKE_WRAPPER_STARTUP_FAILED$') { throw }

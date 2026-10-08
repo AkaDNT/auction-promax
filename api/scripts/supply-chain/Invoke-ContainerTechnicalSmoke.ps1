@@ -114,6 +114,7 @@ function Invoke-ContainerSmokeStatusContractTest {
         foreach ($case in @(
             @{ state='STARTED'; phase='startup'; code=$null; type=$null; properties=@('schemaVersion','state','phase') },
             @{ state='FAILED'; phase='inspect-container'; code='CONTAINER_SMOKE_INSPECTION_FAILED'; type='RuntimeException'; properties=@('schemaVersion','state','phase','failureCode','exceptionType') },
+            @{ state='FAILED'; phase='start-container'; code='CONTAINER_SMOKE_DOCKER_CLIENT_EXIT_125'; type='RuntimeException'; properties=@('schemaVersion','state','phase','failureCode','exceptionType') },
             @{ state='PASS'; phase='ignored'; code=$null; type=$null; properties=@('schemaVersion','state','phase') }
         )) {
             Write-SmokeStatus -State $case.state -Phase $case.phase -FailureCode $case.code -ExceptionType $case.type
