@@ -8,6 +8,8 @@ $resolverOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $s
 if ($LASTEXITCODE -ne 0 -or ($resolverOutput -join "`n") -notmatch 'Container smoke Docker resolver contract tests: PASS') { throw 'CONTAINER_SMOKE_DOCKER_RESOLVER_CONTRACT_FAILED' }
 $stateContractOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath -StatusContractTest 2>&1)
 if ($LASTEXITCODE -ne 0 -or ($stateContractOutput -join "`n") -notmatch 'Container smoke status state contract tests: PASS') { throw 'CONTAINER_SMOKE_STATUS_STATE_CONTRACT_FAILED' }
+$failureClassifierOutput = @(& $scriptPath -FailureClassifierContractTest 2>&1)
+if (($failureClassifierOutput -join "`n") -notmatch 'Container smoke Docker failure classifier contract tests: PASS') { throw 'CONTAINER_SMOKE_FAILURE_CLASSIFIER_CONTRACT_FAILED' }
 $tokens = $null
 $errors = $null
 [System.Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$tokens, [ref]$errors) | Out-Null
