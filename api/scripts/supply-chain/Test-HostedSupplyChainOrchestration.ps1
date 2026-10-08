@@ -21,6 +21,9 @@ if ($orchestratorSource -notmatch '\$stage\.name -eq ''prebuild''' -or $orchestr
 if ($orchestratorSource -notmatch '\$stage\.name -eq ''dependency''' -or $orchestratorSource -notmatch 'Dependency scan diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch 'Dependency scan diagnostic: phase=\{0\}; failureCode=\{1\}' -or $orchestratorSource -notmatch '\\b\(TRIVY_\[A-Z0-9_\]\+\|VULNERABILITY_\[A-Z0-9_\]\+\)\\b' -or $orchestratorSource -notmatch 'Dependency scan diagnostic: failureCode=DEPENDENCY_SCAN_UNCLASSIFIED; exceptionType=\{0\}') {
     throw 'HOSTED_DEPENDENCY_SCAN_SANITIZED_DIAGNOSTIC_MISSING'
 }
+if ($orchestratorSource -notmatch '\$PSNativeCommandUseErrorActionPreference = \$false' -or $orchestratorSource -notmatch '\$PSNativeCommandUseErrorActionPreference = \$previousNativeErrorPreference' -or $orchestratorSource -notmatch '\$exitCode = \$LASTEXITCODE') {
+    throw 'HOSTED_CHILD_NATIVE_EXIT_CAPTURE_NOT_EXPLICIT'
+}
 if ($orchestratorSource -notmatch 'Container prebuild diagnostic: phase=stage-dispatch; exceptionType=\{0\}') {
     throw 'HOSTED_PREBUILD_FALLBACK_DIAGNOSTIC_MISSING'
 }

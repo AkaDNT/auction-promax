@@ -89,8 +89,12 @@ function Invoke-HostedRepositoryScript {
         $childArguments += @('-StatusPath', $containerScanStatusPath)
     }
     $wrapperPhase = 'launch-child'
+    $nativeErrorPreferenceVariable = Get-Variable -Name 'PSNativeCommandUseErrorActionPreference' -ErrorAction SilentlyContinue
+    $hadNativeErrorPreference = $null -ne $nativeErrorPreferenceVariable
+    $previousNativeErrorPreference = if ($hadNativeErrorPreference) { [bool]$nativeErrorPreferenceVariable.Value } else { $false }
     try {
         $ErrorActionPreference = 'Continue'
+        if ($hadNativeErrorPreference) { $PSNativeCommandUseErrorActionPreference = $false }
         $output = @(& $childPowerShell @childArguments 2>&1)
         $exitCode = $LASTEXITCODE
     } catch {
@@ -98,6 +102,7 @@ function Invoke-HostedRepositoryScript {
         throw
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
+        if ($hadNativeErrorPreference) { $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference }
     }
     if ($isToolBootstrap) {
         $wrapperPhase = 'read-status'
