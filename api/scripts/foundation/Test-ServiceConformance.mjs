@@ -66,6 +66,7 @@ test('conformance rejects deliberately corrupted template sources and missing se
     ['missing outer MDC case', 'templates/common/StructuredLoggingTest.java', text => text.replace('outer-correlation', 'omitted-case')],
     ['missing negative fixture assertion', 'templates/common/ArchitectureTest.java', text => text.replace('.hasMessageContaining("InvalidInboundDependency")', '')],
     ['incompatible technical exception response type', 'templates/common/TechnicalProblemAdvice.java', text => text.replace('ResponseEntity<Object> unexpected', 'ResponseEntity<ProblemDetail> unexpected')],
+    ['package-private controller blocks cross-package logging test', 'templates/common/TechnicalProbeController.java', text => text.replace('public TechnicalValidationResponse validate', 'TechnicalValidationResponse validate')],
     ['wrapper pin', 'templates/common/maven-wrapper.properties', text => text.replace('3.9.16', '3.9.15')],
     ['unknown token', 'templates/common/README.md', text => text + '\n__unknown_token__\n'],
     ['gateway JDBC dependency', 'templates/gateway/pom.xml', text => text.replace('</dependencies>', '<dependency><groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId></dependency></dependencies>')],

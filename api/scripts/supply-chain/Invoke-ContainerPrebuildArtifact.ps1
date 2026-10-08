@@ -27,6 +27,7 @@ $sbomSchemaRoot = Join-Path $repoRoot 'security\schemas\cyclonedx\1.6'
 
 function Throw-ContainerPrebuildFailure {
     param([Parameter(Mandatory)][string]$Code)
+    Write-Output $Code
     throw $Code
 }
 

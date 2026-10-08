@@ -15,6 +15,8 @@ export function validateTemplateConformance(root) {
   const texts = new Map(entries.map(entry => [entry.source,
     normalized(path.join(root, 'api/service-foundation', entry.source))]));
   const logging = texts.get('templates/common/StructuredLoggingTest.java') ?? '';
+  const probeController = texts.get('templates/common/TechnicalProbeController.java') ?? '';
+  requireCondition(/public\s+TechnicalValidationResponse\s+validate\(@Valid\s+@RequestBody\s+TechnicalValidationRequest\s+request\)/.test(probeController));
   for (const pattern of [/new StructuredLogEncoder\(/, /encoder\.encode\(/,
     /STRICT_DUPLICATE_DETECTION/, /@NullSource/, /fixture-correlation/, /outer-correlation/,
     /TechnicalProbeController\.class/, /new CorrelationIdFilter\(\)\.doFilter/,

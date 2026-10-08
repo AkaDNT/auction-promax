@@ -109,7 +109,8 @@ function validateFindingList(value, allowed, code) {
   for (const finding of value) exactKeys(finding, allowed, "SERVICE_EVIDENCE_FINDING_INVALID");
 }
 function extractPomCoordinate(pom, element) {
-  const match = pom.match(new RegExp(`<(?:[A-Za-z0-9_-]+:)?${element}\\s*>([^<]*)<\\/(?:[A-Za-z0-9_-]+:)?${element}\\s*>`));
+  const projectCoordinates = pom.replace(/<(?:[A-Za-z0-9_-]+:)?parent(?:\s[^>]*)?>[\s\S]*?<\/(?:[A-Za-z0-9_-]+:)?parent\s*>/i, "");
+  const match = projectCoordinates.match(new RegExp(`<(?:[A-Za-z0-9_-]+:)?${element}\\s*>([^<]*)<\\/(?:[A-Za-z0-9_-]+:)?${element}\\s*>`));
   return match?.[1]?.trim();
 }
 function validateArtifactBinding(root, service, imageEvidence, requireComplete) {

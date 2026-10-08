@@ -192,3 +192,42 @@ Fresh local verification on the uncommitted worktree: template conformance 32/32
 ### Decision required — pre-merge freshness proof
 
 The existing T03 ruling binds `security-freshness` to the checked-out default-branch revision. The candidate-dispatched workflow definition is from the T03 branch, but its jobs check out and execute scripts from `migration/monorepo`, which does not yet contain T03 matrix code. Running candidate scripts against candidate code would change the freshness target/provenance; running the current default-branch checkout cannot exercise T03's new matrix. No workaround has been implemented. Await owner direction on whether to preserve default-branch semantics and defer freshness runtime proof until after merge, or authorize a separate pre-merge candidate-validation route. T03 remains IN_PROGRESS; no merge authorization is implied.
+
+## Hosted candidate run 37736602298 and follow-up corrections — 2026-10-08
+
+The owner reauthenticated `gh` and authorized continuing the already-approved candidate workflow validation. Candidate PR #21 remained Draft; no merge or protected-branch change was authorized. The exact PR head at run start was `1564e80e3ce62095f192fc6eb178f125653018f9`; GitHub checked out the PR merge execution revision `0053bc643c46989af7405850cb7edce7c627fe94`, which is the revision recorded by the classifier and per-service matrix-result artifacts. Run URL: https://github.com/AkaDNT/auction-promax/actions/runs/37736602298.
+
+Hosted observations from that run:
+
+- The service selection and template/source generation checks passed, but the generated service Maven legs failed compilation in `StructuredLoggingTest.java`: the test is in the root package and directly calls `TechnicalProbeController.validate`, which was package-private in the shared template. Identity `mvnw verify` and its named Failsafe execution completed successfully; generated service compilation did not.
+- Identity then failed the artifact-aware prebuild/SBOM stage with outward `SBOM_BUILD_FAILED`. The initial sanitized diagnostic only showed `phase=stage-dispatch; exceptionType=RuntimeException`, which was insufficient to classify the child script failure. Its evidence validator independently rejected the valid Identity POM at `SERVICE_EVIDENCE_ARTIFACT_MISMATCH` line 125 because the coordinate extractor read Maven parent coordinates before project coordinates.
+- Repository-only shared scans completed with execution `PASS` and policy `BLOCKED` (the separate policy outcome is preserved), but hosted evidence validation failed with `HOSTED_EVIDENCE_COMMIT_MISMATCH`. Downloaded sanitized evidence showed that the repository-mode evidence writer omitted `commit` from inventory/image/policy records, while the validator correctly requires every evidence document to bind to the checked-out execution SHA. The run's release-policy job was skipped because the aggregate verification failed; no aggregate PASS is claimed.
+- All five per-service matrix result artifacts were present and bound to the checked-out execution revision; each recorded `failure`, so exact result aggregation failed closed as intended.
+
+The implementation correction remains scoped to technical test accessibility and CI evidence handling; no auction/domain behavior was changed:
+
+- Added a template contract assertion and mutation fixture for public access to the controller handler, observed RED, then made `TechnicalProbeController.validate` public. This is the web handler's normal public endpoint method and permits the cross-package structured-logging test to compile.
+- Extended the service evidence fixture POM with deliberately different parent GAV values, observed `SERVICE_EVIDENCE_ARTIFACT_MISMATCH`, and changed coordinate extraction to exclude the parent block before checking project GAV.
+- Legacy/repository evidence records now include the resolved checked-out commit. The PowerShell orchestration fixture asserts all seven repository evidence documents carry that exact SHA, in addition to retaining the empty-container inventory assertion.
+- The prebuild helper now emits only its fixed classified failure code to the child-process output before throwing. The parent wrapper can therefore surface an approved `CONTAINER_PREBUILD_*` code without exposing raw command output, paths, or exception text. Added a sanitized-classification orchestration fixture alongside the unclassified fallback fixture.
+
+Fresh local verification from the working tree based on `1564e80e3ce62095f192fc6eb178f125653018f9`:
+
+| Verification | Result |
+| --- | --- |
+| Template conformance and corruption fixtures | PASS 33/33 |
+| Generated service conformance fixtures | PASS 8/8 |
+| Service evidence fixtures, including Maven parent coordinates | PASS 15 cases |
+| Hosted evidence validator fixtures | PASS |
+| Artifact propagation contracts | PASS all assertions |
+| Matrix result/evidence tests | PASS 8/8 |
+| Hosted supply-chain repository contract | PASS |
+| Supply-chain/freshness workflow contracts and mutation fixtures | PASS |
+| Workflow ownership mutation fixtures | PASS 5 assertions |
+| Root required-workflow repository and negative fixtures | PASS |
+| PowerShell 5.1 parse-only validation of modified scripts | PASS 3 files |
+| `git diff --check` | PASS; expected `core.autocrlf` notices only |
+
+PowerShell orchestration runtime was not available in this local sandbox; the updated harness must execute on the next Ubuntu workflow run. No execution-policy override was used. The separate owner-dispatched `security-freshness.yml` run `37729879797` checked out the default branch by design, where the candidate T03 `--list-services` interface was not present, and failed before service execution. This confirms the still-open validation-route decision: do not change default-branch freshness semantics or add a pre-merge candidate mode without separate owner approval. The owner-defined acceptance gates remain incomplete.
+
+At log time these corrections are uncommitted. Next: repeat affected local checks, review and commit the full scoped change including this execution log, obtain a fresh independent review of that exact commit SHA, push only the reviewed isolated candidate to `work/s002-t03-ci-security`, then inspect fresh hosted results for compile/Failsafe, service SBOM/scanner/evidence, repository evidence identity, aggregate gating, and separate release policy. Do not reuse run `37736602298` as PASS evidence for the corrected revision.

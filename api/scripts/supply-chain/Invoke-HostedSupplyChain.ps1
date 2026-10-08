@@ -180,7 +180,7 @@ function Get-ServiceSourceProvenance {
 function New-ServiceEvidenceRecord {
     param([Parameter(Mandatory)][System.Collections.IDictionary]$Fields)
     if (-not $serviceEvidenceMode) {
-        $legacyRecord = [ordered]@{}
+        $legacyRecord = [ordered]@{ commit = $CommitSha }
         foreach ($key in $Fields.Keys) { if ($key -cne 'documentType') { $legacyRecord[$key] = $Fields[$key] } }
         return $legacyRecord
     }

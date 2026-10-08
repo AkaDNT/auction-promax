@@ -7,6 +7,7 @@ const script = (name) => fs.readFileSync(path.join(repoRoot, `scripts/supply-cha
 const assertions = [
   ["prebuild selects a service", "Invoke-ContainerPrebuildArtifact.ps1", "[string]$ServiceId = 'identity-profile-service'"],
   ["prebuild resolves and validates the canonical artifact", "Invoke-ContainerPrebuildArtifact.ps1", "Resolve-ServiceArtifact -ServiceId $ServiceId -RequireBuiltArtifact"],
+  ["prebuild emits only the sanitized classified failure code across its child-process boundary", "Invoke-ContainerPrebuildArtifact.ps1", "Write-Output $Code"],
   ["prebuild passes the service to SBOM validation", "Invoke-ContainerPrebuildArtifact.ps1", "'--service', $ServiceId"],
   ["image build selects a service", "Invoke-ContainerImageBuild.ps1", "[string]$ServiceId = 'identity-profile-service'"],
   ["image build forwards the selector to both prebuild modes", "Invoke-ContainerImageBuild.ps1", "-ServiceId $ServiceId"],

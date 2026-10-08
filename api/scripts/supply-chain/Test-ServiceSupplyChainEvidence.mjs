@@ -48,7 +48,7 @@ function newRepository(withSource = false) {
 }
 function writeServiceSource(root) {
   const base = `api/services/${service.id}`;
-  write(root, `${base}/pom.xml`, `<project><groupId>${service.groupId}</groupId><artifactId>${service.artifactId}</artifactId><version>${service.version}</version></project>`);
+  write(root, `${base}/pom.xml`, `<project><modelVersion>4.0.0</modelVersion><parent><groupId>fixture.parent</groupId><artifactId>parent-artifact</artifactId><version>9.9.9</version></parent><groupId>${service.groupId}</groupId><artifactId>${service.artifactId}</artifactId><version>${service.version}</version></project>`);
   write(root, `${base}/Dockerfile`, "FROM example.invalid/runtime@sha256:0000000000000000000000000000000000000000000000000000000000000000\n");
 }
 function makeEvidence(root, revision, options = {}) {

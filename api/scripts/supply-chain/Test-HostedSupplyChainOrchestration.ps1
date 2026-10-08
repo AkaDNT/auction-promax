@@ -114,6 +114,12 @@ try {
     Write-Host '[PASS] Unclassified prebuild failure exposes only a sanitized phase and exception type'
 
     Remove-Item -LiteralPath $root -Recurse -Force
+    $prebuildWarning = @()
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ prebuild = { throw 'CONTAINER_PREBUILD_SBOM_INVALID' } }) -NoExit -WarningVariable +prebuildWarning
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.failureCode -ne 'SBOM_BUILD_FAILED' -or (@($prebuildWarning) -join "`n") -notmatch 'Container prebuild diagnostic: failureCode=CONTAINER_PREBUILD_SBOM_INVALID') { throw 'TEST_PREBUILD_CLASSIFIED_DIAGNOSTIC_LOST' }
+    Write-Host '[PASS] Classified prebuild failures retain a sanitized specific diagnostic'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
     $repositoryOnlyAdapters = New-Adapters @{
         prebuild = { throw 'REPOSITORY_ONLY_RAN_PREBUILD' }
         base = { throw 'REPOSITORY_ONLY_RAN_BASE_IMAGE_STAGE' }
@@ -125,6 +131,10 @@ try {
     if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'PASS') { throw 'TEST_REPOSITORY_ONLY_SCENARIO_FAILED' }
     $repositoryOnlyContainer = Get-Content -LiteralPath (Join-Path $root 'container-vulnerability-inventory.json') -Raw | ConvertFrom-Json
     if (@($repositoryOnlyContainer.findings).Count -ne 0) { throw 'TEST_REPOSITORY_ONLY_CONTAINER_INVENTORY_NOT_EMPTY' }
+    foreach ($evidenceName in @('run-summary.json','vulnerability-inventory.json','gitleaks-inventory.json','container-vulnerability-inventory.json','image-identity.json','smoke-summary.json','policy-summary.json')) {
+        $repositoryEvidence = Get-Content -LiteralPath (Join-Path $root $evidenceName) -Raw | ConvertFrom-Json
+        if ($repositoryEvidence.commit -cne $commit) { throw 'TEST_REPOSITORY_ONLY_EVIDENCE_COMMIT_MISMATCH' }
+    }
     Write-Host '[PASS] Repository-only execution keeps shared scans without invoking service build/image/smoke stages'
 
     Remove-Item -LiteralPath $root -Recurse -Force
