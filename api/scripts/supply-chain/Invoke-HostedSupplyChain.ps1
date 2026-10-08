@@ -333,9 +333,9 @@ try {
             if ($stage.name -eq 'base' -and $message -match 'CONTAINER_BASE_IMAGE_UNCLASSIFIED_FAILED\|phase=([a-z-]+)\|exceptionType=([A-Za-z0-9_.]+)') {
                 Write-Warning ('Container base resolution diagnostic: phase={0}; exceptionType={1}' -f $Matches[1], $Matches[2])
             }
-            if ($stage.name -eq 'smoke' -and $message -match '(CONTAINER_SMOKE_[A-Z_]+)\|phase=([a-z-]+)\|exceptionType=([A-Za-z0-9_.]+)') {
+            if ($stage.name -eq 'smoke' -and $message -match '(CONTAINER_SMOKE_[A-Z0-9_]+)\|phase=([a-z-]+)\|exceptionType=([A-Za-z0-9_.]+)') {
                 Write-Warning ('Container smoke diagnostic: phase={0}; failureCode={1}; exceptionType={2}' -f $Matches[2], $Matches[1], $Matches[3])
-            } elseif ($stage.name -eq 'smoke' -and $message -match '\b(CONTAINER_SMOKE_[A-Z_]+)\b') {
+            } elseif ($stage.name -eq 'smoke' -and $message -match '\b(CONTAINER_SMOKE_[A-Z0-9_]+)\b') {
                 Write-Warning ('Container smoke diagnostic: failureCode={0}' -f $Matches[1])
             } elseif ($stage.name -eq 'smoke') {
                 Write-Warning 'Container smoke diagnostic: failureCode=CONTAINER_SMOKE_WRAPPER_UNCLASSIFIED'

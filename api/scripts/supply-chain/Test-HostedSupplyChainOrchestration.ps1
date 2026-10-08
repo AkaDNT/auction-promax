@@ -207,6 +207,13 @@ $spoofedPolicyError = 'runtime failure /private/runner VULNERABILITY_POLICY_BLOC
 
     Remove-Item -LiteralPath $root -Recurse -Force
     $smokeWarning = @()
+    $numericSmokeError = 'CONTAINER_SMOKE_DOCKER_CLIENT_EXIT_125|phase=start-container|exceptionType=RuntimeException'
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ smoke = { throw $numericSmokeError } }) -NoExit -WarningVariable +smokeWarning
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.failureCode -ne 'SMOKE_FAILED' -or (@($smokeWarning) -join "`n") -notmatch 'Container smoke diagnostic: phase=start-container; failureCode=CONTAINER_SMOKE_DOCKER_CLIENT_EXIT_125; exceptionType=RuntimeException') { throw 'TEST_NUMERIC_SMOKE_ERROR_RECORD_DIAGNOSTIC_LOST' }
+    Write-Host '[PASS] Numeric Docker smoke failure remains classified and diagnosable'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $smokeWarning = @()
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ smoke = { throw 'child process failed before smoke payload' } }) -NoExit -WarningVariable +smokeWarning
     if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.failureCode -ne 'SMOKE_FAILED' -or (@($smokeWarning) -join "`n") -notmatch 'Container smoke diagnostic: failureCode=CONTAINER_SMOKE_WRAPPER_UNCLASSIFIED') { throw 'TEST_SMOKE_WRAPPER_FALLBACK_DIAGNOSTIC_LOST' }
     Write-Host '[PASS] Unclassified smoke wrapper failure remains diagnosable'
