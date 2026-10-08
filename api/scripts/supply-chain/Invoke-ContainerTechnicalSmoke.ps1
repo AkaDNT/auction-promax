@@ -164,25 +164,31 @@ function Fail([string]$Code) {
     Write-SmokeStatus -State 'FAILED' -Phase $smokePhase -FailureCode $Code -ExceptionType 'ManagedFailure'
     throw $Code
 }
-function Resolve-DockerFailureCode([string]$Output, [string]$FallbackCode) {
+function Resolve-DockerFailureCode([string]$Output, [string]$FallbackCode, [int]$ExitCode = 0) {
     $normalized = [string]$Output
     if ($normalized -match '(?i)address already in use|port is already allocated|bind:.*in use') { return 'CONTAINER_SMOKE_HOST_PORT_UNAVAILABLE' }
     if ($normalized -match '(?i)no space left on device|out of disk space') { return 'CONTAINER_SMOKE_RUNTIME_STORAGE_UNAVAILABLE' }
     if ($normalized -match '(?i)permission denied|operation not permitted|access is denied') { return 'CONTAINER_SMOKE_RUNTIME_PERMISSION_DENIED' }
     if ($normalized -match '(?i)failed to create shim|OCI runtime create failed|containerd-shim|failed to start.*container') { return 'CONTAINER_SMOKE_RUNTIME_START_FAILED' }
     if ($normalized -match '(?i)network.*not found|network.*does not exist') { return 'CONTAINER_SMOKE_RUNTIME_NETWORK_UNAVAILABLE' }
+    if ($ExitCode -eq 125) { return 'CONTAINER_SMOKE_DOCKER_CLIENT_EXIT_125' }
+    if ($ExitCode -eq 126) { return 'CONTAINER_SMOKE_CONTAINER_COMMAND_EXIT_126' }
+    if ($ExitCode -eq 127) { return 'CONTAINER_SMOKE_CONTAINER_COMMAND_EXIT_127' }
     return $FallbackCode
 }
 function Invoke-ContainerSmokeFailureClassifierContractTest {
     foreach ($case in @(
-        @{ output='Bind for 127.0.0.1 failed: port is already allocated'; expected='CONTAINER_SMOKE_HOST_PORT_UNAVAILABLE' },
-        @{ output='failed to create shim task: OCI runtime create failed: permission denied'; expected='CONTAINER_SMOKE_RUNTIME_PERMISSION_DENIED' },
-        @{ output='failed to create shim task: OCI runtime create failed: unknown runtime error'; expected='CONTAINER_SMOKE_RUNTIME_START_FAILED' },
-        @{ output='no space left on device'; expected='CONTAINER_SMOKE_RUNTIME_STORAGE_UNAVAILABLE' },
-        @{ output='network apx-example not found'; expected='CONTAINER_SMOKE_RUNTIME_NETWORK_UNAVAILABLE' },
-        @{ output='unrecognized private daemon detail'; expected='CONTAINER_SMOKE_START_FAILED' }
+        @{ output='Bind for 127.0.0.1 failed: port is already allocated'; exitCode=1; expected='CONTAINER_SMOKE_HOST_PORT_UNAVAILABLE' },
+        @{ output='failed to create shim task: OCI runtime create failed: permission denied'; exitCode=1; expected='CONTAINER_SMOKE_RUNTIME_PERMISSION_DENIED' },
+        @{ output='failed to create shim task: OCI runtime create failed: unknown runtime error'; exitCode=1; expected='CONTAINER_SMOKE_RUNTIME_START_FAILED' },
+        @{ output='no space left on device'; exitCode=1; expected='CONTAINER_SMOKE_RUNTIME_STORAGE_UNAVAILABLE' },
+        @{ output='network apx-example not found'; exitCode=1; expected='CONTAINER_SMOKE_RUNTIME_NETWORK_UNAVAILABLE' },
+        @{ output='sanitized private error'; exitCode=125; expected='CONTAINER_SMOKE_DOCKER_CLIENT_EXIT_125' },
+        @{ output='sanitized private error'; exitCode=126; expected='CONTAINER_SMOKE_CONTAINER_COMMAND_EXIT_126' },
+        @{ output='sanitized private error'; exitCode=127; expected='CONTAINER_SMOKE_CONTAINER_COMMAND_EXIT_127' },
+        @{ output='unrecognized private daemon detail'; exitCode=1; expected='CONTAINER_SMOKE_START_FAILED' }
     )) {
-        $actual = Resolve-DockerFailureCode -Output $case.output -FallbackCode 'CONTAINER_SMOKE_START_FAILED'
+        $actual = Resolve-DockerFailureCode -Output $case.output -FallbackCode 'CONTAINER_SMOKE_START_FAILED' -ExitCode $case.exitCode
         if ($actual -cne $case.expected) { throw 'CONTAINER_SMOKE_FAILURE_CLASSIFICATION_INVALID' }
     }
     Write-Output '[PASS] Docker failure classifier maps known classes and fails closed for unknown output'
@@ -228,7 +234,7 @@ function Invoke-ContainerSmokeConfigurationContractTest {
 }
 function Invoke-DockerCommand([string[]]$Arguments, [string]$Code) {
     $output = @(& $script:dockerExe @Arguments 2>&1); $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) { Fail (Resolve-DockerFailureCode -Output ($output -join [Environment]::NewLine) -FallbackCode $Code) }; return ($output -join [Environment]::NewLine)
+    if ($exitCode -ne 0) { Fail (Resolve-DockerFailureCode -Output ($output -join [Environment]::NewLine) -FallbackCode $Code -ExitCode $exitCode) }; return ($output -join [Environment]::NewLine)
 }
 if ($FailureClassifierContractTest) { Invoke-ContainerSmokeFailureClassifierContractTest; return }
 if ($SmokeConfigurationContractTest) { Invoke-ContainerSmokeConfigurationContractTest; return }
