@@ -23,11 +23,11 @@ function Write-Report {
 
 try {
   foreach ($service in @(
-      @{ Id = 'auction-service'; Class = 'RelationalBoundaryTestcontainersIT' },
-      @{ Id = 'realtime-gateway'; Class = 'GatewayNoDatastoreIT' })) {
+      @{ Id = 'identity-profile-service'; Class = 'IdentityProfileServiceApplicationTestcontainersIT'; Package = 'com.auctionpromax.identityprofileservice' },
+      @{ Id = 'auction-service'; Class = 'RelationalBoundaryTestcontainersIT'; Package = 'com.auctionpromax.auctionservice' },
+      @{ Id = 'realtime-gateway'; Class = 'GatewayNoDatastoreIT'; Package = 'com.auctionpromax.realtimegateway' })) {
     $directory = Join-Path $fixtureRoot $service.Id
-    $package = if ($service.Id -ceq 'auction-service') { 'com.auctionpromax.auctionservice' } else { 'com.auctionpromax.realtimegateway' }
-    Write-Report -Directory $directory -SuiteName ($package + '.' + $service.Class)
+    Write-Report -Directory $directory -SuiteName ($service.Package + '.' + $service.Class)
     $result = Test-ServiceFailsafeExecution -ServiceId $service.Id -ReportDirectory $directory -RepositoryRoot $repositoryRoot
     if ($result.TestClass -cne $service.Class -or $result.Tests -ne 1) { throw 'SERVICE_FAILSAFE_FIXTURE_SUCCESS_INVALID' }
     $script:cases++

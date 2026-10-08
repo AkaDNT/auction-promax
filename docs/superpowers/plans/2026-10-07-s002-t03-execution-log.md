@@ -125,6 +125,35 @@ Root cause from tracing the fixture and writer: repository-only mode correctly s
 
 This log remains open pending exact-SHA independent review and hosted Linux acceptance.
 
+## Follow-up review correction — preserved Identity path — 2026-10-08
+
+Independent review of `67ec90d954682f12e1b7d165f6e55fcabec1ce5d` found two connected blocking defects in the all-service freshness matrix: it includes preserved `identity-profile-service`, but generated-only conformance rejected preserved sources and the Failsafe validator accepted only the four new service IDs/classes. The reviewer also clarified that template conformance is appropriate only for ephemeral generated trees; committed trees are governed by their own Maven and artifact/evidence contracts. The issue was deterministic workflow failure, not ambiguity about product/business behavior.
+
+Corrective working-tree changes now:
+
+- Gate expanded-template conformance on `source_kind == ephemeral-generated` in both matrix workflows. The workflow contracts reject removing this provenance condition.
+- Keep Failsafe proof active after successful Maven for every service, including Identity. Extend the closed selector/mapping to Identity's real class `com.auctionpromax.identityprofileservice.IdentityProfileServiceApplicationTestcontainersIT`; generated relational and gateway mappings remain unchanged. Add a passing Identity fixture plus workflow mutation negatives that reject excluding Identity.
+- Update the T03 guide's file map and execution route to explain the ownership split and Identity-specific Failsafe suite. `api-baseline.yml`, `monorepo-verification.yml`, build count, required checks and release-policy semantics remain untouched.
+
+Observed in the current uncommitted worktree based on `67ec90d954682f12e1b7d165f6e55fcabec1ce5d`:
+
+| Verification | Result |
+| --- | --- |
+| Required-check + matrix-result/evidence tests | PASS 24/24 |
+| Supply-chain workflow contract and mutation fixtures | PASS, including generated provenance and Identity Failsafe mutations |
+| Freshness workflow contract and mutation fixtures | PASS, including generated provenance and Identity Failsafe mutations |
+| Both owning workflow repository contracts; root workflow ownership contract | PASS |
+| Generated-service conformance fixtures | PASS 8/8 |
+| Service evidence fixtures | PASS 15 cases |
+| Service artifact propagation | PASS all assertions |
+| CycloneDX trust and Identity/service SBOM fixtures | PASS |
+| Identity/handoff check | PASS, 101 tracked files unchanged, SHA256 `52387fed2968047f5f2dffae14b0457c1f02f4df189ab578beb55348ba6e9a63` |
+| Markdown fence regression | PASS 1/1 |
+| Failsafe PowerShell files | PASS parser-only check; no local runtime claim |
+| `git diff --check` | PASS; autocrlf notices only |
+
+PowerShell runtime fixture execution remains for the owning hosted Linux jobs; parser-only success is not Failsafe runtime proof. These corrections are uncommitted at log time. The next sequence is commit scoped T03 source/docs, independent re-review at the resulting exact SHA, then use the existing authorization to push that reviewed isolated candidate and create/continue its Draft PR. Do not reuse review or hosted evidence from earlier revisions.
+
 ## Independent review corrections — pending new exact-SHA review
 
 Reviewer inspected commit `024b25246cba2f6c097b7303730f9b3b2fc45300` against the preceding T03 base and found three issues: downloaded matrix result directories retain artifact names `s002-service-result-<id>` while the collector expected `service-result-<id>`; both workflows lacked a required named Failsafe report assertion after Maven; and freshness aggregate checked out the mutable default-branch name instead of the resolved execution SHA. The reviewer reproduced the first defect with 6/8 result/evidence tests passing and two failing. This invalidates the earlier 8/8 local claim for the old test shape; it did not exercise a realistic downloaded directory layout.

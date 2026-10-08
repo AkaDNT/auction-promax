@@ -84,9 +84,11 @@ export function validateServiceMatrixWorkflow(workflow) {
   check(String(step(matrix, 'revision')?.run ?? '').includes('git rev-parse HEAD') && String(step(matrix, 'revision')?.run ?? '').includes('outputs.execution_sha'), 'SERVICE_WORKFLOW_MATRIX_REVISION_INVALID');
   const source = String(step(matrix, 'select-source')?.run ?? '');
   check(source.includes('git ls-tree') && source.includes('git log HEAD --diff-filter=A') && source.includes('SERVICE_SOURCE_REMOVED') && source.includes('Generate-Service.mjs'), 'SERVICE_WORKFLOW_SOURCE_PROVENANCE_INVALID');
-  check(String(step(matrix, 'maven-verify')?.run ?? '').includes('./mvnw -B verify') && String(step(matrix, 'generated-conformance')?.run ?? '').includes('Test-GeneratedServiceConformance.mjs'), 'SERVICE_WORKFLOW_BUILD_INVALID');
+  check(String(step(matrix, 'maven-verify')?.run ?? '').includes('./mvnw -B verify') && String(step(matrix, 'generated-conformance')?.run ?? '').includes('Test-GeneratedServiceConformance.mjs')
+    && step(matrix, 'generated-conformance')?.if === "steps.select-source.outputs.source_kind == 'ephemeral-generated'", 'SERVICE_WORKFLOW_BUILD_INVALID');
   const failsafe = step(matrix, 'failsafe-execution');
   check(String(failsafe?.run ?? '').includes('Assert-ServiceFailsafeExecution.ps1') && failsafe.env?.SERVICE_ID === '${{ matrix.service }}'
+    && failsafe.if === "steps.maven-verify.outcome == 'success'"
     && matrix.steps.indexOf(failsafe) > matrix.steps.indexOf(step(matrix, 'maven-verify')), 'SERVICE_WORKFLOW_FAILSAFE_EXECUTION_PROOF_INVALID');
   const hosted = String(step(matrix, 'run-hosted')?.run ?? '');
   check(hosted.includes('-ServiceId $env:SERVICE_ID') && hosted.includes('-CommitSha $env:EXECUTION_SHA') && hosted.includes('-UseExistingVerifiedArtifact'), 'SERVICE_WORKFLOW_ARTIFACT_BINDING_INVALID');
@@ -160,9 +162,11 @@ export function validateFreshnessMatrixWorkflow(workflow) {
   check(step(matrix, 'checkout').with?.ref === '${{ github.event.repository.default_branch }}' && step(matrix, 'checkout').with?.['persist-credentials'] === false, 'FRESHNESS_WORKFLOW_MATRIX_REF_INVALID');
   const source = String(step(matrix, 'select-source')?.run ?? '');
   check(source.includes('git ls-tree') && source.includes('git log HEAD --diff-filter=A') && source.includes('SERVICE_SOURCE_REMOVED') && source.includes('Generate-Service.mjs'), 'FRESHNESS_WORKFLOW_SOURCE_PROVENANCE_INVALID');
-  check(String(step(matrix, 'maven-verify')?.run ?? '').includes('./mvnw -B verify'), 'FRESHNESS_WORKFLOW_MAVEN_INVALID');
+  check(String(step(matrix, 'maven-verify')?.run ?? '').includes('./mvnw -B verify')
+    && step(matrix, 'generated-conformance')?.if === "steps.select-source.outputs.source_kind == 'ephemeral-generated'", 'FRESHNESS_WORKFLOW_MAVEN_INVALID');
   const failsafe = step(matrix, 'failsafe-execution');
   check(String(failsafe?.run ?? '').includes('Assert-ServiceFailsafeExecution.ps1') && failsafe.env?.SERVICE_ID === '${{ matrix.service }}'
+    && failsafe.if === "steps.maven-verify.outcome == 'success'"
     && matrix.steps.indexOf(failsafe) > matrix.steps.indexOf(step(matrix, 'maven-verify')), 'FRESHNESS_WORKFLOW_FAILSAFE_EXECUTION_PROOF_INVALID');
   const hosted = String(step(matrix, 'run-hosted')?.run ?? '');
   check(hosted.includes('-WorkflowName security-freshness') && hosted.includes('-ServiceId $env:SERVICE_ID') && hosted.includes('-CommitSha $env:EXECUTION_SHA'), 'FRESHNESS_WORKFLOW_ARTIFACT_IDENTITY_INVALID');

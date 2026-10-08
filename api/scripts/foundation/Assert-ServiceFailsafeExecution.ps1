@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet('auction-service', 'bidding-service', 'billing-service', 'realtime-gateway')]
+  [ValidateSet('identity-profile-service', 'auction-service', 'bidding-service', 'billing-service', 'realtime-gateway')]
   [string] $ServiceId,
   [string] $ReportDirectory = 'target/failsafe-reports'
 )

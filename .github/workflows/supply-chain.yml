@@ -201,6 +201,7 @@ jobs:
         run: node api/scripts/foundation/Test-ServiceConformance.mjs --templates
       - id: generated-conformance
         name: Verify expanded service tree before Maven
+        if: steps.select-source.outputs.source_kind == 'ephemeral-generated'
         env:
           SERVICE_ID: ${{ matrix.service }}
         run: node api/scripts/foundation/Test-GeneratedServiceConformance.mjs --service "$SERVICE_ID"

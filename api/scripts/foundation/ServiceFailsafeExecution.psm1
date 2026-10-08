@@ -21,16 +21,21 @@ function Test-ServiceFailsafeExecution {
     throw 'SERVICE_FAILSAFE_REGISTRY_INVALID'
   }
   $service = @($registry.services | Where-Object { $_.id -ceq $ServiceId })
-  if ($service.Count -ne 1 -or $service[0].preserved -ne $false) {
+  if ($service.Count -ne 1) {
     throw 'SERVICE_FAILSAFE_SERVICE_INVALID'
   }
 
-  $expectedClass = if ($service[0].variant -ceq 'gateway') {
+  $isPreservedIdentity = ($service[0].id -ceq 'identity-profile-service') -and ($service[0].preserved -eq $true) -and ($service[0].variant -ceq 'relational')
+  $isGeneratedGateway = ($service[0].preserved -eq $false) -and ($service[0].variant -ceq 'gateway')
+  $isGeneratedRelational = ($service[0].preserved -eq $false) -and ($service[0].variant -ceq 'relational')
+  $expectedClass = if ($isPreservedIdentity) {
+    'IdentityProfileServiceApplicationTestcontainersIT'
+  } elseif ($isGeneratedGateway) {
     'GatewayNoDatastoreIT'
-  } elseif ($service[0].variant -ceq 'relational') {
+  } elseif ($isGeneratedRelational) {
     'RelationalBoundaryTestcontainersIT'
   } else {
-    throw 'SERVICE_FAILSAFE_VARIANT_INVALID'
+    throw 'SERVICE_FAILSAFE_SERVICE_INVALID'
   }
   $reportsPath = [System.IO.Path]::GetFullPath($ReportDirectory)
   if (-not (Test-Path -LiteralPath $reportsPath -PathType Container)) {

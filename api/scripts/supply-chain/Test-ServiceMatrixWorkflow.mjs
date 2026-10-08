@@ -49,6 +49,8 @@ function fixtures() {
     ['removed service may regenerate', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'select-source').run = 'node api/scripts/foundation/Generate-Service.mjs --service "$SERVICE_ID"'; }],
     ['missing exact Maven verify', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'maven-verify').run = 'mvn verify'; }],
     ['required Failsafe execution report proof is mandatory', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'failsafe-execution').run = 'echo tests'; }],
+    ['preserved Identity skips generated-only conformance', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'generated-conformance').if = undefined; }],
+    ['preserved Identity keeps the Failsafe runtime proof', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'failsafe-execution').if = "matrix.service != 'identity-profile-service'"; }],
     ['matrix result not always uploaded', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'upload-matrix-result').if = 'success()'; }],
     ['hosted supply-chain job omits ownership contract', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = 'node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --fixtures'; }],
   ];
@@ -67,6 +69,8 @@ function freshnessFixtures() {
     ['freshness aggregate must pin and verify resolved SHA', (workflow) => { workflow.jobs['security-freshness'].steps.find((item) => item.id === 'checkout').with.ref = '${{ github.event.repository.default_branch }}'; }],
     ['freshness identity-only build', (workflow) => { workflow.jobs['service-matrix'].strategy.matrix.service = '${{ fromJSON(\'["identity-profile-service"]\') }}'; }],
     ['freshness service deletion regenerated', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'select-source').run = 'node api/scripts/foundation/Generate-Service.mjs'; }],
+    ['freshness gates generated conformance by source provenance', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'generated-conformance').if = undefined; }],
+    ['freshness keeps Identity Failsafe proof enabled', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'failsafe-execution').if = "matrix.service != 'identity-profile-service'"; }],
     ['hosted freshness job omits ownership contract', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = 'node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --freshness-fixtures'; }],
   ];
   for (const [name, mutate] of mutations) {
