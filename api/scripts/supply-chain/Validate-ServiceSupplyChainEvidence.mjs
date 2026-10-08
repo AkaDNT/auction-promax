@@ -161,14 +161,17 @@ function parsePomProjectCoordinates(pom) {
       const match = raw.match(/^([A-Za-z_][A-Za-z0-9_.:-]*)([\s\S]*)$/);
       if (!match) throw new Error("invalid XML element");
       let attributes = match[2].trim();
+      const parsedAttributes = new Map();
       const selfClosing = attributes.endsWith("/");
       if (selfClosing) attributes = attributes.slice(0, -1).trim();
       while (attributes.length) {
         const attribute = attributes.match(/^([A-Za-z_][A-Za-z0-9_.:-]*)\s*=\s*(["'])(.*?)\2\s*/s);
         if (!attribute || attribute[3].includes("<")) throw new Error("invalid XML attribute");
+        if (parsedAttributes.has(attribute[1])) throw new Error("duplicate XML attribute");
+        parsedAttributes.set(attribute[1], attribute[3]);
         attributes = attributes.slice(attribute[0].length);
       }
-      const node = { name: match[1], text: "", children: [] };
+      const node = { name: match[1], attributes: parsedAttributes, text: "", children: [] };
       const parent = stack.at(-1) ?? document;
       parent.children.push(node);
       if (!selfClosing) stack.push(node);
@@ -177,10 +180,12 @@ function parsePomProjectCoordinates(pom) {
   }
   if (stack.length !== 0 || document.children.length !== 1) throw new Error("invalid POM document root");
   const project = document.children[0];
-  if (project.name.split(":").at(-1) !== "project") throw new Error("POM root is not project");
+  if (project.name !== "project" || project.attributes.get("xmlns") !== "http://maven.apache.org/POM/4.0.0") throw new Error("POM root namespace is not Maven");
   const readCoordinate = (localName) => {
-    const matches = project.children.filter((child) => child.name.split(":").at(-1) === localName);
+    const matches = project.children.filter((child) => child.name === localName);
     if (matches.length !== 1 || matches[0].children.length !== 0) throw new Error("invalid project coordinate");
+    const coordinateNamespace = matches[0].attributes.get("xmlns");
+    if (coordinateNamespace !== undefined && coordinateNamespace !== "http://maven.apache.org/POM/4.0.0") throw new Error("project coordinate has foreign namespace");
     const value = matches[0].text.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (_entity, token) => {
       if (token === "amp") return "&";
       if (token === "lt") return "<";

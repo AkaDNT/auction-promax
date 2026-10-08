@@ -48,7 +48,7 @@ function newRepository(withSource = false) {
 }
 function writeServiceSource(root) {
   const base = `api/services/${service.id}`;
-  write(root, `${base}/pom.xml`, `<project><modelVersion>4.0.0</modelVersion><parent><groupId>fixture.parent</groupId><artifactId>parent-artifact</artifactId><version>9.9.9</version></parent><groupId>${service.groupId}</groupId><artifactId>${service.artifactId}</artifactId><version>${service.version}</version></project>`);
+  write(root, `${base}/pom.xml`, `<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion><parent><groupId>fixture.parent</groupId><artifactId>parent-artifact</artifactId><version>9.9.9</version></parent><groupId>${service.groupId}</groupId><artifactId>${service.artifactId}</artifactId><version>${service.version}</version></project>`);
   write(root, `${base}/Dockerfile`, "FROM example.invalid/runtime@sha256:0000000000000000000000000000000000000000000000000000000000000000\n");
 }
 function makeEvidence(root, revision, options = {}) {
@@ -138,9 +138,21 @@ try {
 
   const commentedPom = newRepository(true);
   const commentedEvidence = makeEvidence(commentedPom.root, commentedPom.revision);
-  write(commentedPom.root, `${service.destination}/pom.xml`, `<project><!-- <groupId>${service.groupId}</groupId><artifactId>${service.artifactId}</artifactId><version>${service.version}</version> --><groupId>attacker.group</groupId><artifactId>attacker-artifact</artifactId><version>9.9.9</version></project>`);
+  write(commentedPom.root, `${service.destination}/pom.xml`, `<project xmlns="http://maven.apache.org/POM/4.0.0"><!-- <groupId>${service.groupId}</groupId><artifactId>${service.artifactId}</artifactId><version>${service.version}</version> --><groupId>attacker.group</groupId><artifactId>attacker-artifact</artifactId><version>9.9.9</version></project>`);
   assert.throws(() => validateServiceEvidence({ serviceId: service.id, commit: commentedPom.revision, directory: commentedEvidence.evidenceDirectory }), { message: "SERVICE_EVIDENCE_ARTIFACT_MISMATCH" }, "commented coordinates cannot impersonate project GAV");
   process.stdout.write("[PASS] Commented-out Maven coordinates cannot spoof project GAV\n");
+
+  for (const [name, pom] of [
+    ["foreign-prefixed coordinate", `<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:x="urn:attacker"><x:groupId>${service.groupId}</x:groupId><x:artifactId>${service.artifactId}</x:artifactId><x:version>${service.version}</x:version></project>`],
+    ["foreign root namespace", `<x:project xmlns:x="urn:attacker"><groupId>${service.groupId}</groupId><artifactId>${service.artifactId}</artifactId><version>${service.version}</version></x:project>`],
+    ["foreign coordinate namespace", `<project xmlns="http://maven.apache.org/POM/4.0.0"><groupId xmlns="urn:attacker">${service.groupId}</groupId><artifactId>${service.artifactId}</artifactId><version>${service.version}</version></project>`],
+  ]) {
+    const namespaceFixture = newRepository(true);
+    const namespaceEvidence = makeEvidence(namespaceFixture.root, namespaceFixture.revision);
+    write(namespaceFixture.root, `${service.destination}/pom.xml`, pom);
+    assert.throws(() => validateServiceEvidence({ serviceId: service.id, commit: namespaceFixture.revision, directory: namespaceEvidence.evidenceDirectory }), { message: "SERVICE_EVIDENCE_ARTIFACT_MISMATCH" }, `${name} cannot impersonate Maven project GAV`);
+    process.stdout.write(`[PASS] ${name} cannot spoof Maven project GAV\n`);
+  }
 
   const failed = newRepository(true);
   const failedEvidence = makeEvidence(failed.root, failed.revision, { executionState: "IMPLEMENTATION_FAILURE" });
@@ -172,7 +184,7 @@ try {
   fs.writeFileSync(path.join(extraFileEvidence.evidenceDirectory, "raw-report.json"), "{}");
   rejects("Raw or unexpected artifact files fail closed", "SERVICE_EVIDENCE_FILESET_INVALID", extraFile.root, extraFile.revision);
 
-  process.stdout.write("SERVICE_SUPPLY_CHAIN_EVIDENCE_FIXTURES_PASS cases=16\n");
+  process.stdout.write("SERVICE_SUPPLY_CHAIN_EVIDENCE_FIXTURES_PASS cases=19\n");
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });
 }
