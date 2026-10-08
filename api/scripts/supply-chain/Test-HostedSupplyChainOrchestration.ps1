@@ -18,7 +18,7 @@ if ($orchestratorSource -notmatch '\$wrapperPhase = ''initialize''' -or $orchest
 if ($orchestratorSource -notmatch '\$stage\.name -eq ''prebuild''' -or $orchestratorSource -notmatch 'Container prebuild diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(CONTAINER_PREBUILD_\[A-Z_\]\+\)\\b') {
     throw 'HOSTED_PREBUILD_SANITIZED_DIAGNOSTIC_MISSING'
 }
-if ($orchestratorSource -notmatch '\$stage\.name -eq ''dependency''' -or $orchestratorSource -notmatch 'Dependency scan diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(TRIVY_\[A-Z0-9_\]\+\|VULNERABILITY_\[A-Z0-9_\]\+\)\\b') {
+if ($orchestratorSource -notmatch '\$stage\.name -eq ''dependency''' -or $orchestratorSource -notmatch 'Dependency scan diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(TRIVY_\[A-Z0-9_\]\+\|VULNERABILITY_\[A-Z0-9_\]\+\)\\b' -or $orchestratorSource -notmatch 'Dependency scan diagnostic: failureCode=DEPENDENCY_SCAN_UNCLASSIFIED; exceptionType=\{0\}') {
     throw 'HOSTED_DEPENDENCY_SCAN_SANITIZED_DIAGNOSTIC_MISSING'
 }
 if ($orchestratorSource -notmatch 'Container prebuild diagnostic: phase=stage-dispatch; exceptionType=\{0\}') {
@@ -147,6 +147,13 @@ try {
     $warningText = @($dependencyWarning) -join "`n"
     if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -notmatch 'Dependency scan diagnostic: failureCode=TRIVY_DB_REFRESH_FAILED' -or $warningText.Contains('/runner/path') -or $warningText.Contains('opaque child output')) { throw 'TEST_DEPENDENCY_SCAN_DIAGNOSTIC_NOT_SANITIZED' }
     Write-Host '[PASS] Dependency scan failure exposes only a fixed classified code and remains implementation failure'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $dependencyWarning = @()
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { throw 'private unclassified scanner details' } }) -NoExit -WarningVariable +dependencyWarning
+    $warningText = @($dependencyWarning) -join "`n"
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -notmatch 'Dependency scan diagnostic: failureCode=DEPENDENCY_SCAN_UNCLASSIFIED; exceptionType=RuntimeException' -or $warningText.Contains('private unclassified scanner details')) { throw 'TEST_DEPENDENCY_SCAN_FALLBACK_NOT_SANITIZED' }
+    Write-Host '[PASS] Unclassified dependency failure remains generic and emits only its exception class'
 
     Remove-Item -LiteralPath $root -Recurse -Force
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ container = { throw 'CONTAINER_SCAN_POLICY_BLOCKED' } }) -NoExit
