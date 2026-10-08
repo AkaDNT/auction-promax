@@ -280,7 +280,9 @@ try {
             } elseif ($stage.name -eq 'prebuild') {
                 Write-Warning ('Container prebuild diagnostic: phase=stage-dispatch; exceptionType={0}' -f $_.Exception.GetType().Name)
             }
-            if ($stage.name -eq 'dependency' -and $message -notmatch 'HIGH_OR_CRITICAL_DISPOSITION_REQUIRED|VULNERABILITY_POLICY_BLOCKED' -and $message -match '\b(TRIVY_[A-Z0-9_]+|VULNERABILITY_[A-Z0-9_]+)\b') {
+            if ($stage.name -eq 'dependency' -and $message -notmatch 'HIGH_OR_CRITICAL_DISPOSITION_REQUIRED|VULNERABILITY_POLICY_BLOCKED' -and $message -match '\b(TRIVY_[A-Z0-9_]+|VULNERABILITY_[A-Z0-9_]+)\b\|phase=([a-z-]+)') {
+                Write-Warning ('Dependency scan diagnostic: phase={0}; failureCode={1}' -f $Matches[2], $Matches[1])
+            } elseif ($stage.name -eq 'dependency' -and $message -notmatch 'HIGH_OR_CRITICAL_DISPOSITION_REQUIRED|VULNERABILITY_POLICY_BLOCKED' -and $message -match '\b(TRIVY_[A-Z0-9_]+|VULNERABILITY_[A-Z0-9_]+)\b') {
                 Write-Warning ('Dependency scan diagnostic: failureCode={0}' -f $Matches[1])
             } elseif ($stage.name -eq 'dependency' -and $message -notmatch 'HIGH_OR_CRITICAL_DISPOSITION_REQUIRED|VULNERABILITY_POLICY_BLOCKED') {
                 Write-Warning ('Dependency scan diagnostic: failureCode=DEPENDENCY_SCAN_UNCLASSIFIED; exceptionType={0}' -f $_.Exception.GetType().Name)
