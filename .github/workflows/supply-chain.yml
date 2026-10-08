@@ -102,6 +102,7 @@ jobs:
           node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --ownership-fixtures
           pwsh -NoProfile -NonInteractive -File api/scripts/foundation/Test-ServiceFailsafeExecution.ps1
           pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-ServiceArtifact.ps1
+          pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-VulnerabilityScanning.ps1
           pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-HostedSupplyChainOrchestration.ps1
       - id: validate-contract
         name: Validate hosted workflow and service matrix contract

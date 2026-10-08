@@ -101,6 +101,7 @@ jobs:
           node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --freshness-fixtures
           node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --ownership
           pwsh -NoProfile -NonInteractive -File api/scripts/foundation/Test-ServiceFailsafeExecution.ps1
+          pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-VulnerabilityScanning.ps1
       - id: run-hosted
         name: Run repository-only freshness scans
         shell: pwsh
