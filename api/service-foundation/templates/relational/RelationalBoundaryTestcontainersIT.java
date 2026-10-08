@@ -31,7 +31,8 @@ class RelationalBoundaryTestcontainersIT {
     private static final String MIGRATOR_USER = "__ENV_PREFIX___test_migrator".toLowerCase(java.util.Locale.ROOT);
     private static final String MIGRATOR_PASSWORD = "test-only-migrator-not-a-secret";
     private static final DockerImageName IMAGE = DockerImageName.parse(
-        "postgres:17.11-bookworm@sha256:84560e3b9c6874893fc4e2854f5dc3e7c1a37bc9d1dfd7a8c641310ae22ba5ad");
+        "postgres:17.11-bookworm@sha256:84560e3b9c6874893fc4e2854f5dc3e7c1a37bc9d1dfd7a8c641310ae22ba5ad")
+        .asCompatibleSubstituteFor("postgres");
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(IMAGE)

@@ -11,6 +11,8 @@ const assertions = [
   ["prebuild classifies missing canonical JAR", "Invoke-ContainerPrebuildArtifact.ps1", "CONTAINER_PREBUILD_CANONICAL_JAR_MISSING"],
   ["prebuild classifies missing canonical SBOM", "Invoke-ContainerPrebuildArtifact.ps1", "CONTAINER_PREBUILD_CANONICAL_SBOM_MISSING"],
   ["prebuild classifies present but invalid canonical artifact", "Invoke-ContainerPrebuildArtifact.ps1", "CONTAINER_PREBUILD_CANONICAL_ARTIFACT_INVALID"],
+  ["prebuild classifies a canonical JAR manifest identity mismatch without raw exception text", "Invoke-ContainerPrebuildArtifact.ps1", "CONTAINER_PREBUILD_CANONICAL_JAR_IDENTITY_INVALID"],
+  ["prebuild classifies a Maven GAV mismatch without raw exception text", "Invoke-ContainerPrebuildArtifact.ps1", "CONTAINER_PREBUILD_POM_IDENTITY_INVALID"],
   ["prebuild passes the service to SBOM validation", "Invoke-ContainerPrebuildArtifact.ps1", "'--service', $ServiceId"],
   ["image build selects a service", "Invoke-ContainerImageBuild.ps1", "[string]$ServiceId = 'identity-profile-service'"],
   ["image build forwards the selector to both prebuild modes", "Invoke-ContainerImageBuild.ps1", "-ServiceId $ServiceId"],

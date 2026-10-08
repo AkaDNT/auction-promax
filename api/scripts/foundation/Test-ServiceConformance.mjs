@@ -68,6 +68,7 @@ test('conformance rejects deliberately corrupted template sources and missing se
     ['incompatible technical exception response type', 'templates/common/TechnicalProblemAdvice.java', text => text.replace('ResponseEntity<Object> unexpected', 'ResponseEntity<ProblemDetail> unexpected')],
     ['package-private controller blocks cross-package logging test', 'templates/common/TechnicalProbeController.java', text => text.replace('public TechnicalValidationResponse validate', 'TechnicalValidationResponse validate')],
     ['null and empty MDC states are normalized before comparison', 'templates/common/StructuredLoggingTest.java', text => text.replaceAll('Optional.ofNullable(MDC.getCopyOfContextMap()).orElseGet(Map::of)', 'MDC.getCopyOfContextMap()')],
+    ['digest-pinned Postgres image declares its Testcontainers-compatible base alias', 'templates/relational/RelationalBoundaryTestcontainersIT.java', text => text.replace('.asCompatibleSubstituteFor("postgres")', '')],
     ['wrapper pin', 'templates/common/maven-wrapper.properties', text => text.replace('3.9.16', '3.9.15')],
     ['unknown token', 'templates/common/README.md', text => text + '\n__unknown_token__\n'],
     ['gateway JDBC dependency', 'templates/gateway/pom.xml', text => text.replace('</dependencies>', '<dependency><groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId></dependency></dependencies>')],

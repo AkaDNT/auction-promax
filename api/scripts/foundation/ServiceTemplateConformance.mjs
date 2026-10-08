@@ -63,6 +63,10 @@ export function validateTemplateConformance(root) {
     requireCondition(pom.includes(`<include>${selector}</include>`) && !/<skipITs>\s*true/.test(pom));
     const className = variant === 'gateway' ? 'GatewayNoDatastoreIT' : 'RelationalBoundaryTestcontainersIT';
     requireCondition(paths.has(`src/test/java/__PACKAGE_PATH__/${className}.java`));
+    if (variant === 'relational') {
+      const integrationTest = texts.get(selected.find(entry => entry.destination.endsWith('/RelationalBoundaryTestcontainersIT.java')).source) ?? '';
+      requireCondition(/DockerImageName\.parse\([\s\S]*?\)\s*\.asCompatibleSubstituteFor\("postgres"\)/.test(integrationTest));
+    }
     if (variant === 'gateway') {
       requireCondition(!/spring-boot-starter-(?:data-jpa|jdbc)|<artifactId>spring-jdbc<|org\.postgresql|flyway|<artifactId>postgresql</i.test(pom));
       for (const entry of selected) {

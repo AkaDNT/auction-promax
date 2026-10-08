@@ -144,7 +144,16 @@ if (-not (Test-Path -LiteralPath $jarPath -PathType Leaf)) { Throw-ContainerPreb
 if (-not (Test-Path -LiteralPath $bomPath -PathType Leaf)) { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_SBOM_MISSING' }
 $validatedArtifact = $null
 try { $validatedArtifact = Resolve-ServiceArtifact -ServiceId $ServiceId -RequireBuiltArtifact }
-catch { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_ARTIFACT_INVALID' }
+catch {
+    $resolverCode = [string]$_.Exception.Message
+    if ($resolverCode -ceq 'SERVICE_JAR_MANIFEST_MISMATCH') {
+        Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_JAR_IDENTITY_INVALID'
+    }
+    if ($resolverCode -ceq 'SERVICE_POM_IDENTITY_MISMATCH') {
+        Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_POM_IDENTITY_INVALID'
+    }
+    Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_ARTIFACT_INVALID'
+}
 $artifact = $validatedArtifact
 
 $jarCandidates = @(Get-ChildItem -LiteralPath $targetRoot -Filter '*.jar' -File -ErrorAction Stop)

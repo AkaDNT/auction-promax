@@ -155,8 +155,9 @@ function Assert-JarManifestIdentity {
     } catch {
         Throw-ServiceArtifactError 'SERVICE_JAR_MANIFEST_MISMATCH'
     }
-    $mainClass = [regex]::Match($content, '(?m)^Main-Class:\s*([^\r\n]+)').Groups[1].Value.Trim()
-    $startClass = [regex]::Match($content, '(?m)^Start-Class:\s*([^\r\n]+)').Groups[1].Value.Trim()
+    $unfoldedContent = [regex]::Replace($content, '(?:\r\n|\n) ', '')
+    $mainClass = [regex]::Match($unfoldedContent, '(?m)^Main-Class:\s*([^\r\n]+)').Groups[1].Value.Trim()
+    $startClass = [regex]::Match($unfoldedContent, '(?m)^Start-Class:\s*([^\r\n]+)').Groups[1].Value.Trim()
     if (($mainClass -cne 'org.springframework.boot.loader.launch.JarLauncher') -or ($startClass -cne ($Service.packageName + '.' + $Service.entryClass))) {
         Throw-ServiceArtifactError 'SERVICE_JAR_MANIFEST_MISMATCH'
     }

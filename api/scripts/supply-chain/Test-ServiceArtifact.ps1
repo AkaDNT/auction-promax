@@ -69,9 +69,16 @@ function New-ServiceFiles {
     $metaInf = Join-Path $jarRoot 'META-INF'
     [void][System.IO.Directory]::CreateDirectory($metaInf)
     $startClass = if ($ManifestEntryClass) { $ManifestEntryClass } else { $service.packageName + '.' + $service.entryClass }
+    $manifestStartClass = 'Start-Class: ' + $startClass
+    $manifestLines = @()
+    while ($manifestStartClass.Length -gt 72) {
+        $manifestLines += $manifestStartClass.Substring(0, 72)
+        $manifestStartClass = ' ' + $manifestStartClass.Substring(72)
+    }
+    $manifestLines += $manifestStartClass
     [System.IO.File]::WriteAllText(
         (Join-Path $metaInf 'MANIFEST.MF'),
-        "Manifest-Version: 1.0`r`nMain-Class: org.springframework.boot.loader.launch.JarLauncher`r`nStart-Class: $startClass`r`n`r`n",
+        "Manifest-Version: 1.0`r`nMain-Class: org.springframework.boot.loader.launch.JarLauncher`r`n$($manifestLines -join "`r`n")`r`n`r`n",
         [System.Text.Encoding]::ASCII)
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::CreateFromDirectory($jarRoot, (Join-Path $target ($service.artifactId + '-' + $service.version + '.jar')))
@@ -114,6 +121,11 @@ try {
     Assert-Equal $built.jarApiRelativePath 'services/auction-service/target/auction-service-0.0.1-SNAPSHOT.jar' 'canonical API-relative JAR path'
     Assert-Equal $built.dockerfilePath (Join-Path $built.projectPath 'Dockerfile') 'dockerfile derived from registry project'
     Assert-Equal $built.evidencePath (Join-Path $built.projectPath 'target\service-evidence') 'evidence path derived from registry project'
+
+    $longManifestFixture = New-FixtureRepository
+    New-ServiceFiles -Repository $longManifestFixture -ServiceId 'identity-profile-service'
+    $longManifest = Invoke-FixtureResolver -Repository $longManifestFixture -ServiceId 'identity-profile-service' -RequireBuiltArtifact
+    Assert-Equal $longManifest.serviceId 'identity-profile-service' 'continuation-wrapped Start-Class accepted'
 
     $forgedPomFixture = New-FixtureRepository
     New-ServiceFiles -Repository $forgedPomFixture -ServiceId 'auction-service' -PomArtifactId 'identity-profile-service'
