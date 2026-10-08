@@ -280,6 +280,9 @@ try {
             } elseif ($stage.name -eq 'prebuild') {
                 Write-Warning ('Container prebuild diagnostic: phase=stage-dispatch; exceptionType={0}' -f $_.Exception.GetType().Name)
             }
+            if ($stage.name -eq 'dependency' -and $message -notmatch 'HIGH_OR_CRITICAL_DISPOSITION_REQUIRED|VULNERABILITY_POLICY_BLOCKED' -and $message -match '\b(TRIVY_[A-Z0-9_]+|VULNERABILITY_[A-Z0-9_]+)\b') {
+                Write-Warning ('Dependency scan diagnostic: failureCode={0}' -f $Matches[1])
+            }
             if ($stage.name -eq 'base' -and $message -match '\b(CONTAINER_BASE_IMAGE_[A-Z_]+)\b') {
                 Write-Warning ('Container base trust diagnostic: failureCode={0}' -f $Matches[1])
             }
