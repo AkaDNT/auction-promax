@@ -100,6 +100,7 @@ jobs:
           node api/scripts/supply-chain/Test-ServiceSupplyChainEvidence.mjs
           node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --fixtures
           node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --ownership-fixtures
+          pwsh -NoProfile -NonInteractive -File api/scripts/foundation/Test-ServiceFailsafeExecution.ps1
           pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-ServiceArtifact.ps1
           pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-HostedSupplyChainOrchestration.ps1
       - id: validate-contract
@@ -211,6 +212,14 @@ jobs:
           set -euo pipefail
           test -x ./mvnw
           ./mvnw -B verify
+      - id: failsafe-execution
+        name: Require the registered Failsafe integration test to execute without skips
+        if: steps.maven-verify.outcome == 'success'
+        shell: bash
+        working-directory: api/services/${{ matrix.service }}
+        env:
+          SERVICE_ID: ${{ matrix.service }}
+        run: pwsh -NoProfile -NonInteractive -File "$GITHUB_WORKSPACE/api/scripts/foundation/Assert-ServiceFailsafeExecution.ps1" -ServiceId "$SERVICE_ID" -ReportDirectory target/failsafe-reports
       - id: initialize-evidence
         name: Initialize fail-closed per-service evidence
         if: always()
@@ -278,11 +287,21 @@ jobs:
       policy_state: ${{ steps.aggregate.outputs.policy_state }}
     steps:
       - id: checkout
-        name: Check out the same event execution revision
+        name: Check out the exact service execution revision
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ needs.classify-services.outputs.execution_sha }}
           fetch-depth: 0
           persist-credentials: false
+      - id: revision
+        name: Verify aggregate checkout matches service execution SHA
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ needs.classify-services.outputs.execution_sha }}
+        run: |
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          [[ "$commit" == "$EXPECTED_SHA" ]]
       - id: setup-node
         name: Set up Node.js 24.15.0
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

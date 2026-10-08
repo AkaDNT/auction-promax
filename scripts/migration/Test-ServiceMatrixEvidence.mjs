@@ -15,7 +15,8 @@ function fixture(policyState = 'PASS') {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'service-matrix-evidence-'));
   const results = path.join(base, 'results'); fs.mkdirSync(results);
   const evidence = path.join(base, 'evidence'); fs.mkdirSync(evidence);
-  writeServiceMatrixResult({ serviceId: 'auction-service', result: 'success', outputDirectory: path.join(results, 'service-result-auction-service'), repositoryRoot: root });
+  // Aggregation consumes the download-artifact extraction tree, whose child names are artifact names.
+  writeServiceMatrixResult({ serviceId: 'auction-service', result: 'success', outputDirectory: path.join(results, 's002-service-result-auction-service'), repositoryRoot: root });
   const serviceEvidence = path.join(evidence, 's002-service-evidence-auction-service'); fs.mkdirSync(serviceEvidence);
   const provenance = { kind: 'ephemeral-generated', executionCommit: commit, generatorCommit: commit, serviceId: 'auction-service' };
   for (const name of names) {

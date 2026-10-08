@@ -69,7 +69,8 @@ export function validateServiceMatrixWorkflow(workflow) {
   check(repositoryRun.includes('-RepositoryOnly') && repositoryRun.includes('git') === false, 'SERVICE_WORKFLOW_REPOSITORY_SCAN_INVALID');
   const repositoryFixtures = String(step(repository, 'matrix-fixtures')?.run ?? '');
   check(repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --fixtures')
-    && repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --ownership-fixtures'), 'SERVICE_WORKFLOW_OWNERSHIP_FIXTURES_MISSING');
+    && repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --ownership-fixtures')
+    && repositoryFixtures.includes('Test-ServiceFailsafeExecution.ps1'), 'SERVICE_WORKFLOW_OWNERSHIP_FIXTURES_MISSING');
   check(repositoryRun.includes('-CommitSha') && repositoryRun.includes('steps.revision.outputs.commit')
     && String(step(repository, 'revision')?.run ?? '').includes('needs.classify-services.outputs.execution_sha'), 'SERVICE_WORKFLOW_REPOSITORY_REVISION_INVALID');
   const repositoryUpload = step(repository, 'upload-evidence');
@@ -84,6 +85,9 @@ export function validateServiceMatrixWorkflow(workflow) {
   const source = String(step(matrix, 'select-source')?.run ?? '');
   check(source.includes('git ls-tree') && source.includes('git log HEAD --diff-filter=A') && source.includes('SERVICE_SOURCE_REMOVED') && source.includes('Generate-Service.mjs'), 'SERVICE_WORKFLOW_SOURCE_PROVENANCE_INVALID');
   check(String(step(matrix, 'maven-verify')?.run ?? '').includes('./mvnw -B verify') && String(step(matrix, 'generated-conformance')?.run ?? '').includes('Test-GeneratedServiceConformance.mjs'), 'SERVICE_WORKFLOW_BUILD_INVALID');
+  const failsafe = step(matrix, 'failsafe-execution');
+  check(String(failsafe?.run ?? '').includes('Assert-ServiceFailsafeExecution.ps1') && failsafe.env?.SERVICE_ID === '${{ matrix.service }}'
+    && matrix.steps.indexOf(failsafe) > matrix.steps.indexOf(step(matrix, 'maven-verify')), 'SERVICE_WORKFLOW_FAILSAFE_EXECUTION_PROOF_INVALID');
   const hosted = String(step(matrix, 'run-hosted')?.run ?? '');
   check(hosted.includes('-ServiceId $env:SERVICE_ID') && hosted.includes('-CommitSha $env:EXECUTION_SHA') && hosted.includes('-UseExistingVerifiedArtifact'), 'SERVICE_WORKFLOW_ARTIFACT_BINDING_INVALID');
   check(String(step(matrix, 'validate-service-evidence')?.run ?? '').includes('Validate-ServiceSupplyChainEvidence.mjs --service'), 'SERVICE_WORKFLOW_EVIDENCE_VALIDATION_INVALID');
@@ -95,6 +99,12 @@ export function validateServiceMatrixWorkflow(workflow) {
 
   const aggregate = jobs['supply-chain-verification'];
   check(aggregate.name === 'supply-chain-verification' && aggregate.if === 'always()' && JSON.stringify([...aggregate.needs].sort()) === JSON.stringify(['classify-services', 'repository-security', 'service-matrix']), 'SERVICE_WORKFLOW_AGGREGATE_INVALID');
+  const aggregateCheckout = step(aggregate, 'checkout');
+  check(aggregateCheckout?.with?.ref === '${{ needs.classify-services.outputs.execution_sha }}'
+    && aggregateCheckout.with?.['persist-credentials'] === false
+    && String(step(aggregate, 'revision')?.run ?? '').includes('git rev-parse HEAD')
+    && String(step(aggregate, 'revision')?.run ?? '').includes('$EXPECTED_SHA')
+    && step(aggregate, 'revision')?.env?.EXPECTED_SHA === '${{ needs.classify-services.outputs.execution_sha }}', 'SERVICE_WORKFLOW_AGGREGATE_REVISION_INVALID');
   check(String(step(aggregate, 'job-results')?.run ?? '').includes('CLASSIFY_RESULT') && String(step(aggregate, 'job-results')?.run ?? '').includes('REPOSITORY_RESULT'), 'SERVICE_WORKFLOW_AGGREGATE_JOB_RESULTS_INVALID');
   for (const [id, pattern, destination] of [
     ['download-results', 's002-service-result-*', '${{ runner.temp }}/s002-service-results'],
@@ -140,7 +150,8 @@ export function validateFreshnessMatrixWorkflow(workflow) {
   check(repositoryRun.includes('-WorkflowName security-freshness') && repositoryRun.includes('-RepositoryOnly') && repositoryRun.includes('steps.revision.outputs.commit'), 'FRESHNESS_WORKFLOW_REPOSITORY_SCAN_INVALID');
   const repositoryFixtures = String(step(repository, 'matrix-fixtures')?.run ?? '');
   check(repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --freshness-fixtures')
-    && repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --ownership'), 'FRESHNESS_WORKFLOW_OWNERSHIP_FIXTURES_MISSING');
+    && repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --ownership')
+    && repositoryFixtures.includes('Test-ServiceFailsafeExecution.ps1'), 'FRESHNESS_WORKFLOW_OWNERSHIP_FIXTURES_MISSING');
   check(String(step(repository, 'revision')?.run ?? '').includes('needs.resolve-services.outputs.execution_sha'), 'FRESHNESS_WORKFLOW_REPOSITORY_REVISION_INVALID');
 
   const matrix = jobs['service-matrix'];
@@ -150,6 +161,9 @@ export function validateFreshnessMatrixWorkflow(workflow) {
   const source = String(step(matrix, 'select-source')?.run ?? '');
   check(source.includes('git ls-tree') && source.includes('git log HEAD --diff-filter=A') && source.includes('SERVICE_SOURCE_REMOVED') && source.includes('Generate-Service.mjs'), 'FRESHNESS_WORKFLOW_SOURCE_PROVENANCE_INVALID');
   check(String(step(matrix, 'maven-verify')?.run ?? '').includes('./mvnw -B verify'), 'FRESHNESS_WORKFLOW_MAVEN_INVALID');
+  const failsafe = step(matrix, 'failsafe-execution');
+  check(String(failsafe?.run ?? '').includes('Assert-ServiceFailsafeExecution.ps1') && failsafe.env?.SERVICE_ID === '${{ matrix.service }}'
+    && matrix.steps.indexOf(failsafe) > matrix.steps.indexOf(step(matrix, 'maven-verify')), 'FRESHNESS_WORKFLOW_FAILSAFE_EXECUTION_PROOF_INVALID');
   const hosted = String(step(matrix, 'run-hosted')?.run ?? '');
   check(hosted.includes('-WorkflowName security-freshness') && hosted.includes('-ServiceId $env:SERVICE_ID') && hosted.includes('-CommitSha $env:EXECUTION_SHA'), 'FRESHNESS_WORKFLOW_ARTIFACT_IDENTITY_INVALID');
   check(step(matrix, 'upload-matrix-result')?.if === 'always()' && step(matrix, 'upload-service-evidence')?.if?.startsWith('always()'), 'FRESHNESS_WORKFLOW_UPLOAD_CONTRACT_INVALID');
@@ -157,6 +171,12 @@ export function validateFreshnessMatrixWorkflow(workflow) {
   const aggregate = jobs['security-freshness'];
   check(aggregate.name === 'security-freshness-verification' && aggregate.if === 'always()'
     && JSON.stringify([...aggregate.needs].sort()) === JSON.stringify(['repository-security', 'resolve-services', 'service-matrix']), 'FRESHNESS_WORKFLOW_AGGREGATE_INVALID');
+  const aggregateCheckout = step(aggregate, 'checkout');
+  check(aggregateCheckout?.with?.ref === '${{ needs.resolve-services.outputs.execution_sha }}'
+    && aggregateCheckout.with?.['persist-credentials'] === false
+    && String(step(aggregate, 'revision')?.run ?? '').includes('git rev-parse HEAD')
+    && String(step(aggregate, 'revision')?.run ?? '').includes('$EXPECTED_SHA')
+    && step(aggregate, 'revision')?.env?.EXPECTED_SHA === '${{ needs.resolve-services.outputs.execution_sha }}', 'FRESHNESS_WORKFLOW_AGGREGATE_REVISION_INVALID');
   for (const id of ['download-results', 'download-service-evidence']) {
     const download = step(aggregate, id);
     check(download?.uses === pins.download && download.with?.['merge-multiple'] === false && download.with?.['digest-mismatch'] === 'error', `FRESHNESS_WORKFLOW_DOWNLOAD_INVALID:${id}`);

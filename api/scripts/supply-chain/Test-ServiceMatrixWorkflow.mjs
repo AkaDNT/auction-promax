@@ -45,8 +45,10 @@ function fixtures() {
     ['mutable downloader pin', (workflow) => { workflow.jobs['supply-chain-verification'].steps.find((item) => item.id === 'download-results').uses = 'actions/download-artifact@v8'; }],
     ['merged result artifacts', (workflow) => { workflow.jobs['supply-chain-verification'].steps.find((item) => item.id === 'download-results').with['merge-multiple'] = true; }],
     ['PR source checkout', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'checkout').with.ref = '${{ github.event.pull_request.head.sha }}'; }],
+    ['matrix aggregate must pin and verify execution SHA', (workflow) => { workflow.jobs['supply-chain-verification'].steps.find((item) => item.id === 'checkout').with.ref = 'migration/monorepo'; }],
     ['removed service may regenerate', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'select-source').run = 'node api/scripts/foundation/Generate-Service.mjs --service "$SERVICE_ID"'; }],
     ['missing exact Maven verify', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'maven-verify').run = 'mvn verify'; }],
+    ['required Failsafe execution report proof is mandatory', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'failsafe-execution').run = 'echo tests'; }],
     ['matrix result not always uploaded', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'upload-matrix-result').if = 'success()'; }],
     ['hosted supply-chain job omits ownership contract', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = 'node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --fixtures'; }],
   ];
@@ -62,6 +64,7 @@ function freshnessFixtures() {
   const mutations = [
     ['mutable freshness downloader', (workflow) => { workflow.jobs['security-freshness'].steps.find((item) => item.id === 'download-results').uses = 'actions/download-artifact@v8'; }],
     ['freshness pinned to event SHA', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'checkout').with.ref = '${{ github.sha }}'; }],
+    ['freshness aggregate must pin and verify resolved SHA', (workflow) => { workflow.jobs['security-freshness'].steps.find((item) => item.id === 'checkout').with.ref = '${{ github.event.repository.default_branch }}'; }],
     ['freshness identity-only build', (workflow) => { workflow.jobs['service-matrix'].strategy.matrix.service = '${{ fromJSON(\'["identity-profile-service"]\') }}'; }],
     ['freshness service deletion regenerated', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'select-source').run = 'node api/scripts/foundation/Generate-Service.mjs'; }],
     ['hosted freshness job omits ownership contract', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = 'node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --freshness-fixtures'; }],

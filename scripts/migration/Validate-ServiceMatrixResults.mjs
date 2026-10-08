@@ -27,12 +27,13 @@ export function readServiceMatrixResults({ selectedServiceIds, commit, directory
   }
   assertOrdinaryPath(base, "directory");
   const entries = fs.readdirSync(base).sort();
-  const expected = [...selected].map((id) => `service-result-${id}`).sort();
+  // download-artifact preserves each artifact name as its isolated child directory.
+  const expected = [...selected].map((id) => `s002-service-result-${id}`).sort();
   if (entries.some((entry) => !expected.includes(entry))) throw new Error("SERVICE_MATRIX_RESULT_SET_INVALID");
   if (entries.length < expected.length || expected.some((entry) => !entries.includes(entry))) throw new Error("SERVICE_MATRIX_RESULT_MISSING");
   const results = [];
-  for (const id of expected.map((name) => name.slice("service-result-".length))) {
-    const artifactDirectory = path.join(base, `service-result-${id}`);
+  for (const id of expected.map((name) => name.slice("s002-service-result-".length))) {
+    const artifactDirectory = path.join(base, `s002-service-result-${id}`);
     assertOrdinaryPath(artifactDirectory, "directory");
     const children = fs.readdirSync(artifactDirectory);
     if (children.length !== 1 || children[0] !== "matrix-result.json") throw new Error("SERVICE_MATRIX_RESULT_SET_INVALID");

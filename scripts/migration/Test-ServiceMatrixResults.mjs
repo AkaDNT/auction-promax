@@ -15,7 +15,8 @@ const mkFixture = () => {
   return { base, output: path.join(base, "results") };
 };
 const write = (base, id, result = "success", revision = commit) => {
-  const directory = path.join(base, `service-result-${id}`);
+  // actions/download-artifact extracts each artifact under its artifact name.
+  const directory = path.join(base, `s002-service-result-${id}`);
   fs.mkdirSync(directory, { recursive: true });
   fs.writeFileSync(path.join(directory, "matrix-result.json"), JSON.stringify({ schemaVersion: 1, serviceId: id, commit: revision, result }) + "\n");
 };
@@ -59,8 +60,8 @@ test("collector rejects missing, extra, duplicate, wrong-revision, failed and mi
     ["extra", (d) => { write(d, "auction-service"); write(d, "realtime-gateway"); write(d, "billing-service"); }, "SERVICE_MATRIX_RESULT_SET_INVALID"],
     ["revision", (d) => { write(d, "auction-service", "success", "b".repeat(40)); write(d, "realtime-gateway"); }, "SERVICE_MATRIX_REVISION_MISMATCH"],
     ["failure", (d) => { write(d, "auction-service"); write(d, "realtime-gateway", "failure"); }, "SERVICE_MATRIX_RESULT_FAILED"],
-    ["artifact identity", (d) => { write(d, "auction-service"); write(d, "realtime-gateway"); fs.writeFileSync(path.join(d, "service-result-realtime-gateway", "matrix-result.json"), JSON.stringify({ schemaVersion: 1, serviceId: "billing-service", commit, result: "success" })); }, "SERVICE_MATRIX_RESULT_ARTIFACT_MISMATCH"],
-    ["extra file", (d) => { write(d, "auction-service"); write(d, "realtime-gateway"); fs.writeFileSync(path.join(d, "service-result-auction-service", "other.json"), "{}"); }, "SERVICE_MATRIX_RESULT_SET_INVALID"],
+    ["artifact identity", (d) => { write(d, "auction-service"); write(d, "realtime-gateway"); fs.writeFileSync(path.join(d, "s002-service-result-realtime-gateway", "matrix-result.json"), JSON.stringify({ schemaVersion: 1, serviceId: "billing-service", commit, result: "success" })); }, "SERVICE_MATRIX_RESULT_ARTIFACT_MISMATCH"],
+    ["extra file", (d) => { write(d, "auction-service"); write(d, "realtime-gateway"); fs.writeFileSync(path.join(d, "s002-service-result-auction-service", "other.json"), "{}"); }, "SERVICE_MATRIX_RESULT_SET_INVALID"],
   ];
   for (const [name, populate, code] of cases) {
     const { base, output } = mkFixture();
