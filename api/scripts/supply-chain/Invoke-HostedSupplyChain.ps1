@@ -277,6 +277,8 @@ try {
             }
             if ($stage.name -eq 'prebuild' -and $message -match '\b(CONTAINER_PREBUILD_[A-Z_]+)\b') {
                 Write-Warning ('Container prebuild diagnostic: failureCode={0}' -f $Matches[1])
+            } elseif ($stage.name -eq 'prebuild') {
+                Write-Warning ('Container prebuild diagnostic: phase=stage-dispatch; exceptionType={0}' -f $_.Exception.GetType().Name)
             }
             if ($stage.name -eq 'base' -and $message -match '\b(CONTAINER_BASE_IMAGE_[A-Z_]+)\b') {
                 Write-Warning ('Container base trust diagnostic: failureCode={0}' -f $Matches[1])

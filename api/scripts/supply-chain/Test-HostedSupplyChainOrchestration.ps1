@@ -18,6 +18,9 @@ if ($orchestratorSource -notmatch '\$wrapperPhase = ''initialize''' -or $orchest
 if ($orchestratorSource -notmatch '\$stage\.name -eq ''prebuild''' -or $orchestratorSource -notmatch 'Container prebuild diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(CONTAINER_PREBUILD_\[A-Z_\]\+\)\\b') {
     throw 'HOSTED_PREBUILD_SANITIZED_DIAGNOSTIC_MISSING'
 }
+if ($orchestratorSource -notmatch 'Container prebuild diagnostic: phase=stage-dispatch; exceptionType=\{0\}') {
+    throw 'HOSTED_PREBUILD_FALLBACK_DIAGNOSTIC_MISSING'
+}
 if ($orchestratorSource -notmatch '\$stage\.name -eq ''base''' -or $orchestratorSource -notmatch 'Container base trust diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(CONTAINER_BASE_IMAGE_\[A-Z_\]\+\)\\b') {
     throw 'HOSTED_BASE_TRUST_SANITIZED_DIAGNOSTIC_MISSING'
 }
@@ -103,6 +106,12 @@ try {
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ container = { 'POLICY_BLOCKED' }; base = { 'REVIEW_REQUIRED' } }) -NoExit
     if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'BLOCKED' -or $result.reviewState -ne 'REVIEW_REQUIRED') { throw 'TEST_COMBINED_POLICY_REVIEW_FAILED' }
     Write-Host '[PASS] Policy block and mutable-review states remain independent'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $prebuildWarning = @()
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ prebuild = { throw 'unclassified prebuild child failure' } }) -NoExit -WarningVariable +prebuildWarning
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.failureCode -ne 'SBOM_BUILD_FAILED' -or (@($prebuildWarning) -join "`n") -notmatch 'Container prebuild diagnostic: phase=stage-dispatch; exceptionType=RuntimeException') { throw 'TEST_PREBUILD_FALLBACK_DIAGNOSTIC_LOST' }
+    Write-Host '[PASS] Unclassified prebuild failure exposes only a sanitized phase and exception type'
 
     Remove-Item -LiteralPath $root -Recurse -Force
     $repositoryOnlyAdapters = New-Adapters @{

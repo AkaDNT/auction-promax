@@ -73,6 +73,8 @@ export function validateServiceMatrixWorkflow(workflow) {
     && repositoryFixtures.includes('Test-ServiceFailsafeExecution.ps1'), 'SERVICE_WORKFLOW_OWNERSHIP_FIXTURES_MISSING');
   check(repositoryRun.includes('-CommitSha') && repositoryRun.includes('steps.revision.outputs.commit')
     && String(step(repository, 'revision')?.run ?? '').includes('needs.classify-services.outputs.execution_sha'), 'SERVICE_WORKFLOW_REPOSITORY_REVISION_INVALID');
+  check(step(repository, 'initialize-summary')?.env?.EXECUTION_SHA === '${{ needs.classify-services.outputs.execution_sha }}'
+    && String(step(repository, 'initialize-summary')?.run ?? '').includes('$env:EXECUTION_SHA'), 'SERVICE_WORKFLOW_REPOSITORY_EVIDENCE_SHA_INVALID');
   const repositoryUpload = step(repository, 'upload-evidence');
   check(repositoryUpload?.uses === pins.upload && repositoryUpload.if === 'always()' && repositoryUpload.with?.['if-no-files-found'] === 'error', 'SERVICE_WORKFLOW_REPOSITORY_EVIDENCE_INVALID');
 
@@ -150,6 +152,8 @@ export function validateFreshnessMatrixWorkflow(workflow) {
   check(step(repository, 'checkout').with?.ref === '${{ github.event.repository.default_branch }}', 'FRESHNESS_WORKFLOW_REPOSITORY_REF_INVALID');
   const repositoryRun = String(step(repository, 'run-hosted')?.run ?? '');
   check(repositoryRun.includes('-WorkflowName security-freshness') && repositoryRun.includes('-RepositoryOnly') && repositoryRun.includes('steps.revision.outputs.commit'), 'FRESHNESS_WORKFLOW_REPOSITORY_SCAN_INVALID');
+  check(step(repository, 'initialize-summary')?.env?.EXECUTION_SHA === '${{ needs.resolve-services.outputs.execution_sha }}'
+    && String(step(repository, 'initialize-summary')?.run ?? '').includes('$env:EXECUTION_SHA'), 'FRESHNESS_WORKFLOW_REPOSITORY_EVIDENCE_SHA_INVALID');
   const repositoryFixtures = String(step(repository, 'matrix-fixtures')?.run ?? '');
   check(repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --freshness-fixtures')
     && repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --ownership')

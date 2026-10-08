@@ -53,6 +53,11 @@ test('the repository templates pass the reusable conformance validator', () => {
   assert.deepEqual(validateTemplateConformance(repositoryRoot).variants, ['relational', 'gateway']);
 });
 
+test('technical exception advice uses the shared ResponseEntity<Object> return contract', async () => {
+  const source = await readFile(path.join(foundationRoot, 'templates/common/TechnicalProblemAdvice.java'), 'utf8');
+  assert.match(source, /ResponseEntity<Object> unexpected\(Exception exception, HttpServletRequest request\)/);
+});
+
 test('conformance rejects deliberately corrupted template sources and missing selected paths', async (t) => {
   const mutations = [
     ['empty logging test', 'templates/common/StructuredLoggingTest.java', () => 'class EmptyTest {}\n'],
@@ -60,6 +65,7 @@ test('conformance rejects deliberately corrupted template sources and missing se
     ['missing duplicate detection', 'templates/common/StructuredLoggingTest.java', text => text.replace('STRICT_DUPLICATE_DETECTION', 'AUTO_CLOSE_SOURCE')],
     ['missing outer MDC case', 'templates/common/StructuredLoggingTest.java', text => text.replace('outer-correlation', 'omitted-case')],
     ['missing negative fixture assertion', 'templates/common/ArchitectureTest.java', text => text.replace('.hasMessageContaining("InvalidInboundDependency")', '')],
+    ['incompatible technical exception response type', 'templates/common/TechnicalProblemAdvice.java', text => text.replace('ResponseEntity<Object> unexpected', 'ResponseEntity<ProblemDetail> unexpected')],
     ['wrapper pin', 'templates/common/maven-wrapper.properties', text => text.replace('3.9.16', '3.9.15')],
     ['unknown token', 'templates/common/README.md', text => text + '\n__unknown_token__\n'],
     ['gateway JDBC dependency', 'templates/gateway/pom.xml', text => text.replace('</dependencies>', '<dependency><groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId></dependency></dependencies>')],

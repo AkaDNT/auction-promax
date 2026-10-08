@@ -57,11 +57,11 @@ jobs:
         name: Initialize fail-closed repository evidence
         shell: pwsh
         env:
-          TRIGGERED_SHA: ${{ github.sha }}
+          EXECUTION_SHA: ${{ needs.classify-services.outputs.execution_sha }}
         run: |
           $root = Join-Path $env:RUNNER_TEMP 's001-t07-evidence/hosted'
           New-Item -ItemType Directory -Path $root -Force | Out-Null
-          $summary = '{"schemaVersion":1,"workflow":"supply-chain","commit":"' + $env:TRIGGERED_SHA + '","executionState":"IMPLEMENTATION_FAILURE","policyState":"NOT_EVALUATED","reviewState":"NOT_REQUIRED","deltaState":"NOT_APPLICABLE","failureCode":"SUPPLY_CHAIN_NOT_STARTED"}'
+          $summary = '{"schemaVersion":1,"workflow":"supply-chain","commit":"' + $env:EXECUTION_SHA + '","executionState":"IMPLEMENTATION_FAILURE","policyState":"NOT_EVALUATED","reviewState":"NOT_REQUIRED","deltaState":"NOT_APPLICABLE","failureCode":"SUPPLY_CHAIN_NOT_STARTED"}'
           [System.IO.File]::WriteAllText((Join-Path $root 'run-summary.json'), $summary, [System.Text.UTF8Encoding]::new($false))
       - id: checkout
         name: Check out the event execution revision

@@ -30,6 +30,8 @@ export function validateTemplateConformance(root) {
     requireCondition(architecture.includes(`${rule}.allowEmptyShould(true).check(PRODUCTION)`));
   }
   requireCondition(!/allowEmptyShould\(true\)\.check\(fixture\)/.test(architecture));
+  const problemAdvice = texts.get('templates/common/TechnicalProblemAdvice.java') ?? '';
+  requireCondition(/ResponseEntity<Object> unexpected\(Exception exception, HttpServletRequest request\)/.test(problemAdvice));
   for (const entry of entries) {
     const text = texts.get(entry.source);
     const values = Object.fromEntries([...tokens].filter(token => !entry.variants.includes('gateway')

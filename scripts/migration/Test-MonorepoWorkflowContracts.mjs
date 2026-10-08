@@ -104,6 +104,7 @@ function validateWorkflowSet(workflows) {
     check(String(step(matrix, "maven-verify")?.run ?? "").includes("./mvnw -B verify"), "SERVICE_MATRIX_MAVEN_COMMAND_INVALID");
     check(String(step(matrix, "select-source")?.run ?? "").includes("SERVICE_SOURCE_REMOVED"), "SERVICE_MATRIX_DELETION_GUARD_MISSING");
     check(String(step(repository, "run-hosted")?.run ?? "").includes("-RepositoryOnly"), "REPOSITORY_ONLY_SCAN_MODE_MISSING");
+    check(step(repository, "initialize-summary")?.env?.EXECUTION_SHA === "${{ needs.classify-services.outputs.execution_sha }}", "REPOSITORY_EVIDENCE_SHA_SOURCE_INVALID");
     const matrixFixtures = String(step(repository, "matrix-fixtures")?.run ?? "");
     check(matrixFixtures.includes("Test-ServiceMatrixWorkflow.mjs --fixtures")
       && matrixFixtures.includes("Test-ServiceMatrixWorkflow.mjs --ownership-fixtures"), "SERVICE_MATRIX_OWNERSHIP_CONTRACT_NOT_ENFORCED");
@@ -127,6 +128,7 @@ function validateWorkflowSet(workflows) {
     check(step(resolve, "list-services")?.run === "node scripts/migration/MonorepoRequiredChecks.mjs --list-services", "FRESHNESS_REGISTRY_SELECTOR_INVALID");
     check(String(step(resolve, "revision")?.run ?? "").includes("git rev-parse HEAD"), "FRESHNESS_EXECUTION_SHA_INVALID");
     const repository = jobs["repository-security"];
+    check(step(repository, "initialize-summary")?.env?.EXECUTION_SHA === "${{ needs.resolve-services.outputs.execution_sha }}", "FRESHNESS_EVIDENCE_SHA_SOURCE_INVALID");
     check(String(step(repository, "run-hosted")?.run ?? "").includes("-WorkflowName security-freshness") && String(step(repository, "run-hosted")?.run ?? "").includes("-RepositoryOnly"), "FRESHNESS_REPOSITORY_SCAN_INVALID");
     const matrixFixtures = String(step(repository, "matrix-fixtures")?.run ?? "");
     check(matrixFixtures.includes("Test-ServiceMatrixWorkflow.mjs --freshness-fixtures")
@@ -187,6 +189,8 @@ function runFixtures() {
   expectRejected("broad permission rejected", (w) => { w["supply-chain.yml"].permissions["id-token"] = "write"; });
   expectRejected("missing timeout rejected", (w) => { delete w["api-baseline.yml"].jobs["verify-cdk-toolchain"]["timeout-minutes"]; });
   expectRejected("raw artifact path rejected", (w) => { w["supply-chain.yml"].jobs["repository-security"].steps.find((s) => s.id === "upload-evidence").with.path = "api/target"; });
+  expectRejected("repository evidence must bind the resolved event execution SHA", (w) => { w["supply-chain.yml"].jobs["repository-security"].steps.find((s) => s.id === "initialize-summary").env.EXECUTION_SHA = "${{ github.sha }}"; });
+  expectRejected("freshness evidence must bind the resolved default-branch SHA", (w) => { w["security-freshness.yml"].jobs["repository-security"].steps.find((s) => s.id === "initialize-summary").env.EXECUTION_SHA = "${{ github.sha }}"; });
   expectRejected("service matrix ownership fixture must stay in the hosted supply-chain workflow", (w) => { w["supply-chain.yml"].jobs["repository-security"].steps.find((s) => s.id === "matrix-fixtures").run = "node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --fixtures"; });
   expectRejected("workflow ownership contract must stay in freshness checks", (w) => { w["security-freshness.yml"].jobs["repository-security"].steps.find((s) => s.id === "matrix-fixtures").run = "node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --freshness-fixtures"; });
   expectRejected("stale API script path rejected", (w) => { w["supply-chain.yml"].jobs["repository-security"].steps.find((s) => s.id === "validate-contract").run = "node ./scripts/supply-chain/Test-HostedSupplyChainContract.mjs --repository-supply-chain"; });
