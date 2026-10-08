@@ -29,6 +29,7 @@ function Invoke-HostedStage {
 function Invoke-HostedRepositoryScript {
     param([Parameter(Mandatory)][string]$ScriptName, [string[]]$Arguments = @(), [string]$BootstrapTemporaryRoot, [string]$SmokeTemporaryRoot, [string]$ContainerScanTemporaryRoot)
     $isToolBootstrap = $ScriptName -eq 'Install-SupplyChainTools.ps1'
+    $isDependencyScan = $ScriptName -eq 'Invoke-VulnerabilityScanning.ps1'
     $isSmoke = $ScriptName -eq 'Invoke-ContainerTechnicalSmoke.ps1'
     $isContainerScan = $ScriptName -eq 'Invoke-ContainerVulnerabilityScanning.ps1'
     $wrapperPhase = 'initialize'
@@ -46,6 +47,10 @@ function Invoke-HostedRepositoryScript {
         if ($isToolBootstrap -and $message -notmatch '^TOOL_BOOTSTRAP_[A-Z_]+_FAILED$') {
             Write-Warning ('Tool bootstrap wrapper diagnostic: phase={0}; exceptionType={1}' -f $wrapperPhase, $_.Exception.GetType().Name)
             throw 'TOOL_BOOTSTRAP_WRAPPER_FAILED'
+        }
+        if ($isDependencyScan) {
+            Write-Warning ('Dependency scan wrapper diagnostic: phase={0}; exceptionType={1}' -f $wrapperPhase, $_.Exception.GetType().Name)
+            throw 'DEPENDENCY_SCAN_WRAPPER_FAILED'
         }
         throw
     }
@@ -99,6 +104,10 @@ function Invoke-HostedRepositoryScript {
         $exitCode = $LASTEXITCODE
     } catch {
         if ($isToolBootstrap) { throw 'TOOL_BOOTSTRAP_CHILD_LAUNCH_FAILED' }
+        if ($isDependencyScan) {
+            Write-Warning ('Dependency scan wrapper diagnostic: phase=launch-child; exceptionType={0}' -f $_.Exception.GetType().Name)
+            throw 'DEPENDENCY_SCAN_CHILD_LAUNCH_FAILED'
+        }
         throw
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
@@ -148,6 +157,15 @@ function Invoke-HostedRepositoryScript {
     }
     if ($exitCode -ne 0) {
         $text = $output -join [Environment]::NewLine
+        if ($isDependencyScan) {
+            if ($text -match '\b(VULNERABILITY_[A-Z0-9_]+|TRIVY_[A-Z0-9_]+)\|phase=(validate-contracts|load-contract|resolve-trivy|verify-db|scan|sanitize|policy|write-inventory|complete)\b') {
+                Write-Warning ('Dependency scan child diagnostic: phase={0}; failureCode={1}' -f $Matches[2], $Matches[1])
+            } elseif ($text -match '\b(VULNERABILITY_[A-Z0-9_]+|TRIVY_[A-Z0-9_]+)\b') {
+                Write-Warning ('Dependency scan child diagnostic: phase=child-exit; failureCode={0}' -f $Matches[1])
+            } else {
+                Write-Warning 'Dependency scan child diagnostic: phase=child-exit; failureCode=DEPENDENCY_SCAN_UNCLASSIFIED'
+            }
+        }
         if ($isToolBootstrap) {
             if ($text -match '\b(TOOL_BOOTSTRAP_(?:COSIGN|TRIVY|PROVENANCE|TUF_REFRESH|GITLEAKS|MODULE_LOAD|PLATFORM_RESOLUTION|CHILD_PROCESS|WRAPPER|SCRIPT_RESOLUTION|SHELL_RESOLUTION|CHILD_LAUNCH)_FAILED)\b') { throw $Matches[1] }
             throw 'TOOL_BOOTSTRAP_CHILD_PROCESS_FAILED'

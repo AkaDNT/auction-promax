@@ -24,6 +24,9 @@ if ($orchestratorSource -notmatch '\$stage\.name -eq ''dependency''' -or $orches
 if ($orchestratorSource -notmatch '\$PSNativeCommandUseErrorActionPreference = \$false' -or $orchestratorSource -notmatch '\$PSNativeCommandUseErrorActionPreference = \$previousNativeErrorPreference' -or $orchestratorSource -notmatch '\$exitCode = \$LASTEXITCODE') {
     throw 'HOSTED_CHILD_NATIVE_EXIT_CAPTURE_NOT_EXPLICIT'
 }
+if ($orchestratorSource -notmatch 'Dependency scan wrapper diagnostic: phase=\{0\}; exceptionType=\{1\}' -or $orchestratorSource -notmatch 'Dependency scan child diagnostic: phase=\{0\}; failureCode=\{1\}' -or $orchestratorSource -notmatch 'Dependency scan child diagnostic: phase=child-exit; failureCode=DEPENDENCY_SCAN_UNCLASSIFIED') {
+    throw 'HOSTED_DEPENDENCY_CHILD_BOUNDARY_DIAGNOSTIC_MISSING'
+}
 if ($orchestratorSource -notmatch 'Container prebuild diagnostic: phase=stage-dispatch; exceptionType=\{0\}') {
     throw 'HOSTED_PREBUILD_FALLBACK_DIAGNOSTIC_MISSING'
 }
