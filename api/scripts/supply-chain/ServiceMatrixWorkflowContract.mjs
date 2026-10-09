@@ -89,6 +89,12 @@ export function validateServiceMatrixWorkflow(workflow) {
   check(source.includes('git ls-tree') && source.includes('git log HEAD --diff-filter=A') && source.includes('SERVICE_SOURCE_REMOVED') && source.includes('Generate-Service.mjs'), 'SERVICE_WORKFLOW_SOURCE_PROVENANCE_INVALID');
   check(String(step(matrix, 'maven-verify')?.run ?? '').includes('./mvnw -B verify') && String(step(matrix, 'generated-conformance')?.run ?? '').includes('Test-GeneratedServiceConformance.mjs')
     && step(matrix, 'generated-conformance')?.if === "steps.select-source.outputs.source_kind == 'ephemeral-generated'", 'SERVICE_WORKFLOW_BUILD_INVALID');
+  const jacksonGraph = step(matrix, 'jackson-dependency-graph');
+  check(String(jacksonGraph?.run ?? '').includes('./mvnw -B -ntp dependency:tree')
+    && String(jacksonGraph?.run ?? '').includes('JacksonDependencyTree.mjs')
+    && jacksonGraph.if === "steps.maven-verify.outcome == 'success'"
+    && matrix.steps.indexOf(jacksonGraph) > matrix.steps.indexOf(step(matrix, 'maven-verify'))
+    && matrix.steps.indexOf(jacksonGraph) < matrix.steps.indexOf(step(matrix, 'failsafe-execution')), 'SERVICE_WORKFLOW_JACKSON_GRAPH_INVALID');
   const failsafe = step(matrix, 'failsafe-execution');
   check(String(failsafe?.run ?? '').includes('Assert-ServiceFailsafeExecution.ps1') && failsafe.env?.SERVICE_ID === '${{ matrix.service }}'
     && failsafe.if === "steps.maven-verify.outcome == 'success'"
@@ -170,6 +176,12 @@ export function validateFreshnessMatrixWorkflow(workflow) {
   check(source.includes('git ls-tree') && source.includes('git log HEAD --diff-filter=A') && source.includes('SERVICE_SOURCE_REMOVED') && source.includes('Generate-Service.mjs'), 'FRESHNESS_WORKFLOW_SOURCE_PROVENANCE_INVALID');
   check(String(step(matrix, 'maven-verify')?.run ?? '').includes('./mvnw -B verify')
     && step(matrix, 'generated-conformance')?.if === "steps.select-source.outputs.source_kind == 'ephemeral-generated'", 'FRESHNESS_WORKFLOW_MAVEN_INVALID');
+  const jacksonGraph = step(matrix, 'jackson-dependency-graph');
+  check(String(jacksonGraph?.run ?? '').includes('./mvnw -B -ntp dependency:tree')
+    && String(jacksonGraph?.run ?? '').includes('JacksonDependencyTree.mjs')
+    && jacksonGraph.if === "steps.maven-verify.outcome == 'success'"
+    && matrix.steps.indexOf(jacksonGraph) > matrix.steps.indexOf(step(matrix, 'maven-verify'))
+    && matrix.steps.indexOf(jacksonGraph) < matrix.steps.indexOf(step(matrix, 'failsafe-execution')), 'FRESHNESS_WORKFLOW_JACKSON_GRAPH_INVALID');
   const failsafe = step(matrix, 'failsafe-execution');
   check(String(failsafe?.run ?? '').includes('Assert-ServiceFailsafeExecution.ps1') && failsafe.env?.SERVICE_ID === '${{ matrix.service }}'
     && failsafe.if === "steps.maven-verify.outcome == 'success'"

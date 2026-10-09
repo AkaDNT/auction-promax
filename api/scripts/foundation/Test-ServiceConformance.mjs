@@ -58,6 +58,19 @@ test('technical exception advice uses the shared ResponseEntity<Object> return c
   assert.match(source, /ResponseEntity<Object> unexpected\(Exception exception, HttpServletRequest request\)/);
 });
 
+test('all service source POMs use only the approved Jackson BOM override', async () => {
+  const pomPaths = [
+    path.join(foundationRoot, 'templates/relational/pom.xml'),
+    path.join(foundationRoot, 'templates/gateway/pom.xml'),
+    path.join(repositoryRoot, 'api/services/identity-profile-service/pom.xml'),
+  ];
+  for (const pomPath of pomPaths) {
+    const pom = await readFile(pomPath, 'utf8');
+    assert.match(pom, /<jackson-bom\.version>2\.21\.7<\/jackson-bom\.version>/, pomPath);
+    assert.doesNotMatch(pom, /<artifactId>jackson-[^<]+<\/artifactId>\s*<version>/, pomPath);
+  }
+});
+
 test('conformance rejects deliberately corrupted template sources and missing selected paths', async (t) => {
   const mutations = [
     ['empty logging test', 'templates/common/StructuredLoggingTest.java', () => 'class EmptyTest {}\n'],
