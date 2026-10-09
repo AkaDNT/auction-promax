@@ -261,7 +261,7 @@ try {
     $smokeSettings = Get-ContainerSmokeConfiguration -Artifact $artifact -SmokeContract $smoke
     $smokeProfile = [string]$smokeSettings.profile
     $name = 'apx-' + $artifact.serviceId + '-t03-smoke-' + [Guid]::NewGuid().ToString('N').Substring(0,12)
-    $appArguments = @('--detach','--rm','--name',$name,'--platform',$contract.image.platform,'--user',$runtimeUser,'--read-only','--tmpfs',$smoke.tmpfsPath,'--cap-drop','ALL','--security-opt','no-new-privileges','--pids-limit',[string]$smoke.pidsLimit)
+    $appArguments = @('run','--detach','--rm','--name',$name,'--platform',$contract.image.platform,'--user',$runtimeUser,'--read-only','--tmpfs',$smoke.tmpfsPath,'--cap-drop','ALL','--security-opt','no-new-privileges','--pids-limit',[string]$smoke.pidsLimit)
     if ($artifact.variant -ceq 'relational') {
         $databaseName = 'apx-' + $artifact.serviceId + '-t03-db-' + [Guid]::NewGuid().ToString('N').Substring(0,8)
         $networkName = 'apx-' + $artifact.serviceId + '-t03-net-' + [Guid]::NewGuid().ToString('N').Substring(0,8)

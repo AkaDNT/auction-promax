@@ -39,7 +39,7 @@ if ($orchestratorSource -notmatch '\$stage\.name -eq ''base''' -or $orchestrator
 if ($orchestratorSource -notmatch 'Container base resolution diagnostic: phase=\{0\}; exceptionType=\{1\}') {
     throw 'HOSTED_BASE_RESOLUTION_PHASE_DIAGNOSTIC_MISSING'
 }
-if ($orchestratorSource -notmatch '\$stage\.name -eq ''smoke''' -or $orchestratorSource -notmatch 'Container smoke diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(CONTAINER_SMOKE_\[A-Z_\]\+\)\\b') {
+if ($orchestratorSource -notmatch '\$stage\.name -eq ''smoke''' -or $orchestratorSource -notmatch 'Container smoke diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(CONTAINER_SMOKE_\[A-Z0-9_\]\+\)\\b') {
     throw 'HOSTED_SMOKE_SANITIZED_DIAGNOSTIC_MISSING'
 }
 if ($orchestratorSource -notmatch 'Container smoke diagnostic: phase=\{0\}; failureCode=\{1\}; exceptionType=\{2\}') {

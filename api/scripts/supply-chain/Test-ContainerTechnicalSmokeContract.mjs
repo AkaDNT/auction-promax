@@ -29,6 +29,7 @@ for (const [name, expected] of [
   ["Hardening drift fails closed", "CONTAINER_SMOKE_HARDENING_DRIFT"],
   ["Explicit Docker executable is mandatory", "$script:dockerExe"],
   ["Cleanup is mandatory", "rm --force $name"],
+  ["Application container is started with the Docker run subcommand", "@('run','--detach','--rm','--name',$name"],
   ["Smoke phases are classified", "$smokePhase = 'startup'"],
   ["Docker startup failures use a fixed sanitized classifier", "function Resolve-DockerFailureCode([string]$Output, [string]$FallbackCode, [int]$ExitCode = 0)"],
   ["Docker failure classifier has executable representative cases", "function Invoke-ContainerSmokeFailureClassifierContractTest"],
