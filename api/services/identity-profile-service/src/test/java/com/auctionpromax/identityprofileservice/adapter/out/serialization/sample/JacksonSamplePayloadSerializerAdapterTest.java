@@ -27,6 +27,22 @@ class JacksonSamplePayloadSerializerAdapterTest {
       new JacksonSamplePayloadSerializerAdapter(objectMapper);
 
   @Test
+  void preservesStoredResponseBytesAndNullEventCorrelation() {
+    assertThat(adapter.serializeResponse(new StoredSampleResponseData(SAMPLE_ID, "RECORDED")))
+        .isEqualTo("{\"sampleId\":\"0192f1c0-0000-7000-8000-000000000021\",\"status\":\"RECORDED\"}");
+    assertThat(adapter.serializeEvent(new SampleRecordedEventData(
+        EVENT_ID, SAMPLE_ID, COMMAND_ID, OCCURRED_AT, null, "PHASE_0_BASELINE")))
+        .isEqualTo("{\"eventId\":\"0192f1c0-0000-7000-8000-000000000020\","
+            + "\"eventType\":\"identity-profile.sample-recorded\",\"eventVersion\":1,"
+            + "\"aggregateType\":\"identity-profile-sample\","
+            + "\"aggregateId\":\"0192f1c0-0000-7000-8000-000000000021\",\"aggregateVersion\":1,"
+            + "\"occurredAt\":\"2026-09-06T12:00:00Z\",\"producer\":\"identity-profile-service\","
+            + "\"correlationId\":null,\"causationId\":\"0192f1c0-0000-7000-8000-000000000022\","
+            + "\"payload\":{\"sampleId\":\"0192f1c0-0000-7000-8000-000000000021\","
+            + "\"purpose\":\"PHASE_0_BASELINE\"}}");
+  }
+
+  @Test
   void serializesVersionedEventEnvelopeAndPayload() throws Exception {
     String serialized = adapter.serializeEvent(new SampleRecordedEventData(
         EVENT_ID,

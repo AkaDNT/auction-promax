@@ -66,6 +66,27 @@ class TechnicalHttpTest {
     }
 
     @Test
+    void preservesTechnicalSuccessAndMalformedProblemContracts() throws Exception {
+        mockMvc.perform(post("/internal/technical-baseline/validate")
+                .header(CorrelationIdFilter.HEADER_NAME, "spring-baseline-success")
+                .contentType(APPLICATION_JSON).content("{\"value\":\"hello\"}"))
+            .andExpect(status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                .json("{\"accepted\":true,\"valueLength\":5}", true));
+        mockMvc.perform(post("/internal/technical-baseline/validate")
+                .header(CorrelationIdFilter.HEADER_NAME, "spring-baseline-malformed")
+                .contentType(APPLICATION_JSON).content("{\"value\":"))
+            .andExpect(status().isBadRequest())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                .contentTypeCompatibleWith(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().json("""
+                {"type":"urn:auction-promax:problem:malformed-request","title":"Request rejected",
+                 "status":400,"detail":"The request is invalid.","instance":"/internal/technical-baseline/validate",
+                 "code":"MALFORMED_REQUEST","correlationId":"spring-baseline-malformed"}
+                """, true));
+    }
+
+    @Test
     void acceptsNonblankValueAtMaximumLength() throws Exception {
         mockMvc.perform(post("/internal/technical-baseline/validate")
                 .contentType(APPLICATION_JSON).content("{\"value\":\"" + "x".repeat(100) + "\"}"))
