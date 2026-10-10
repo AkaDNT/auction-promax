@@ -1,6 +1,14 @@
 # T02 execution log — 2026-10-07
 
-Status: SOURCE_ACCEPTANCE_VERIFIED_AT_5184a62. Protected Linux source gates passed at the exact revision below. PR20 remains unmerged; release-policy remains BLOCKED. Any later documentation candidate requires its own hosted read-back before claiming current-tip GREEN.
+Status: T02_PUBLISHED_VERIFIED. PR20 merged into `migration/monorepo`; source delivery and postmerge required checks are verified. release-policy remains BLOCKED. Generated service/runtime acceptance remains T04/T05 work.
+
+## Publication and closeout — current state
+
+PR20 merged on 2026-10-07 at 10:10:54 UTC. Merge `03f1e7b7af93e68a4a47fbef3ea9c23d351ced24`, parents `6459baf17ae8a88aeceb5d5d24bc0c601ba6868b` and final candidate `569451b129d12d87a86eb1110ee2f4b504f05c2a`; tree `603a369a99340f428c0bac47f89ea870277e336c`.
+
+Postmerge push run [37605682647](https://github.com/AkaDNT/auction-promax/actions/runs/37605682647): lifecycle, API, web and `monorepo-required` SUCCESS. Supply-chain run [37605682664](https://github.com/AkaDNT/auction-promax/actions/runs/37605682664): `supply-chain-verification` SUCCESS; `release-policy` FAILURE remains the existing BLOCKED disposition, not a T02 execution failure. API/Web baseline runs also succeeded. Candidate 569451b had both PR/push required gates SUCCESS before merge.
+
+T02 is closed as source-template delivery only. T03 begins with an exact hardcoded-target/interface audit and modified-file allowlist; no T03 implementation or policy/trust change is claimed here.
 
 ## Protected Linux acceptance — observed
 
@@ -30,7 +38,7 @@ The generator suite renders all four services into two independent temporary roo
 
 Additional fixtures cover malformed registry, unknown/preserved ids, missing publisher, render/write/pre-publish exceptions, existing empty/nonempty/file/case-alias destinations, late destination creation, links and ancestor links, replaced staging ownership, orphan reporting, overlapping generator calls, real two-process generation, process termination while staged and foreign-CWD sanitized CLI errors. Actual publisher tests independently exercise collisions and concurrent `Directory.Move` attempts.
 
-Windows refuses to rename the services parent while the owned lock is open (observed EPERM). The Windows replacement fixture therefore replaces the stage itself; the Linux branch replaces the services parent. Linux parent-replacement execution is pending and is not inferred from Windows results.
+Windows refuses to rename the services parent while the owned lock is open (observed EPERM). The Windows replacement fixture therefore replaces the stage itself; the Linux branch replaces the services parent. Linux parent-replacement execution passed in the hosted acceptance recorded above; it is not inferred from Windows results.
 
 Reusable source conformance accepts valid templates and rejects deliberate mutations: wrapper pin, unknown token, gateway JDBC dependency/configuration, missing Failsafe selector/class, empty logging/architecture tests, missing duplicate-key detection, missing outer-MDC case and missing named negative-fixture assertion.
 
@@ -44,7 +52,7 @@ Reusable source conformance accepts valid templates and rejects deliberate mutat
 | Required-check/workflow/lifecycle regressions | PASS: required-checks 12/12; workflow repository contract; S002 fixture/repository; S001 T09 complete/closeout |
 | Canonical Gitleaks contract, final source rerun | PASS: dirFindings=0, gitFindings=0, falsePositives=0; exit 0 |
 | Identity and Markdown handoff, final rerun | PASS: 101 files match tracked blobs and raw checkout-filter baseline; four changed Markdown files, six file links checked |
-| Protected Linux symlink/mode/publication run | PENDING_HOSTED_PROOF |
+| Protected Linux symlink/mode/publication run | PASS: generator 39/39, conformance 30/30, publisher 11 executed; exact revision/run above |
 
 ## Defects discovered and corrected
 
@@ -65,7 +73,9 @@ Current raw manifest SHA256: `52387fed2968047f5f2dffae14b0457c1f02f4df189ab578be
 
 The older local ledger recorded `33a049c3c2bb6e6f38ca8ac5aa710ef8ddf68e775de371b47c4f885fd3196cd0` without a retained per-file manifest or full hashing command. Its documented format could not be reproduced; this log does not claim those aggregate digests equal. The independently checked per-file HEAD/raw-checkout comparison establishes the observed current preservation evidence. Identity source was not edited.
 
-## Remaining acceptance and publication
+## Historical execution chronology
+
+The following entries describe the state at each earlier checkpoint. Pending/open/local-only statements are historical and superseded by the publication closeout above.
 
 ### PR20 Linux failure and narrow correction
 
@@ -81,6 +91,6 @@ The approved Linux route must run on the published candidate revision and retain
 
 Local T02 source commit: `a0b4a3eb9d9cd28d200caa81663f569a11017e09`, tree `0b7ff987db7d62df6f15d86219d7c7394aebda9b`. Exact staged-path whitespace verification passed before commit. This follow-up documentation records the source commit; the final candidate revision includes this evidence update.
 
-Push/PR publication needs owner authorization under the plan; no merge authority is implied. Proposed publication: a dedicated `work/s002-t02-service-foundation` branch and PR for the already-approved protected Linux route, without merging. After Linux acceptance, update this log and the parent task with observed evidence. A hosted failure must be diagnosed before T02 can be marked DONE.
+Push/PR publication was separately owner-authorized. PR20 and Linux acceptance completed, and the owner subsequently reported the merge; exact merge and postmerge checks were independently read back above. This does not grant merge authority for T03 or later work.
 
 Generated Maven/Failsafe execution, resolved transitive dependency exclusion, native PostgreSQL isolation and artifact/SBOM scans remain T04/T05 obligations. No generated service, business/domain implementation, native database operation or credentials were delivered in T02.

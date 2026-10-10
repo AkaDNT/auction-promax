@@ -16,10 +16,31 @@ const ajvRoot = path.join(repoRoot, "contracts/node_modules/ajv/dist");
 const ajv2020Path = path.join(ajvRoot, "2020.js");
 const ajvDraft07Path = path.join(ajvRoot, "ajv.js");
 const trustManifestSchemaPath = path.join(repoRoot, "security/schemas/cyclonedx-schemas.schema.json");
+const serviceRegistryPath = path.join(repoRoot, "service-foundation/services.json");
 
 function fail(code) {
   throw new ValidationFailure(code);
 }
+
+function loadServiceRegistry() {
+  const registry = readJson(serviceRegistryPath, "SERVICE_REGISTRY_MISSING", "SERVICE_REGISTRY_MALFORMED");
+  if (Object.keys(registry ?? {}).sort().join("|") !== "schemaVersion|services" || registry.schemaVersion !== 1
+    || !Array.isArray(registry.services) || registry.services.length !== 5) fail("SERVICE_REGISTRY_INVALID");
+  const services = new Map();
+  for (const service of registry.services) {
+    const keys = ["artifactId", "database", "destination", "entryClass", "environmentPrefix", "groupId", "id", "packageName", "preserved", "schema", "testDatabase", "variant", "version"];
+    if (!service || typeof service !== "object" || Array.isArray(service)
+      || Object.keys(service).sort().join("|") !== keys.sort().join("|")
+      || typeof service.id !== "string" || !/^[a-z][a-z0-9-]*$/.test(service.id)
+      || !["relational", "gateway"].includes(service.variant) || services.has(service.id)) fail("SERVICE_REGISTRY_INVALID");
+    if (service.variant === "gateway" && [service.database, service.testDatabase, service.schema, service.environmentPrefix].some((value) => value !== null)) fail("SERVICE_REGISTRY_INVALID");
+    if (service.variant === "relational" && [service.database, service.testDatabase, service.schema, service.environmentPrefix].some((value) => typeof value !== "string" || !value)) fail("SERVICE_REGISTRY_INVALID");
+    services.set(service.id, service);
+  }
+  return services;
+}
+
+const serviceRegistry = loadServiceRegistry();
 
 function parseArguments(argv) {
   const values = new Map();
@@ -33,13 +54,14 @@ function parseArguments(argv) {
     if (!values.has(required)) fail("MISSING_REQUIRED_ARGUMENT");
   }
   for (const key of values.keys()) {
-    if (!new Set(["--bom", "--schema-root", "--trust-manifest", "--reference-bom"]).has(key)) fail("UNSUPPORTED_ARGUMENT");
+    if (!new Set(["--bom", "--schema-root", "--trust-manifest", "--reference-bom", "--service"]).has(key)) fail("UNSUPPORTED_ARGUMENT");
   }
   return {
     bomPath: path.resolve(values.get("--bom")),
     schemaRoot: path.resolve(values.get("--schema-root")),
     trustManifestPath: path.resolve(values.get("--trust-manifest")),
     referenceBomPath: values.has("--reference-bom") ? path.resolve(values.get("--reference-bom")) : undefined,
+    serviceId: values.get("--service") ?? "identity-profile-service",
   };
 }
 
@@ -125,16 +147,20 @@ function assertUnique(values, code) {
   }
 }
 
-function validateIdentitySemantics(bom) {
+function validateServiceSemantics(bom, serviceId) {
+  const service = serviceRegistry.get(serviceId);
+  if (!service || service.preserved && service.id !== "identity-profile-service") fail("SERVICE_UNKNOWN");
   requireExact(bom.bomFormat, "CycloneDX", "INVALID_BOM_FORMAT");
   requireExact(bom.specVersion, "1.6", "INVALID_SPEC_VERSION");
   const root = bom.metadata?.component;
   if (!root || typeof root !== "object") fail("ROOT_COMPONENT_MISSING");
   requireExact(root.type, "application", "ROOT_COMPONENT_TYPE_INVALID");
-  requireExact(root.group, "com.auctionpromax", "ROOT_COMPONENT_GROUP_INVALID");
-  requireExact(root.name, "identity-profile-service", "ROOT_COMPONENT_NAME_INVALID");
-  requireExact(root.version, "0.0.1-SNAPSHOT", "ROOT_COMPONENT_VERSION_INVALID");
-  if (typeof root["bom-ref"] !== "string" || root["bom-ref"].length === 0) fail("ROOT_COMPONENT_REFERENCE_MISSING");
+  requireExact(root.group, service.groupId, "ROOT_COMPONENT_GROUP_INVALID");
+  requireExact(root.name, service.artifactId, "ROOT_COMPONENT_NAME_INVALID");
+  requireExact(root.version, service.version, "ROOT_COMPONENT_VERSION_INVALID");
+  const expectedPurl = `pkg:maven/${service.groupId}/${service.artifactId}@${service.version}?type=jar`;
+  requireExact(root.purl, expectedPurl, "ROOT_COMPONENT_PURL_INVALID");
+  requireExact(root["bom-ref"], expectedPurl, "ROOT_COMPONENT_REFERENCE_INVALID");
 
   requireNonEmptyArray(bom.components, "COMPONENT_INVENTORY_EMPTY");
   requireNonEmptyArray(bom.dependencies, "DEPENDENCY_GRAPH_EMPTY");
@@ -153,11 +179,40 @@ function validateIdentitySemantics(bom) {
     "org.junit.jupiter:junit-jupiter",
     "org.testcontainers:junit-jupiter",
     "org.testcontainers:postgresql",
+    "org.testcontainers:testcontainers-junit-jupiter",
+    "org.testcontainers:testcontainers-postgresql",
     "com.tngtech.archunit:archunit-junit5"
   ]);
   for (const component of bom.components) {
     if (testOnlyCoordinates.has(`${component?.group}:${component?.name}`)) fail("TEST_SCOPE_COMPONENT_PRESENT");
   }
+
+  const coordinates = new Set(bom.components.map((component) => `${component?.group}:${component?.name}`));
+  const common = [
+    "org.springframework.boot:spring-boot-starter-webmvc",
+    "org.springframework.boot:spring-boot-starter-validation",
+    "org.springframework.boot:spring-boot-starter-security",
+    "org.springframework.boot:spring-boot-starter-actuator",
+    "io.micrometer:micrometer-tracing-bridge-otel",
+    "io.opentelemetry:opentelemetry-exporter-otlp",
+  ];
+  const relational = [
+    "org.springframework.boot:spring-boot-starter-data-jpa",
+    "org.postgresql:postgresql",
+    "org.flywaydb:flyway-core",
+    "org.flywaydb:flyway-database-postgresql",
+  ];
+  const required = service.variant === "gateway" ? common : [...common, ...relational];
+  if (required.some((coordinate) => !coordinates.has(coordinate))) fail("REQUIRED_COMPONENT_MISSING");
+  if (service.variant === "gateway" && bom.components.some((component) => {
+    const group = component?.group ?? "";
+    const name = component?.name ?? "";
+    return group === "org.postgresql" || group === "org.flywaydb" || group === "jakarta.persistence"
+      || group === "org.hibernate.orm" || group === "org.hibernate.common"
+      || (group === "org.springframework.boot" && ["spring-boot-starter-jdbc", "spring-boot-starter-data-jpa"].includes(name))
+      || (group === "org.springframework" && ["spring-jdbc", "spring-orm", "spring-tx"].includes(name))
+      || (group === "com.zaxxer" && name === "HikariCP");
+  })) fail("FORBIDDEN_GATEWAY_COMPONENT");
 }
 
 function normalize(value, key = "", isBomRoot = false) {
@@ -183,16 +238,17 @@ async function main() {
   const args = parseArguments(process.argv.slice(2));
   const { Ajv2020, Ajv } = await loadAjv();
   const trustManifest = validateTrustManifest(Ajv2020, args.trustManifestPath);
+  if (!serviceRegistry.has(args.serviceId)) fail("SERVICE_UNKNOWN");
   const schemas = loadTrustedSchemas(trustManifest, args.schemaRoot);
   const validateSchema = compileCycloneDxSchema(Ajv, schemas);
   const bom = readJson(args.bomPath, "SBOM_MISSING_OR_EMPTY", "SBOM_MALFORMED");
   if (!validateSchema(bom)) fail("SBOM_SCHEMA_VALIDATION_FAILED");
-  validateIdentitySemantics(bom);
+  validateServiceSemantics(bom, args.serviceId);
 
   if (args.referenceBomPath) {
     const reference = readJson(args.referenceBomPath, "REFERENCE_SBOM_MISSING_OR_EMPTY", "REFERENCE_SBOM_MALFORMED");
     if (!validateSchema(reference)) fail("REFERENCE_SBOM_SCHEMA_VALIDATION_FAILED");
-    validateIdentitySemantics(reference);
+    validateServiceSemantics(reference, args.serviceId);
     if (JSON.stringify(normalize(bom, "", true)) !== JSON.stringify(normalize(reference, "", true))) fail("SBOM_SEMANTIC_REPRODUCIBILITY_FAILED");
   }
 

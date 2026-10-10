@@ -250,12 +250,11 @@ function assertNoDestinationOrCaseAlias(servicesRoot, destination) {
   }
 }
 
-function findPublisher() {
+export function findPublisher(spawn = spawnSync) {
   const candidates = process.platform === 'win32' ? ['pwsh.exe', 'pwsh', 'powershell.exe'] : ['pwsh'];
   for (const executable of candidates) {
-    const probe = spawnSync(executable, ['-NoProfile', '-NonInteractive', '-Command', 'exit 0'], { encoding: 'utf8' });
+    const probe = spawn(executable, ['-NoProfile', '-NonInteractive', '-Command', 'exit 0'], { encoding: 'utf8' });
     if (!probe.error && probe.status === 0) return executable;
-    if (probe.error?.code === 'EACCES') return null;
   }
   return null;
 }

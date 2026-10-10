@@ -17,9 +17,9 @@ function Invoke-ContainerBaseImageResolutionContractTest {
 param([Parameter(ValueFromRemainingArguments = $true)][string[]]$DockerArguments)
 $scenario = $env:APX_CONTAINER_BASE_IMAGE_SCENARIO
 $joined = $DockerArguments -join ' '
-$index = 'sha256:9d84285ae8bf9d4251bbdf4881a598240bd6908817096b64de246ce022ec7d86'
-$manifest = 'sha256:82eb6e99cb91fb87f5a65a933750ae5bb23cab4ab396e4bba4a5b0b07dcd32ff'
-$source = 'https://github.com/corretto/corretto-docker.git#a2028380492e3f5128dca6b06c1e26b10e9b8f04:21/headless/al2023'
+$index = 'sha256:b707577445897895f25c42ad4c0bfe5747a53e16c06de8ef118a55d894eb1c1e'
+$manifest = 'sha256:a1659a04c445036c54b49fe5163e46554ca24030e94c6eeffefe46fad127b400'
+$source = 'https://github.com/corretto/corretto-docker.git#883dd4b1df5aa871f1dfcec2244c5959b67e0239:21/headless/al2023'
 if ($joined -match '^buildx imagetools inspect --format') {
   if ($scenario -eq 'wrong-index') { 'sha256:' + ('a' * 64) } else { $index }; exit 0
 }

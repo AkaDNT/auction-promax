@@ -2,7 +2,7 @@ package com.auctionpromax.identityprofileservice.adapter.in.web.baseline;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 
 import com.auctionpromax.identityprofileservice.adapter.in.web.correlation.CorrelationIdFilter;
@@ -35,6 +35,7 @@ public class TechnicalBaselineControllerTest {
             }
             """))
         .andExpect(status().isOk())
+        .andExpect(content().json("{\"accepted\":true,\"valueLength\":5}", true))
         .andExpect(jsonPath("$.accepted").value(true))
         .andExpect(jsonPath("$.valueLength").value(5));
   }
@@ -42,6 +43,15 @@ public class TechnicalBaselineControllerTest {
   @Test
   void deniesUnknownPaths() throws Exception {
     mockMvc.perform(get("/not-allowed"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void keepsApiDocsAndUnknownRoutesDeniedWithBearerHeader() throws Exception {
+    mockMvc.perform(get("/v3/api-docs")).andExpect(status().isForbidden());
+    mockMvc.perform(get("/v3/api-docs").header("Authorization", "Bearer invalid-token"))
+        .andExpect(status().isForbidden());
+    mockMvc.perform(get("/not-allowed").header("Authorization", "Bearer invalid-token"))
         .andExpect(status().isForbidden());
   }
 
@@ -133,6 +143,7 @@ public class TechnicalBaselineControllerTest {
         .andExpect(jsonPath("$.type").value(
             "urn:auction-promax:problem:validation-failed"))
         .andExpect(jsonPath("$.title").value("Request validation failed"))
+        .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.detail").value("The request is invalid."))
         .andExpect(jsonPath("$.instance").value(
@@ -158,6 +169,10 @@ public class TechnicalBaselineControllerTest {
             "urn:auction-promax:problem:malformed-request"))
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.correlationId").value("t03-malformed-001"))
+        .andExpect(jsonPath("$.title").value("Malformed request"))
+        .andExpect(jsonPath("$.detail").value("The request is invalid."))
+        .andExpect(jsonPath("$.instance").value("/internal/technical-baseline/validate"))
+        .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"))
         .andExpect(content().string(not(containsString("{\"value\":"))));
   }
 }

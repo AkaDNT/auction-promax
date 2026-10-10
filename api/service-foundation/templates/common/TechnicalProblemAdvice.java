@@ -33,7 +33,7 @@ public class TechnicalProblemAdvice extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ProblemDetail> unexpected(Exception exception, HttpServletRequest request) {
+    ResponseEntity<Object> unexpected(Exception exception, HttpServletRequest request) {
         log.atError().addKeyValue("event", "request_processing.failed")
             .addKeyValue("httpStatus", 500).addKeyValue("problemType", "internal-error")
             .log("Request processing failed");

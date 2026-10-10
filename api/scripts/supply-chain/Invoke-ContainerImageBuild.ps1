@@ -1,7 +1,8 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [switch]$UseExistingVerifiedArtifact
+    [switch]$UseExistingVerifiedArtifact,
+    [ValidateNotNullOrEmpty()][string]$ServiceId = 'identity-profile-service'
 )
 
 Set-StrictMode -Version Latest
@@ -11,6 +12,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $contractPath = Join-Path $repoRoot 'security\tooling\container-image-contract.json'
 $prebuildScriptPath = Join-Path $PSScriptRoot 'Invoke-ContainerPrebuildArtifact.ps1'
 $baseResolutionScriptPath = Join-Path $PSScriptRoot 'Test-ContainerBaseImageResolution.ps1'
+$serviceResolverPath = Join-Path $PSScriptRoot 'ServiceArtifact.psm1'
 
 function Throw-ContainerBuildFailure {
     param([Parameter(Mandatory)][string]$Code)
@@ -52,7 +54,7 @@ function Get-LocalImageInspection {
     return Read-FirstJsonValue -Json ($output -join [Environment]::NewLine) -FailureCode 'CONTAINER_BUILD_LOCAL_IMAGE_INSPECTION_MALFORMED'
 }
 
-foreach ($required in @($contractPath, $prebuildScriptPath, $baseResolutionScriptPath)) {
+foreach ($required in @($contractPath, $prebuildScriptPath, $baseResolutionScriptPath, $serviceResolverPath)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
         Throw-ContainerBuildFailure -Code 'CONTAINER_BUILD_PREREQUISITE_MISSING'
     }
@@ -63,9 +65,9 @@ foreach ($required in @($contractPath, $prebuildScriptPath, $baseResolutionScrip
 if ($UseExistingVerifiedArtifact) {
     # Hosted orchestration has already performed Maven verification. Re-run all
     # artifact/SBOM/JAR identity checks, but never trust a receipt or skip them.
-    & $prebuildScriptPath -SkipBuild
+    & $prebuildScriptPath -SkipBuild -ServiceId $ServiceId
 } else {
-    & $prebuildScriptPath
+    & $prebuildScriptPath -ServiceId $ServiceId
 }
 if ($LASTEXITCODE -ne 0) {
     Throw-ContainerBuildFailure -Code 'CONTAINER_BUILD_PREBUILD_FAILED'
@@ -79,10 +81,14 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json -ErrorAction Stop
-$serviceRoot = Join-Path $repoRoot ([string]$contract.build.contextRelativePath).Replace('/', '\')
-$dockerfilePath = Join-Path $repoRoot ([string]$contract.build.dockerfileRelativePath).Replace('/', '\')
-$jarPath = Join-Path $repoRoot ([string]$contract.build.canonicalJarRelativePath).Replace('/', '\')
-$imageReference = [string]$contract.image.localReference
+$serviceResolverPath = Join-Path $PSScriptRoot 'ServiceArtifact.psm1'
+Import-Module $serviceResolverPath -Force
+try { $artifact = Resolve-ServiceArtifact -ServiceId $ServiceId -RequireBuiltArtifact }
+catch { Throw-ContainerBuildFailure -Code 'CONTAINER_BUILD_SERVICE_ARTIFACT_INVALID' }
+$serviceRoot = [string]$artifact.projectPath
+$dockerfilePath = [string]$artifact.dockerfilePath
+$jarPath = [string]$artifact.jarPath
+$imageReference = [string]$artifact.imageReference
 
 foreach ($required in @($serviceRoot, $dockerfilePath, $jarPath)) {
     if (-not (Test-Path -LiteralPath $required)) {
@@ -128,6 +134,7 @@ if (@($image.RepoTags) -notcontains $imageReference) {
 }
 
 [pscustomobject]@{
+    serviceId = $artifact.serviceId
     image = $imageReference
     imageId = [string]$image.Id
     platform = "$($image.Os)/$($image.Architecture)"

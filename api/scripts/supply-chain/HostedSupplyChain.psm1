@@ -3,7 +3,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $script:AllowedFailureCodes = @(
-    'SUPPLY_CHAIN_NOT_STARTED', 'CHECKOUT_FAILED', 'CONTRACT_VALIDATION_FAILED', 'TOOL_BOOTSTRAP_FAILED',
+    'SUPPLY_CHAIN_NOT_STARTED', 'CHECKOUT_FAILED', 'CHECKOUT_REVISION_UNAVAILABLE', 'CHECKOUT_REVISION_MISMATCH', 'CONTRACT_VALIDATION_FAILED', 'TOOL_BOOTSTRAP_FAILED',
+    'SERVICE_SOURCE_REMOVED', 'SERVICE_GENERATION_MISSING', 'SERVICE_SOURCE_PROVENANCE_UNAVAILABLE',
     'SBOM_BUILD_FAILED', 'SBOM_VALIDATION_FAILED', 'DEPENDENCY_SCAN_FAILED', 'SECRET_SCAN_FAILED',
     'BASE_TRUST_FAILED', 'IMAGE_BUILD_FAILED', 'SMOKE_FAILED', 'CONTAINER_SCAN_FAILED',
     'SCANNER_OUTPUT_INVALID', 'POLICY_EVALUATION_FAILED', 'EVIDENCE_SANITIZATION_FAILED',
@@ -103,7 +104,7 @@ function Read-HostedSmokeStatus {
         $expected = if ($status.state -eq 'FAILED') { @('schemaVersion', 'state', 'phase', 'failureCode', 'exceptionType') } else { @('schemaVersion', 'state', 'phase') }
         if ($actual.Count -ne $expected.Count -or @($actual | Where-Object { $_ -notin $expected }).Count -ne 0 -or @($expected | Where-Object { $_ -notin $actual }).Count -ne 0) { throw 'invalid' }
         if ($status.state -eq 'PASS' -and [string]$status.phase -cne 'complete') { throw 'invalid' }
-        if ($status.state -eq 'FAILED' -and ([string]$status.failureCode -notmatch '^CONTAINER_SMOKE_[A-Z_]+$' -or [string]$status.exceptionType -notmatch '^[A-Za-z0-9_.]+$')) { throw 'invalid' }
+        if ($status.state -eq 'FAILED' -and ([string]$status.failureCode -notmatch '^CONTAINER_SMOKE_[A-Z0-9_]+$' -or [string]$status.exceptionType -notmatch '^[A-Za-z0-9_.]+$')) { throw 'invalid' }
         return $status
     } catch {
         if ($_.Exception.Message -match '^CONTAINER_SMOKE_WRAPPER_STARTUP_FAILED$') { throw }
@@ -132,7 +133,122 @@ function Read-HostedContainerScanStatus {
         throw 'CONTAINER_SCAN_WRAPPER_STATUS_INVALID'
     }
 }
+function Get-HostedFileSha256 {
+    param([Parameter(Mandatory)][string]$Path)
+    $stream = [System.IO.File]::OpenRead($Path)
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try { return ([System.BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+    finally { $algorithm.Dispose(); $stream.Dispose() }
+}
+function Assert-HostedJsonHasNoDuplicateKeys {
+    param([Parameter(Mandatory)][string]$Json)
+    $stack = New-Object 'System.Collections.Generic.Stack[System.Collections.Generic.HashSet[string]]'
+    for ($index = 0; $index -lt $Json.Length; $index++) {
+        $character = $Json[$index]
+        if ($character -eq '"') {
+            $start = $index
+            $index++
+            $stringEscaped = $false
+            while ($index -lt $Json.Length) {
+                $next = $Json[$index]
+                if ($stringEscaped) { $stringEscaped = $false }
+                elseif ($next -eq '\') { $stringEscaped = $true }
+                elseif ($next -eq '"') { break }
+                $index++
+            }
+            if ($index -ge $Json.Length) { throw 'invalid' }
+            $after = $index + 1
+            while ($after -lt $Json.Length -and [char]::IsWhiteSpace($Json[$after])) { $after++ }
+            if ($after -lt $Json.Length -and $Json[$after] -eq ':' -and $stack.Count -gt 0) {
+                $propertyName = ConvertFrom-Json -InputObject $Json.Substring($start, $index - $start + 1) -ErrorAction Stop
+                if (-not $stack.Peek().Add([string]$propertyName)) { throw 'invalid' }
+            }
+            continue
+        }
+        if ($character -eq '{') { $stack.Push((New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::Ordinal))); continue }
+        if ($character -eq '}') { if ($stack.Count -lt 1) { throw 'invalid' }; [void]$stack.Pop() }
+    }
+    if ($stack.Count -ne 0) { throw 'invalid' }
+}
+function Assert-HostedDependencyScanStatusRecord {
+    param([Parameter(Mandatory)]$Status, [Parameter(Mandatory)][int]$ExitCode)
+    $expected = @('schemaVersion','state','phase','failureCode','inventorySha256')
+    $actual = @($Status.PSObject.Properties.Name)
+    if ($actual.Count -ne $expected.Count -or @($actual | Where-Object { $_ -cnotin $expected }).Count -ne 0 -or @($expected | Where-Object { $_ -cnotin $actual }).Count -ne 0) { throw 'invalid' }
+    if (($Status.schemaVersion -isnot [int] -and $Status.schemaVersion -isnot [long]) -or $Status.schemaVersion -ne 1 -or $Status.phase -cnotin @('initialize','validate-contracts','load-contract','resolve-trivy','verify-db','scan','sanitize','policy','write-inventory','complete','cleanup')) { throw 'invalid' }
+    switch -CaseSensitive ([string]$Status.state) {
+        'PASS' {
+            if ($ExitCode -ne 0 -or $Status.phase -cne 'complete' -or $Status.failureCode -cne 'NONE' -or [string]$Status.inventorySha256 -notmatch '^[a-f0-9]{64}$') { throw 'invalid' }
+        }
+        'BLOCKED' {
+            if ($ExitCode -eq 0 -or $Status.phase -cne 'policy' -or $Status.failureCode -cne 'HIGH_OR_CRITICAL_DISPOSITION_REQUIRED' -or [string]$Status.inventorySha256 -notmatch '^[a-f0-9]{64}$') { throw 'invalid' }
+        }
+        'FAILED' {
+            if ($ExitCode -eq 0 -or [string]$Status.failureCode -cnotmatch '^(TRIVY_[A-Z0-9_]+|VULNERABILITY_[A-Z0-9_]+)$' -or [string]$Status.failureCode -ceq 'VULNERABILITY_POLICY_BLOCKED' -or $null -ne $Status.inventorySha256) { throw 'invalid' }
+        }
+        default { throw 'invalid' }
+    }
+}
+function Write-HostedDependencyScanStatus {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][ValidateSet('PASS','BLOCKED','FAILED')][string]$State,
+        [Parameter(Mandatory)][string]$Phase,
+        [Parameter(Mandatory)][string]$FailureCode,
+        [Parameter(Mandatory)][string]$InventoryPath
+    )
+    if ($State -ne 'FAILED' -and -not (Test-Path -LiteralPath $InventoryPath -PathType Leaf)) { throw 'DEPENDENCY_SCAN_STATUS_WRITE_INVALID' }
+    $digest = if ($State -eq 'FAILED') { $null } else { Get-HostedFileSha256 -Path $InventoryPath }
+    $status = [pscustomobject][ordered]@{ schemaVersion=1; state=$State; phase=$Phase; failureCode=$FailureCode; inventorySha256=$digest }
+    try { Assert-HostedDependencyScanStatusRecord -Status $status -ExitCode $(if ($State -eq 'PASS') { 0 } else { 1 }) } catch { throw 'DEPENDENCY_SCAN_STATUS_WRITE_INVALID' }
+    $parent = Split-Path -Parent $Path
+    if ([string]::IsNullOrWhiteSpace($parent) -or -not (Test-Path -LiteralPath $parent -PathType Container) -or (Test-Path -LiteralPath $Path)) { throw 'DEPENDENCY_SCAN_STATUS_WRITE_INVALID' }
+    $temporary = Join-Path $parent ('.dependency-scan-' + [guid]::NewGuid().ToString('N') + '.tmp')
+    try {
+        [System.IO.File]::WriteAllText($temporary, ($status | ConvertTo-Json -Compress), [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::Move($temporary, $Path)
+    } catch { throw 'DEPENDENCY_SCAN_STATUS_WRITE_INVALID' }
+    finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue } }
+}
+function Read-HostedDependencyScanStatus {
+    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][int]$ExitCode, [Parameter(Mandatory)][string]$InventoryPath)
+    try {
+        if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw 'invalid' }
+        $bytes = [System.IO.File]::ReadAllBytes($Path)
+        if ($bytes.Length -gt 4096 -or ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)) { throw 'invalid' }
+        $encoding = [System.Text.UTF8Encoding]::new($false, $true)
+        $text = $encoding.GetString($bytes)
+        Assert-HostedJsonHasNoDuplicateKeys -Json $text
+        $status = $text | ConvertFrom-Json -ErrorAction Stop
+        Assert-HostedDependencyScanStatusRecord -Status $status -ExitCode $ExitCode
+        $canonical = ($status | ConvertTo-Json -Compress)
+        if ($text -cne $canonical) { throw 'invalid' }
+        if ($status.state -ne 'FAILED' -and (-not (Test-Path -LiteralPath $InventoryPath -PathType Leaf) -or (Get-HostedFileSha256 -Path $InventoryPath) -cne [string]$status.inventorySha256)) { throw 'invalid' }
+        if ($status.state -eq 'BLOCKED') {
+            $inventoryText = [System.IO.File]::ReadAllText($InventoryPath, $encoding)
+            Assert-HostedJsonHasNoDuplicateKeys -Json $inventoryText
+            $inventoryText = $inventoryText.Trim()
+            if (-not $inventoryText.StartsWith('[') -or -not $inventoryText.EndsWith(']')) { throw 'invalid' }
+            $findings = @($inventoryText | ConvertFrom-Json -ErrorAction Stop)
+            if ($findings.Count -lt 1) { throw 'invalid' }
+            $fields = @('scanner','findingId','source','targetType','target','package/component','affectedVersion','fixedVersion','severity','severitySource','status','dispositionId')
+            $hasBlockingFinding = $false
+            foreach ($finding in $findings) {
+                $findingFields = @($finding.PSObject.Properties.Name)
+                if ($findingFields.Count -ne $fields.Count -or @($findingFields | Where-Object { $_ -cnotin $fields }).Count -ne 0 -or @($fields | Where-Object { $_ -cnotin $findingFields }).Count -ne 0) { throw 'invalid' }
+                if ([string]$finding.scanner -cne 'trivy' -or [string]$finding.severity -cnotin @('CRITICAL','HIGH','MEDIUM','LOW','UNKNOWN')) { throw 'invalid' }
+                foreach ($value in $finding.PSObject.Properties.Value) {
+                    if ($null -ne $value -and $value -isnot [string]) { throw 'invalid' }
+                    if ($value -is [string] -and $value -match '(^[A-Za-z]:[\\/]|^/|\\Users\\|/home/)') { throw 'invalid' }
+                }
+                if ([string]$finding.severity -cin @('HIGH','CRITICAL')) { $hasBlockingFinding = $true }
+            }
+            if (-not $hasBlockingFinding) { throw 'invalid' }
+        }
+        return $status
+    } catch { throw 'DEPENDENCY_SCAN_WRAPPER_STATUS_INVALID' }
+}
 function Test-HostedPolicyBlockedFailure { param([Parameter(Mandatory)]$Summary); Assert-HostedSummary -Summary $Summary; return ($Summary.executionState -eq 'PASS' -and $Summary.policyState -eq 'BLOCKED') }
 function Remove-HostedTemporaryRoot { param([Parameter(Mandatory)][string]$Root); if (Test-Path -LiteralPath $Root) { Remove-Item -LiteralPath $Root -Recurse -Force } }
 
-Export-ModuleMember -Function 'New-HostedRunSummary','Read-HostedRunSummary','Write-HostedRunSummaryAtomic','Set-HostedStageResult','Complete-HostedExecution','Format-HostedRunResult','Get-HostedChildPowerShellExecutable','Read-HostedToolBootstrapStatus','Read-HostedSmokeStatus','Read-HostedContainerScanStatus','Test-HostedPolicyBlockedFailure','Remove-HostedTemporaryRoot'
+Export-ModuleMember -Function 'New-HostedRunSummary','Read-HostedRunSummary','Write-HostedRunSummaryAtomic','Set-HostedStageResult','Complete-HostedExecution','Format-HostedRunResult','Get-HostedChildPowerShellExecutable','Read-HostedToolBootstrapStatus','Read-HostedSmokeStatus','Read-HostedContainerScanStatus','Write-HostedDependencyScanStatus','Read-HostedDependencyScanStatus','Test-HostedPolicyBlockedFailure','Remove-HostedTemporaryRoot'

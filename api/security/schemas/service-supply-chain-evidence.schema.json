@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/auction-promax/api/security/schemas/service-supply-chain-evidence.schema.json",
+  "type": "object",
+  "title": "One sanitized service-bound supply-chain evidence document",
+  "oneOf": [
+    { "$ref": "#/$defs/runSummary" },
+    { "$ref": "#/$defs/vulnerabilityInventory" },
+    { "$ref": "#/$defs/gitleaksInventory" },
+    { "$ref": "#/$defs/imageIdentity" },
+    { "$ref": "#/$defs/smokeSummary" },
+    { "$ref": "#/$defs/policySummary" }
+  ],
+  "$defs": {
+    "commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "common": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": { "const": 2 },
+        "serviceId": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "variant": { "enum": ["relational", "gateway"] },
+        "documentType": { "enum": ["run-summary", "vulnerability-inventory", "gitleaks-inventory", "container-vulnerability-inventory", "image-identity", "smoke-summary", "policy-summary"] },
+        "commit": { "$ref": "#/$defs/commit" },
+        "sourceProvenance": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "executionCommit"],
+              "properties": {
+                "kind": { "const": "committed" },
+                "executionCommit": { "$ref": "#/$defs/commit" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "executionCommit", "generatorCommit", "serviceId"],
+              "properties": {
+                "kind": { "const": "ephemeral-generated" },
+                "executionCommit": { "$ref": "#/$defs/commit" },
+                "generatorCommit": { "$ref": "#/$defs/commit" },
+                "serviceId": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+              }
+            }
+          ]
+        }
+      },
+      "required": ["schemaVersion", "serviceId", "variant", "commit", "sourceProvenance", "documentType"]
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scanner", "findingId", "source", "targetType", "target", "package/component", "affectedVersion", "fixedVersion", "severity", "severitySource", "status", "dispositionId"],
+      "properties": {
+        "scanner": { "type": "string" },
+        "findingId": { "type": "string" },
+        "source": { "type": "string" },
+        "targetType": { "enum": ["sbom", "container-image", "filesystem"] },
+        "target": { "type": "string" },
+        "package/component": { "type": "string" },
+        "affectedVersion": { "type": "string" },
+        "fixedVersion": { "type": ["string", "null"] },
+        "severity": { "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"] },
+        "severitySource": { "type": ["string", "null"] },
+        "status": { "type": "string" },
+        "dispositionId": { "type": ["string", "null"] }
+      }
+    },
+    "gitleaksFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scanMode", "ruleId", "repositoryRelativePath", "scannerFingerprint", "commitId", "status", "remediationReference"],
+      "properties": {
+        "scanMode": { "enum": ["dir", "git"] },
+        "ruleId": { "type": "string" },
+        "repositoryRelativePath": { "type": "string" },
+        "scannerFingerprint": { "type": "string" },
+        "commitId": { "type": "string" },
+        "status": { "type": "string" },
+        "remediationReference": { "type": ["string", "null"] }
+      }
+    },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "runSummary": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/common" },
+        {
+          "type": "object",
+          "properties": {
+            "documentType": { "const": "run-summary" },
+            "workflow": { "enum": ["supply-chain", "security-freshness"] },
+            "executionState": { "enum": ["IMPLEMENTATION_FAILURE", "PASS"] },
+            "policyState": { "enum": ["NOT_EVALUATED", "PASS", "BLOCKED"] },
+            "reviewState": { "enum": ["NOT_REQUIRED", "REVIEW_REQUIRED"] },
+            "deltaState": { "enum": ["NOT_APPLICABLE", "UNCHANGED", "NEW", "REMEDIATED", "BASELINE_UNAVAILABLE"] },
+            "failureCode": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]+$" }
+          },
+          "required": ["documentType", "workflow", "executionState", "policyState", "reviewState", "deltaState", "failureCode"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "vulnerabilityInventory": { "type": "object", "allOf": [{ "$ref": "#/$defs/common" }, { "type": "object", "properties": { "documentType": { "enum": ["vulnerability-inventory", "container-vulnerability-inventory"] }, "findings": { "$ref": "#/$defs/findings" } }, "required": ["documentType", "findings"] }], "unevaluatedProperties": false },
+    "gitleaksInventory": { "type": "object", "allOf": [{ "$ref": "#/$defs/common" }, { "type": "object", "properties": { "documentType": { "const": "gitleaks-inventory" }, "findings": { "type": "array", "items": { "$ref": "#/$defs/gitleaksFinding" } } }, "required": ["documentType", "findings"] }], "unevaluatedProperties": false },
+    "imageIdentity": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/common" },
+        {
+          "type": "object",
+          "properties": {
+            "documentType": { "const": "image-identity" },
+            "imageId": { "type": "string", "pattern": "^(unavailable|sha256:[a-f0-9]{64})$" },
+            "imageReference": { "type": "string", "pattern": "^auction-promax/[a-z][a-z0-9-]*:(local|s001-t07)$" },
+            "platform": { "const": "linux/amd64" },
+            "jarSha256": { "type": "string", "pattern": "^(unavailable|[a-f0-9]{64})$" },
+            "baseManifestDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+          },
+          "required": ["documentType", "imageId", "imageReference", "platform", "jarSha256", "baseManifestDigest"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "smokeSummary": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/common" },
+        {
+          "type": "object",
+          "properties": {
+            "documentType": { "const": "smoke-summary" },
+            "readiness": { "enum": ["UP", "unavailable"] },
+            "platform": { "const": "linux/amd64" },
+            "runtimeUser": { "const": "10001:10001" },
+            "readOnlyRootFilesystem": { "const": true },
+            "dropAllCapabilities": { "const": true },
+            "noNewPrivileges": { "const": true }
+          },
+          "required": ["documentType", "readiness", "platform", "runtimeUser", "readOnlyRootFilesystem", "dropAllCapabilities", "noNewPrivileges"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "policySummary": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/common" },
+        {
+          "type": "object",
+          "properties": {
+            "documentType": { "const": "policy-summary" },
+            "policyState": { "enum": ["NOT_EVALUATED", "PASS", "BLOCKED"] },
+            "reviewState": { "enum": ["NOT_REQUIRED", "REVIEW_REQUIRED"] },
+            "deltaState": { "enum": ["NOT_APPLICABLE", "UNCHANGED", "NEW", "REMEDIATED", "BASELINE_UNAVAILABLE"] },
+            "counts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"],
+              "properties": {
+                "CRITICAL": { "type": "integer", "minimum": 0 },
+                "HIGH": { "type": "integer", "minimum": 0 },
+                "MEDIUM": { "type": "integer", "minimum": 0 },
+                "LOW": { "type": "integer", "minimum": 0 },
+                "UNKNOWN": { "type": "integer", "minimum": 0 }
+              }
+            }
+          },
+          "required": ["documentType", "policyState", "reviewState", "deltaState", "counts"]
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -9,12 +9,24 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import { generateService } from './Generate-Service.mjs';
-import { generateService as generateWithIo, nativeGeneratorIo, inspectGenerationArtifacts } from './ServiceGeneratorCore.mjs';
+import { generateService as generateWithIo, nativeGeneratorIo, inspectGenerationArtifacts, findPublisher } from './ServiceGeneratorCore.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, '../../..');
 const foundationRoot = path.join(repositoryRoot, 'api/service-foundation');
 const temporaryRoots = [];
+
+test('publisher discovery continues to the next approved host when PowerShell 7 cannot launch', { skip: process.platform !== 'win32' }, () => {
+  const calls = [];
+  const selected = findPublisher((executable) => {
+    calls.push(executable);
+    return executable === 'powershell.exe'
+      ? { status: 0 }
+      : { status: null, error: Object.assign(new Error('access denied'), { code: 'EACCES' }) };
+  });
+  assert.equal(selected, 'powershell.exe');
+  assert.deepEqual(calls, ['pwsh.exe', 'pwsh', 'powershell.exe']);
+});
 
 async function newRepositoryFixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'service-generator-fixture-'));

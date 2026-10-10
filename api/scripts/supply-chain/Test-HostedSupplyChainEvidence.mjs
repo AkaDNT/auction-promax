@@ -18,7 +18,9 @@ try {
       ? summary
       : ["vulnerability-inventory.json", "gitleaks-inventory.json", "container-vulnerability-inventory.json"].includes(file)
         ? { schemaVersion: 1, commit, findings: [] }
-        : { schemaVersion: 1, commit };
+        : file === "image-identity.json"
+          ? { schemaVersion: 1, commit, imageReference: "auction-promax/identity-profile-service:s001-t07" }
+          : { schemaVersion: 1, commit };
     fs.writeFileSync(path.join(root, file), JSON.stringify(value));
   }
   validateEvidenceRoot(root, commit);

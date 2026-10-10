@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stripMarkdownCodeFences } from './MarkdownContent.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 function git(args, binary = false) {
@@ -27,7 +28,7 @@ const changed = new Set([...git(['diff', '--name-only', '-z', 'HEAD']).split('\0
 let checkedLinks = 0;
 for (const name of changed) {
   if (!existsSync(path.join(root, name))) continue;
-  const prose = readFileSync(path.join(root, name), 'utf8').replace(/^```[^\n]*\n[\s\S]*?^```\s*$/gm, '');
+  const prose = stripMarkdownCodeFences(readFileSync(path.join(root, name), 'utf8'));
   for (const match of prose.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
     const target = match[1].replace(/^<|>$/g, '').split('#')[0];
     if (!target || /^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
