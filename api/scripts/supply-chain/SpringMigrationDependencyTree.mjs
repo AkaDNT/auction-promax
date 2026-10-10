@@ -35,7 +35,7 @@ export function validateSpringMigrationDependencyTree(output, serviceId) {
     let expected;
     if (group === 'org.springframework.boot') expected = '4.0.8';
     else if (group === 'org.springframework') expected = '7.0.9';
-    else if (group === 'org.apache.tomcat.embed') expected = '11.0.24';
+    else if (group === 'org.apache.tomcat.embed') expected = '11.0.26';
     else if (group.startsWith('tools.jackson.')) expected = '3.1.7';
     else if (group.startsWith('com.fasterxml.jackson.')) expected = artifact === 'jackson-annotations' ? '2.21' : '2.21.7';
     else if (group === 'jakarta.servlet' && artifact === 'jakarta.servlet-api') expected = '6.1.0';

@@ -8,6 +8,8 @@
   <groupId>com.auctionpromax</groupId><artifactId>__SERVICE_ID__</artifactId><version>0.0.1-SNAPSHOT</version><packaging>jar</packaging>
   <name>__SERVICE_ID__</name>
   <properties>
+    <!-- Same-line security patch; remove when Boot manages 11.0.26 or later. -->
+    <tomcat.version>11.0.26</tomcat.version>
     <jackson-bom.version>3.1.7</jackson-bom.version><jackson-2-bom.version>2.21.7</jackson-2-bom.version>
     <java.version>21</java.version><maven.compiler.release>${java.version}</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding><project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

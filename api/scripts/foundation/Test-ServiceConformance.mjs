@@ -69,7 +69,7 @@ test('all service source POMs use separate approved Boot 4 Jackson BOM controls'
     assert.match(pom, /<jackson-bom\.version>3\.1\.7<\/jackson-bom\.version>/, pomPath);
     assert.match(pom, /<jackson-2-bom\.version>2\.21\.7<\/jackson-2-bom\.version>/, pomPath);
     assert.match(pom, /<artifactId>spring-boot-starter-parent<\/artifactId>\s*<version>4\.0\.8<\/version>/, pomPath);
-    assert.doesNotMatch(pom, /<tomcat\.version>/, pomPath);
+    assert.match(pom, /<tomcat\.version>11\.0\.26<\/tomcat\.version>/, pomPath);
     assert.doesNotMatch(pom, /<artifactId>jackson-[^<]+<\/artifactId>\s*<version>/, pomPath);
   }
 });

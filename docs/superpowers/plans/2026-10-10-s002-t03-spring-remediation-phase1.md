@@ -63,10 +63,12 @@
 
 **Files:** Scoped implementation commit and remediation execution evidence; existing owning workflows.
 
-- [ ] Obtain independent review at the exact scoped candidate SHA, address important findings, and preserve unrelated dirty documentation.
-- [ ] Publish only the reviewed isolated candidate under existing authorization; keep PR #21 Draft.
-- [ ] Require all five Maven/Failsafe legs, graph/BOM, dependency/container scans, relational/gateway smoke, sanitized evidence and aggregate results on the final execution SHA.
-- [ ] Confirm both target Spring CVEs and prior Jackson findings absent from applicable scanner findings. Report separate release-policy outcome and any residual findings without inventing dispositions.
+- [x] Obtain independent review at the exact scoped candidate SHA, address important findings, and preserve unrelated dirty documentation.
+- [x] Publish only the reviewed isolated candidate under existing authorization; keep PR #21 Draft.
+- [x] Require all five Maven/Failsafe legs, graph/BOM, dependency/container scans, relational/gateway smoke, sanitized evidence and aggregate results on the final execution SHA.
+- [x] Confirm both target Spring CVEs and prior Jackson findings absent from applicable scanner findings. Report separate release-policy outcome and any residual findings without inventing dispositions.
+
+Scoped technical acceptance is recorded for candidate `24c91dde29e622b0359d6dc358d6b7ce0da5b5a1`, PR run `38051421415`, execution revision `2fd3532090542fe26e8796897172ba1706b2753b`. All five service legs and aggregate passed. Separate release-policy remains BLOCKED for other findings; this is not T03 clean, freshness acceptance, merge or release authorization. See the execution record for exact evidence and remaining blockers.
 
 ## Decisions and progress
 

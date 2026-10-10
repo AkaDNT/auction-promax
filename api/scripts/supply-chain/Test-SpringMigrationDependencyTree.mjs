@@ -6,7 +6,7 @@ const coordinates = [
   'org.springframework.boot:spring-boot-starter-webmvc:jar:4.0.8:compile',
   'org.springframework:spring-webmvc:jar:7.0.9:compile',
   'org.springframework:spring-core:jar:7.0.9:compile',
-  'org.apache.tomcat.embed:tomcat-embed-core:jar:11.0.24:compile',
+  'org.apache.tomcat.embed:tomcat-embed-core:jar:11.0.26:compile',
   'tools.jackson.core:jackson-core:jar:3.1.7:compile',
   'tools.jackson.core:jackson-databind:jar:3.1.7:compile',
   'com.fasterxml.jackson.core:jackson-annotations:jar:2.21:compile',
@@ -15,7 +15,7 @@ const coordinates = [
 ];
 const tree = (nodes = coordinates) => nodes.map(node => `[INFO] |  +- ${node}`).join('\n');
 
-test('accepts the selected Boot-managed graph and both patched JSON stacks', () => {
+test('accepts the selected Boot graph, Tomcat security patch and both patched JSON stacks', () => {
   assert.equal(validateSpringMigrationDependencyTree(tree(), 'identity-profile-service').components, 9);
 });
 test('does not require Jackson 2 core/databind merely to retain the old security floor', () => {
@@ -25,6 +25,8 @@ for (const [label, node] of [
   ['old Spring nested below a safe root', 'org.springframework:spring-webmvc:jar:6.2.19:compile'],
   ['wrong Boot', 'org.springframework.boot:spring-boot:jar:4.1.1:compile'],
   ['old Tomcat', 'org.apache.tomcat.embed:tomcat-embed-websocket:jar:10.1.59:compile'],
+  ['unpatched Tomcat 11 nested module', 'org.apache.tomcat.embed:tomcat-embed-websocket:jar:11.0.24:compile'],
+  ['earlier Tomcat 11 security patch', 'org.apache.tomcat.embed:tomcat-embed-el:jar:11.0.25:compile'],
   ['vulnerable Jackson 3', 'tools.jackson.core:jackson-databind:jar:3.1.5:runtime'],
   ['vulnerable Jackson 2', 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.21.5:runtime'],
   ['wrong annotations exception', 'com.fasterxml.jackson.core:jackson-annotations:jar:2.20:compile'],
