@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-10-s002-t03-corretto-base-image-refresh.md`
 
-**Execution status (2026-10-10): `BLOCKED_NO_ELIGIBLE_BASE_IMAGE`.** No evidence-backed eligible candidate has been established: registry access did not provide the immutable supported-platform manifest digest, candidate package inventory, and unchanged-policy scan for all 27 target CVEs. This is a Phase 0 gate failure due to insufficient candidate evidence, not a claim that the upstream tag does not exist or is intrinsically vulnerable. Do not modify tracked image pins; resume Phase 0 only on a registry-accessible approved runner.
+**Execution status (2026-10-10): Phase 0 `PASS`; Task 2 pin/trust changes are local and tested; Task 3 hosted acceptance remains pending.** The official Docker Hub index and `linux/amd64` manifest, source annotation, actual package inventory, pinned Trivy provenance, fresh-database scan, and old-image positive control are recorded in `docs/superpowers/plans/2026-10-10-s002-t03-corretto-phase0-registry-followup.md`. The candidate has zero Trivy findings; the old pinned control has 80 findings including 69 in the five affected package families. This authorizes only the scoped image-pin refresh, not merge/release. The PowerShell resolver harness could not execute locally under the enforced Restricted policy; parser-only validation passed and hosted exact-SHA verification remains required.
 
 ## Global Constraints
 
@@ -41,12 +41,12 @@
 
 **Interfaces:** Candidate identity is exactly `docker.io/library/amazoncorretto:21.0.12-al2023-headless`; candidate evidence binds source, immutable digest, platform, package inventory, and scan results.
 
-- [ ] **Step 1: Identify official candidate digest and provenance** from Corretto publication metadata; confirm the supported platform manifest matches CI.
-- [ ] **Step 2: Inspect actual candidate package inventory** and compare each of the 27 target CVEs/fixed package builds.
-- [ ] **Step 3: Scan the exact digest** using unchanged repository scanner inputs/policy; preserve sanitized results.
-- [x] **Step 4: Record the gate outcome.** If any target CVE remains or provenance/platform cannot be established, record exactly `BLOCKED_NO_ELIGIBLE_BASE_IMAGE` and stop this plan before Task 2. Do not change tracked pins.
+- [x] **Step 1: Identify official candidate digest and provenance** from Corretto publication metadata; confirm the supported platform manifest matches CI.
+- [x] **Step 2: Inspect actual candidate package inventory** and compare each of the 27 target CVEs/fixed package builds.
+- [x] **Step 3: Scan the exact digest** using the pinned Trivy version, fresh database and unchanged vulnerability policy; retain only sanitized results.
+- [x] **Step 4: Record the gate outcome.** Phase 0 PASS is recorded in the linked evidence note; candidate has no findings and all target package builds meet the published fixed floors. Task 2 is unlocked. Do not weaken scanner inputs or policy.
 
-Expected: either an evidence-backed eligible digest with all 27 IDs absent from candidate inventory and scan, or a blocked outcome with no Dockerfile/metadata edits.
+Expected: evidence-backed eligible digest; the candidate's complete Trivy report had zero findings, and the old pinned positive control demonstrated detection for the affected package families. The exact acquisition adapter and remaining limitations are recorded in the evidence note.
 
 ### Task 2: Update pins and trusted image metadata (unlocked only by Task 1 PASS)
 
@@ -54,15 +54,16 @@ Expected: either an evidence-backed eligible digest with all 27 IDs absent from 
 - Modify: `api/services/identity-profile-service/Dockerfile`
 - Modify: `api/service-foundation/templates/common/Dockerfile`
 - Modify: `api/security/tooling/container-base-images.json`
+- Modify: `api/security/schemas/container-base-images.schema.json` (its exact digest/source constants are part of the trust boundary)
 - Test: `api/scripts/supply-chain/Test-ContainerBaseImageTrust.mjs`
 - Test: `api/scripts/supply-chain/Test-DockerfilePolicy.mjs`
 - Test: `api/scripts/supply-chain/Test-ContainerBaseImageResolution.ps1`
 
 **Interfaces:** All three tracked declarations use the exact eligible repository/tag/digest and record authoritative provenance while preserving schema contracts.
 
-- [ ] **Step 1: Add/update contract coverage** requiring both Dockerfiles and metadata to share the same immutable digest and approved identity.
-- [ ] **Step 2: Apply only the reviewed candidate digest/provenance** to the three tracked inputs.
-- [ ] **Step 3: Run base-image trust, resolution and Dockerfile policy checks.**
+- [x] **Step 1: Add/update contract coverage** requiring both Dockerfiles and metadata/schema to share the exact Phase 0 digest and source identity.
+- [x] **Step 2: Apply only the Phase 0 candidate digest/provenance** to both Dockerfiles, metadata and the exact trust schema; preserve all other image properties.
+- [ ] **Step 3: Run base-image trust, resolution and Dockerfile policy checks.** Trust and Dockerfile policy tests pass locally; the resolver script passed PowerShell AST parsing but runtime execution is pending a permitted PowerShell host/hosted run.
 
 Expected: resolver accepts exactly the approved image; trust and policy tests pass without broadening accepted image identities.
 

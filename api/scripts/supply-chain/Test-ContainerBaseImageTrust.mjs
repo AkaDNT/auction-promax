@@ -8,6 +8,12 @@ const ajvPath = path.join(repoRoot, "contracts/node_modules/ajv/dist/2020.js");
 const schemaPath = path.join(repoRoot, "security/schemas/container-base-images.schema.json");
 const manifestPath = path.join(repoRoot, "security/tooling/container-base-images.json");
 const dockerfilePath = path.join(repoRoot, "services/identity-profile-service/Dockerfile");
+const commonDockerfilePath = path.join(repoRoot, "service-foundation/templates/common/Dockerfile");
+const expectedCandidate = {
+  indexDigest: "sha256:b707577445897895f25c42ad4c0bfe5747a53e16c06de8ef118a55d894eb1c1e",
+  platformManifestDigest: "sha256:a1659a04c445036c54b49fe5163e46554ca24030e94c6eeffefe46fad127b400",
+  officialSource: "https://github.com/corretto/corretto-docker.git#883dd4b1df5aa871f1dfcec2244c5959b67e0239:21/headless/al2023",
+};
 
 if (!fs.existsSync(ajvPath)) {
   throw new Error("Pinned Ajv is missing; run npm ci in api/contracts before Cycle 5 schema tests.");
@@ -73,11 +79,20 @@ function assertDockerfileResult(name, mutate, expectedValid) {
 const schema = readJson(schemaPath, "Container base image trust schema");
 const manifest = readJson(manifestPath, "Container base image trust manifest");
 const dockerfile = readText(dockerfilePath, "Identity service Dockerfile");
+const commonDockerfile = readText(commonDockerfilePath, "Shared service Dockerfile template");
 const ajv = new Ajv2020({ allErrors: true, strict: true, validateFormats: true });
 if (!ajv.validateSchema(schema)) {
   throw new Error(`Container base image trust schema is invalid: ${JSON.stringify(ajv.errors)}`);
 }
 const validate = ajv.compile(schema);
+
+if (manifest.images.length !== 1 || Object.entries(expectedCandidate).some(([key, value]) => manifest.images[0][key] !== value)) {
+  throw new Error("Candidate Corretto image trust metadata does not match the Phase 0 verified digest and source.");
+}
+if (!validateDockerfileBaseImage(dockerfile) || !validateDockerfileBaseImage(commonDockerfile)) {
+  throw new Error("Identity and shared Dockerfiles must both use the exact trusted Corretto image digest.");
+}
+process.stdout.write("[PASS] Phase 0 candidate digest, provenance and both Dockerfiles bound exactly\n");
 
 assertResult(validate, "Canonical container base image manifest accepted", () => {}, true);
 assertResult(validate, "Mutable runtime tag rejected", (value) => { value.images[0].reviewedTag = "21-al2023-headless"; }, false);
