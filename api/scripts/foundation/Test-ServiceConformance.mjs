@@ -74,6 +74,12 @@ test('all service source POMs use separate approved Boot 4 Jackson BOM controls'
   }
 });
 
+test('shared logging test uses the Jackson 3 JSON factory package', async () => {
+  const source = await readFile(path.join(foundationRoot, 'templates/common/StructuredLoggingTest.java'), 'utf8');
+  assert.match(source, /import tools\.jackson\.core\.json\.JsonFactory;/);
+  assert.doesNotMatch(source, /import tools\.jackson\.core\.JsonFactory;/);
+});
+
 test('conformance rejects deliberately corrupted template sources and missing selected paths', async (t) => {
   const mutations = [
     ['empty logging test', 'templates/common/StructuredLoggingTest.java', () => 'class EmptyTest {}\n'],

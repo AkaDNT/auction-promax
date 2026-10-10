@@ -8,7 +8,7 @@ import ch.qos.logback.core.read.ListAppender;
 import __PACKAGE_NAME__.adapter.in.web.CorrelationIdFilter;
 import __PACKAGE_NAME__.adapter.in.web.TechnicalProbeController;
 import __PACKAGE_NAME__.adapter.in.web.TechnicalValidationRequest;
-import tools.jackson.core.JsonFactory;
+import tools.jackson.core.json.JsonFactory;
 import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
