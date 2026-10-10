@@ -61,7 +61,7 @@ Expected: actual installed bundled graph satisfies the floor; a root-level safe 
 - Validation only: repository scan/evidence and existing hosted workflows.
 
 - [x] **Step 1: Run repository dependency/vulnerability fixtures** and confirm a deliberately vulnerable fixture remains detectable.
-- [ ] **Step 2: Run repository security scan** and require `CVE-2026-102276`, `CVE-2026-102278`, and `CVE-2026-102277` absent from sanitized repository findings.
-- [ ] **Step 3: Obtain independent exact-SHA review and hosted execution/aggregate evidence.**
+- [x] **Step 2: Run repository security scan** and require `CVE-2026-102276`, `CVE-2026-102278`, and `CVE-2026-102277` absent from sanitized repository findings.
+- [x] **Step 3: Obtain independent exact-SHA review and hosted execution/aggregate evidence.**
 
 Expected: repository scan execution succeeds under unchanged policy. Do not claim policy PASS if other findings remain; keep PR #21 Draft and do not merge/release.

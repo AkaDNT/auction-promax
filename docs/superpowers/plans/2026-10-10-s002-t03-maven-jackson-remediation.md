@@ -66,7 +66,7 @@ Expected: PASS.
 
 - [x] **Step 1: Implement and test the graph assertion** against accepted BOM exceptions, vulnerable old core/databind, arbitrary Jackson artifact mismatch, and missing coordinates.
 - [x] **Step 2: Run the graph assertion for Identity locally**, using `mvnw dependency:tree`, and add the same fail-closed assertion after Maven verify in both owning hosted matrix workflows for each generated service.
-- [ ] **Step 3: Build and run registered Failsafe suites** using canonical Maven `verify` for all five services, in the available local/approved build environment.
+- [x] **Step 3: Build and run registered Failsafe suites** using canonical Maven `verify` for all five services, in the available local/approved build environment.
 
 Expected: all five services build and their named Failsafe suites pass; the executable graph assertion proves every Jackson coordinate conforms to the BOM, including version exceptions. Hosted matrix steps execute that assertion for every selected service. This task's local graph/build evidence does not claim hosted SBOM or scanner acceptance.
 
@@ -89,7 +89,7 @@ Expected: assessment is documentation-only, makes no severity/disposition decisi
 - No additional source changes beyond Tasks 1–3.
 
 - [x] **Step 1: Run affected local conformance/evidence regressions and `git diff --check`.**
-- [ ] **Step 2: Obtain independent review of the exact candidate SHA.**
-- [ ] **Step 3: Run the authorized hosted candidate matrix**; verify all five Maven/Failsafe gates and inspect actual generated SBOMs, dependency scans, container scans, sanitized evidence, and exact-set aggregate at that exact execution SHA. Require the five Jackson CVEs absent from both dependency and container inventories for every service.
+- [x] **Step 2: Obtain independent review of the exact candidate SHA.**
+- [x] **Step 3: Run the authorized hosted candidate matrix**; verify all five Maven/Failsafe gates and inspect actual generated SBOMs, dependency scans, container scans, sanitized evidence, and exact-set aggregate at that exact execution SHA. Require the five Jackson CVEs absent from both dependency and container inventories for every service.
 
 Expected: hosted technical execution and artifact-aware evidence pass at one exact candidate revision. Task 2's local graph/build evidence does not substitute for Task 4's hosted SBOM and scanner evidence. Do not claim release-policy PASS or T03 completion from this sub-project alone; preserve PR #21 Draft and existing release-policy behavior.

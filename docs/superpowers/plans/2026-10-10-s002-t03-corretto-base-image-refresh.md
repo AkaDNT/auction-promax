@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-10-s002-t03-corretto-base-image-refresh.md`
 
-**Execution status (2026-10-10): Phase 0 `PASS`; Task 2 pin/trust changes are local and tested; Task 3 hosted acceptance remains pending.** The official Docker Hub index and `linux/amd64` manifest, source annotation, actual package inventory, pinned Trivy provenance, fresh-database scan, and old-image positive control are recorded in `docs/superpowers/plans/2026-10-10-s002-t03-corretto-phase0-registry-followup.md`. The candidate has zero Trivy findings; the old pinned control has 80 findings including 69 in the five affected package families. This authorizes only the scoped image-pin refresh, not merge/release. The PowerShell resolver harness could not execute locally under the enforced Restricted policy; parser-only validation passed and hosted exact-SHA verification remains required.
+**Execution status (2026-10-11): Corretto Tasks 1–3 technically accepted on exact candidate `5ac5f37e907a78db76114fd0f3ba2046e021b1e0`; T03 closure remains pending the separately deferred default-branch freshness/post-integration gate.** The official Docker Hub index and `linux/amd64` manifest, source annotation, actual package inventory, pinned Trivy provenance, fresh-database scan, and old-image positive control are recorded in `docs/superpowers/plans/2026-10-10-s002-t03-corretto-phase0-registry-followup.md`. The candidate has zero Trivy findings; the old pinned control has 80 findings including 69 in the five affected package families. The exact-SHA reviewer found no findings. Push and PR hosted runs passed the five-service matrix, smoke, sanitized evidence, aggregate and separate release-policy. PR #21 remains Draft; this does not authorize merge/release. Local PowerShell runtime invocation remains blocked by the enforced Restricted policy, but the hosted workflow executed the base-image resolver on each service image build.
 
 ## Global Constraints
 
@@ -63,7 +63,7 @@ Expected: evidence-backed eligible digest; the candidate's complete Trivy report
 
 - [x] **Step 1: Add/update contract coverage** requiring both Dockerfiles and metadata/schema to share the exact Phase 0 digest and source identity.
 - [x] **Step 2: Apply only the Phase 0 candidate digest/provenance** to both Dockerfiles, metadata and the exact trust schema; preserve all other image properties.
-- [ ] **Step 3: Run base-image trust, resolution and Dockerfile policy checks.** Trust and Dockerfile policy tests pass locally; the resolver script passed PowerShell AST parsing but runtime execution is pending a permitted PowerShell host/hosted run.
+- [x] **Step 3: Run base-image trust, resolution and Dockerfile policy checks.** Trust and Dockerfile policy tests pass locally; the resolver script passed PowerShell AST parsing. Local runtime invocation was rejected by the enforced Restricted policy; the hosted supply-chain run executed base-image resolution during all five service image builds successfully.
 
 Expected: resolver accepts exactly the approved image; trust and policy tests pass without broadening accepted image identities.
 
@@ -72,10 +72,12 @@ Expected: resolver accepts exactly the approved image; trust and policy tests pa
 **Files:**
 - Validation only: owning supply-chain hosted workflow and per-service evidence.
 
-- [ ] **Step 1: Commit the passing pin/metadata delta** and record the exact candidate SHA.
-- [ ] **Step 2: Obtain independent review of that exact SHA**; do not reuse review from another revision.
-- [ ] **Step 3: Push only the reviewed, authorized candidate** to the isolated T03 branch and run the hosted five-service matrix.
-- [ ] **Step 4: Inspect hosted image build, technical smoke, and sanitized container scanner findings**; require all 27 target CVEs absent for every service.
-- [ ] **Step 5: Verify exact-set aggregation and separate release-policy behavior** at the same execution revision.
+- [x] **Step 1: Commit the passing pin/metadata delta** and record the exact candidate SHA: `5ac5f37e907a78db76114fd0f3ba2046e021b1e0`.
+- [x] **Step 2: Obtain independent review of that exact SHA**; review against `d78e2eece60f531abf79a7d8dc7c8adfbc7b5cd2` found no Critical, Important, or Minor findings.
+- [x] **Step 3: Push only the reviewed, authorized candidate** to the isolated T03 branch and run the hosted five-service matrix.
+- [x] **Step 4: Inspect hosted image build, technical smoke, and sanitized container scanner findings**; both push and PR runs used the approved child digest, all five smoke summaries reported `UP`, and no finding remained in the five target OS package families.
+- [x] **Step 5: Verify exact-set aggregation and separate release-policy behavior** at the same execution revision. Both runs passed exact-set aggregation and `release-policy`; PR execution SHA was `21585cf7f7658b35f7e9069b4058a098ea1fcc1d`.
 
 Expected: exact-SHA review precedes candidate publication; all hosted execution gates pass and every target CVE is absent from scanner findings. Package inventory establishes patched package versions, while scanner findings establish CVE absence. Any remaining target CVE invalidates remediation acceptance; scanner policy and release-policy remain unchanged and separately evaluated.
+
+Hosted evidence: push run [38069571852](https://github.com/AkaDNT/auction-promax/actions/runs/38069571852) and PR run [38069575793](https://github.com/AkaDNT/auction-promax/actions/runs/38069575793) both completed successfully on head `5ac5f37e907a78db76114fd0f3ba2046e021b1e0`. The PR artifacts bind all five service results and evidence to execution SHA `21585cf7f7658b35f7e9069b4058a098ea1fcc1d`; all five report execution/policy `PASS`, smoke `UP`, `linux/amd64`, and base manifest `sha256:a1659a04c445036c54b49fe5163e46554ca24030e94c6eeffefe46fad127b400`. The repository sanitized vulnerability inventory is empty and repository policy is `PASS`. Each service's dependency and container inventories contain only two MEDIUM OpenTelemetry findings and no findings in curl, OpenSSL, expat, RPM, or pcre2 target families; policy is `PASS` for all five. Separate release-policy is `PASS` in both runs. API, web, and monorepo PR runs on the same candidate head also passed. These results accept the Corretto refresh technically; they do not clear the separate post-integration freshness gate or authorize merge/release. PR #21 remains Draft.
