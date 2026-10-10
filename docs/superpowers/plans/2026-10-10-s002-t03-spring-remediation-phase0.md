@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-10-s002-t03-spring-remediation-phase0.md`
 
+**Authority chronology (2026-10-11):** This plan preserves the original Phase 0-only ruling; statements below that Phase 1 still required separate Owner approval were accurate when the plan was reviewed. A subsequent Owner delegation authorized the bounded Spring Phase 1/2 work under the separate `52–98 h` envelope, as recorded in the current [Phase 0 evidence dossier](2026-10-10-s002-t03-spring-phase0-evidence.md) and [Phase 1 implementation plan](2026-10-10-s002-t03-spring-remediation-phase1.md). That later authorization does not permit exceeding the envelope or authorize merge, deployment, release, policy changes or dispositions. Sprint 002 burn/T07 remain unverified and unchanged.
+
 ## Global Constraints
 
 - Phase 0 is read-only for tracked product POM/source/test/workflow files; do not install/change product dependencies in the working tree.
