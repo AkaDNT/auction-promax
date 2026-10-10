@@ -8,12 +8,13 @@ import ch.qos.logback.core.read.ListAppender;
 import __PACKAGE_NAME__.adapter.in.web.CorrelationIdFilter;
 import __PACKAGE_NAME__.adapter.in.web.TechnicalProbeController;
 import __PACKAGE_NAME__.adapter.in.web.TechnicalValidationRequest;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.StreamReadFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.json.JsonFactory;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
@@ -62,21 +63,22 @@ class StructuredLoggingTest {
             logger.setAdditive(false);
             MDC.clear();
             if (outerCorrelation != null) MDC.put("correlationId", outerCorrelation);
-            Map<String, String> expectedMdc = MDC.getCopyOfContextMap();
+            Map<String, String> expectedMdc = Optional.ofNullable(MDC.getCopyOfContextMap()).orElseGet(Map::of);
             String raw = "DO-NOT-LOG-THIS-RAW-VALUE";
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader(CorrelationIdFilter.HEADER_NAME, "fixture-correlation");
             new CorrelationIdFilter().doFilter(request, new MockHttpServletResponse(),
                 (ignoredRequest, ignoredResponse) -> new TechnicalProbeController()
                     .validate(new TechnicalValidationRequest(raw)));
-            assertThat(MDC.getCopyOfContextMap()).isEqualTo(expectedMdc);
+            Map<String, String> actualMdc = Optional.ofNullable(MDC.getCopyOfContextMap()).orElseGet(Map::of);
+            assertThat(actualMdc).isEqualTo(expectedMdc);
 
             assertThat(appender.list).hasSize(1);
             byte[] encoded = encoder.encode(appender.list.getFirst());
             String jsonLine = new String(encoded, StandardCharsets.UTF_8);
             JsonFactory factory = JsonFactory.builder()
                 .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build();
-            JsonNode json = new ObjectMapper(factory).readTree(jsonLine);
+            JsonNode json = JsonMapper.builder(factory).build().readTree(jsonLine);
             assertThat(json.path("event").asText()).isEqualTo("technical_validation.accepted");
             assertThat(json.path("valueLength").asInt()).isEqualTo(raw.length());
             assertThat(json.path("correlationId").asText()).isEqualTo("fixture-correlation");

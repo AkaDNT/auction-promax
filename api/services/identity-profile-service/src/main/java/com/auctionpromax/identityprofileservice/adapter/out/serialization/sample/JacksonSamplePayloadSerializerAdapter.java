@@ -3,8 +3,8 @@ package com.auctionpromax.identityprofileservice.adapter.out.serialization.sampl
 import com.auctionpromax.identityprofileservice.ports.out.sample.SamplePayloadSerializerPort;
 import com.auctionpromax.identityprofileservice.ports.out.sample.SampleRecordedEventData;
 import com.auctionpromax.identityprofileservice.ports.out.sample.StoredSampleResponseData;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -48,7 +48,7 @@ public class JacksonSamplePayloadSerializerAdapter implements SamplePayloadSeria
   private String write(Object value, String payloadType) {
     try {
       return objectMapper.writeValueAsString(value);
-    } catch (JsonProcessingException exception) {
+    } catch (JacksonException exception) {
       throw new IllegalStateException(
           "Could not serialize sample " + payloadType,
           exception);

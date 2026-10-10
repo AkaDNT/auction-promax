@@ -1,11 +1,16 @@
 #Requires -Version 5.1
 [CmdletBinding()]
-param([string]$OutputPath)
+param([string]$OutputPath, [ValidateNotNullOrEmpty()][string]$ServiceId = 'identity-profile-service')
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$serviceResolverPath = Join-Path $PSScriptRoot 'ServiceArtifact.psm1'
+if (-not (Test-Path -LiteralPath $serviceResolverPath -PathType Leaf)) { throw 'GITLEAKS_SERVICE_RESOLVER_MISSING' }
+Import-Module $serviceResolverPath -Force
+try { $artifact = Resolve-ServiceArtifact -ServiceId $ServiceId }
+catch { throw 'GITLEAKS_SERVICE_IDENTITY_INVALID' }
 $contractPath = Join-Path $repoRoot 'security\tooling\gitleaks-scan-contract.json'
 $allowlistPath = Join-Path $repoRoot 'security\gitleaks-allowlist.json'
 # Keep this unique temporary leaf deliberately short. The repository contains
@@ -13,7 +18,7 @@ $allowlistPath = Join-Path $repoRoot 'security\gitleaks-allowlist.json'
 # destination before Gitleaks receives it. New-WorkingTreeSnapshot refuses an
 # existing path, so a random collision fails closed rather than sharing data.
 $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('a' + [guid]::NewGuid().ToString('N').Substring(0, 8))
-$evidenceRoot = [System.IO.Path]::GetFullPath((Join-Path $repoRoot 'services\identity-profile-service\target\s001-t07-evidence'))
+$evidenceRoot = [System.IO.Path]::GetFullPath([string]$artifact.evidencePath)
 
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $OutputPath = Join-Path $evidenceRoot 'gitleaks-inventory.json'

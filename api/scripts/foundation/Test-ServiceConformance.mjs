@@ -53,6 +53,33 @@ test('the repository templates pass the reusable conformance validator', () => {
   assert.deepEqual(validateTemplateConformance(repositoryRoot).variants, ['relational', 'gateway']);
 });
 
+test('technical exception advice uses the shared ResponseEntity<Object> return contract', async () => {
+  const source = await readFile(path.join(foundationRoot, 'templates/common/TechnicalProblemAdvice.java'), 'utf8');
+  assert.match(source, /ResponseEntity<Object> unexpected\(Exception exception, HttpServletRequest request\)/);
+});
+
+test('all service source POMs use separate approved Boot 4 Jackson BOM controls', async () => {
+  const pomPaths = [
+    path.join(foundationRoot, 'templates/relational/pom.xml'),
+    path.join(foundationRoot, 'templates/gateway/pom.xml'),
+    path.join(repositoryRoot, 'api/services/identity-profile-service/pom.xml'),
+  ];
+  for (const pomPath of pomPaths) {
+    const pom = await readFile(pomPath, 'utf8');
+    assert.match(pom, /<jackson-bom\.version>3\.1\.7<\/jackson-bom\.version>/, pomPath);
+    assert.match(pom, /<jackson-2-bom\.version>2\.21\.7<\/jackson-2-bom\.version>/, pomPath);
+    assert.match(pom, /<artifactId>spring-boot-starter-parent<\/artifactId>\s*<version>4\.0\.8<\/version>/, pomPath);
+    assert.match(pom, /<tomcat\.version>11\.0\.26<\/tomcat\.version>/, pomPath);
+    assert.doesNotMatch(pom, /<artifactId>jackson-[^<]+<\/artifactId>\s*<version>/, pomPath);
+  }
+});
+
+test('shared logging test uses the Jackson 3 JSON factory package', async () => {
+  const source = await readFile(path.join(foundationRoot, 'templates/common/StructuredLoggingTest.java'), 'utf8');
+  assert.match(source, /import tools\.jackson\.core\.json\.JsonFactory;/);
+  assert.doesNotMatch(source, /import tools\.jackson\.core\.JsonFactory;/);
+});
+
 test('conformance rejects deliberately corrupted template sources and missing selected paths', async (t) => {
   const mutations = [
     ['empty logging test', 'templates/common/StructuredLoggingTest.java', () => 'class EmptyTest {}\n'],
@@ -60,6 +87,10 @@ test('conformance rejects deliberately corrupted template sources and missing se
     ['missing duplicate detection', 'templates/common/StructuredLoggingTest.java', text => text.replace('STRICT_DUPLICATE_DETECTION', 'AUTO_CLOSE_SOURCE')],
     ['missing outer MDC case', 'templates/common/StructuredLoggingTest.java', text => text.replace('outer-correlation', 'omitted-case')],
     ['missing negative fixture assertion', 'templates/common/ArchitectureTest.java', text => text.replace('.hasMessageContaining("InvalidInboundDependency")', '')],
+    ['incompatible technical exception response type', 'templates/common/TechnicalProblemAdvice.java', text => text.replace('ResponseEntity<Object> unexpected', 'ResponseEntity<ProblemDetail> unexpected')],
+    ['package-private controller blocks cross-package logging test', 'templates/common/TechnicalProbeController.java', text => text.replace('public TechnicalValidationResponse validate', 'TechnicalValidationResponse validate')],
+    ['null and empty MDC states are normalized before comparison', 'templates/common/StructuredLoggingTest.java', text => text.replaceAll('Optional.ofNullable(MDC.getCopyOfContextMap()).orElseGet(Map::of)', 'MDC.getCopyOfContextMap()')],
+    ['digest-pinned Postgres image declares its Testcontainers-compatible base alias', 'templates/relational/RelationalBoundaryTestcontainersIT.java', text => text.replace('.asCompatibleSubstituteFor("postgres")', '')],
     ['wrapper pin', 'templates/common/maven-wrapper.properties', text => text.replace('3.9.16', '3.9.15')],
     ['unknown token', 'templates/common/README.md', text => text + '\n__unknown_token__\n'],
     ['gateway JDBC dependency', 'templates/gateway/pom.xml', text => text.replace('</dependencies>', '<dependency><groupId>org.springframework</groupId><artifactId>spring-jdbc</artifactId></dependency></dependencies>')],
@@ -274,7 +305,7 @@ test('relational POM selects the Testcontainers IT class and required persistenc
   const pomEntry = entries.find(entry => entry.source === 'templates/relational/pom.xml');
   const pom = await readFile(path.join(root, 'api/service-foundation', ...pomEntry.source.split('/')), 'utf8');
   for (const dependency of [
-    'spring-boot-starter-data-jpa', 'org.postgresql', 'flyway-core', 'flyway-database-postgresql',
+    'spring-boot-starter-data-jpa', 'org.postgresql', 'spring-boot-starter-flyway', 'flyway-database-postgresql',
     'org.testcontainers', 'archunit-junit5',
   ]) assert.ok(pom.includes(`<artifactId>${dependency}</artifactId>`) || pom.includes(`<groupId>${dependency}</groupId>`), dependency);
   assert.match(pom, /\*\*\/\*TestcontainersIT\.java/);

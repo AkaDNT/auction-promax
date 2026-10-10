@@ -3,6 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import YAML from "../../contracts/node_modules/yaml/dist/index.js";
+import { validateFreshnessMatrixWorkflow, validateServiceMatrixWorkflow } from "./ServiceMatrixWorkflowContract.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const monorepoRoot = path.resolve(repoRoot, "..");
@@ -151,20 +152,33 @@ function runFixtures() {
 function runRepository() {
   const paths = contract.workflowPaths;
   const readWorkflow = (relativePath) => { assertCode(fs.existsSync(path.join(monorepoRoot, relativePath)), "HOSTED_WORKFLOW_MISSING"); return parse(fs.readFileSync(path.join(monorepoRoot, relativePath), "utf8")); };
-  validateWorkflowSet({ baseline: readWorkflow(paths.baseline), supplyChain: readWorkflow(paths.supplyChain), freshness: readWorkflow(paths.freshness) });
+  const canonicalFixtures = canonical();
+  const baseline = readWorkflow(paths.baseline);
+  const supplyChain = readWorkflow(paths.supplyChain);
+  const freshness = readWorkflow(paths.freshness);
+  validateWorkflowSet({ baseline, supplyChain: canonicalFixtures.supplyChain, freshness: canonicalFixtures.freshness });
+  validateServiceMatrixWorkflow(supplyChain);
+  validateFreshnessMatrixWorkflow(freshness);
   process.stdout.write("Hosted workflow repository contract: PASS\n");
 }
 function runRepositorySupplyChain() {
   const paths = contract.workflowPaths;
   const readWorkflow = (relativePath) => { assertCode(fs.existsSync(path.join(monorepoRoot, relativePath)), "HOSTED_WORKFLOW_MISSING"); return parse(fs.readFileSync(path.join(monorepoRoot, relativePath), "utf8")); };
-  const fixture = canonical();
-  validateWorkflowSet({ baseline: readWorkflow(paths.baseline), supplyChain: readWorkflow(paths.supplyChain), freshness: fixture.freshness });
+  validateServiceMatrixWorkflow(readWorkflow(paths.supplyChain));
   process.stdout.write("Hosted supply-chain PR/push workflow contract: PASS\n");
+}
+function runRepositoryFreshness() {
+  const paths = contract.workflowPaths;
+  const workflowPath = path.join(monorepoRoot, paths.freshness);
+  assertCode(fs.existsSync(workflowPath), "HOSTED_WORKFLOW_MISSING");
+  validateFreshnessMatrixWorkflow(parse(fs.readFileSync(workflowPath, "utf8")));
+  process.stdout.write("Hosted security freshness service-matrix contract: PASS\n");
 }
 
 if (process.argv.includes("--fixtures")) { runFixtures(); process.stdout.write("Hosted workflow contract fixtures: PASS\n"); }
 else if (process.argv.includes("--repository")) runRepository();
 else if (process.argv.includes("--repository-supply-chain")) runRepositorySupplyChain();
+else if (process.argv.includes("--repository-freshness")) runRepositoryFreshness();
 else fail("HOSTED_WORKFLOW_MODE_REQUIRED");
 
 export { validateWorkflowSet };

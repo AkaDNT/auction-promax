@@ -18,13 +18,28 @@ if ($orchestratorSource -notmatch '\$wrapperPhase = ''initialize''' -or $orchest
 if ($orchestratorSource -notmatch '\$stage\.name -eq ''prebuild''' -or $orchestratorSource -notmatch 'Container prebuild diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(CONTAINER_PREBUILD_\[A-Z_\]\+\)\\b') {
     throw 'HOSTED_PREBUILD_SANITIZED_DIAGNOSTIC_MISSING'
 }
+if ($orchestratorSource -notmatch '\$stage\.name -eq ''dependency''' -or $orchestratorSource -notmatch 'Dependency scan diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch 'Dependency scan diagnostic: phase=\{0\}; failureCode=\{1\}' -or $orchestratorSource -notmatch '\\b\(TRIVY_\[A-Z0-9_\]\+\|VULNERABILITY_\[A-Z0-9_\]\+\)\\b' -or $orchestratorSource -notmatch 'Dependency scan diagnostic: failureCode=DEPENDENCY_SCAN_UNCLASSIFIED; exceptionType=\{0\}') {
+    throw 'HOSTED_DEPENDENCY_SCAN_SANITIZED_DIAGNOSTIC_MISSING'
+}
+if ($orchestratorSource -notmatch '\$PSNativeCommandUseErrorActionPreference = \$false' -or $orchestratorSource -notmatch '\$PSNativeCommandUseErrorActionPreference = \$previousNativeErrorPreference' -or $orchestratorSource -notmatch '\$exitCode = \$LASTEXITCODE') {
+    throw 'HOSTED_CHILD_NATIVE_EXIT_CAPTURE_NOT_EXPLICIT'
+}
+if ($orchestratorSource -notmatch 'Dependency scan wrapper diagnostic: phase=\{0\}; exceptionType=\{1\}' -or $orchestratorSource -notmatch 'Read-HostedDependencyScanStatus\s+-Path\s+\$dependencyStatusPath\s+-ExitCode\s+\$exitCode' -or $orchestratorSource -notmatch '\$dependencyStatus\.state -eq ''BLOCKED''' -or $orchestratorSource -notmatch '\$dependencyStatus\.state -eq ''FAILED''') {
+    throw 'HOSTED_DEPENDENCY_CHILD_BOUNDARY_DIAGNOSTIC_MISSING'
+}
+if ($orchestratorSource -notmatch '\$stage\.name -eq ''dependency''\) \{ \$isPolicyBlock = \$false \}' -or $orchestratorSource -match '\$text -match .*VULNERABILITY_\[A-Z0-9_\]') {
+    throw 'HOSTED_DEPENDENCY_RAW_OUTPUT_POLICY_CLASSIFICATION_PRESENT'
+}
+if ($orchestratorSource -notmatch 'Container prebuild diagnostic: phase=stage-dispatch; exceptionType=\{0\}') {
+    throw 'HOSTED_PREBUILD_FALLBACK_DIAGNOSTIC_MISSING'
+}
 if ($orchestratorSource -notmatch '\$stage\.name -eq ''base''' -or $orchestratorSource -notmatch 'Container base trust diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(CONTAINER_BASE_IMAGE_\[A-Z_\]\+\)\\b') {
     throw 'HOSTED_BASE_TRUST_SANITIZED_DIAGNOSTIC_MISSING'
 }
 if ($orchestratorSource -notmatch 'Container base resolution diagnostic: phase=\{0\}; exceptionType=\{1\}') {
     throw 'HOSTED_BASE_RESOLUTION_PHASE_DIAGNOSTIC_MISSING'
 }
-if ($orchestratorSource -notmatch '\$stage\.name -eq ''smoke''' -or $orchestratorSource -notmatch 'Container smoke diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(CONTAINER_SMOKE_\[A-Z_\]\+\)\\b') {
+if ($orchestratorSource -notmatch '\$stage\.name -eq ''smoke''' -or $orchestratorSource -notmatch 'Container smoke diagnostic: failureCode=\{0\}' -or $orchestratorSource -notmatch '\\b\(CONTAINER_SMOKE_\[A-Z0-9_\]\+\)\\b') {
     throw 'HOSTED_SMOKE_SANITIZED_DIAGNOSTIC_MISSING'
 }
 if ($orchestratorSource -notmatch 'Container smoke diagnostic: phase=\{0\}; failureCode=\{1\}; exceptionType=\{2\}') {
@@ -45,7 +60,10 @@ try {
     if (Test-Path -LiteralPath $boundRoot) { Remove-Item -LiteralPath $boundRoot -Recurse -Force }
 }
 
-$commit = '0123456789abcdef0123456789abcdef01234567'
+$repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+$commit = @(& git -C $repositoryRoot rev-parse HEAD 2>$null)
+if ($LASTEXITCODE -ne 0 -or $commit.Count -ne 1 -or [string]$commit[0] -notmatch '^[a-f0-9]{40}$') { throw 'TEST_CHECKED_OUT_REVISION_UNAVAILABLE' }
+$commit = [string]$commit[0]
 $root = Join-Path ([System.IO.Path]::GetTempPath()) ('apx-hosted-orchestrator-' + [guid]::NewGuid().ToString('N'))
 $serviceEvidence = Join-Path $PSScriptRoot '..\..\services\identity-profile-service\target\s001-t07-evidence'
 $vulnerabilityInventory = Join-Path $serviceEvidence 'vulnerability-inventory.json'
@@ -102,6 +120,74 @@ try {
     Write-Host '[PASS] Policy block and mutable-review states remain independent'
 
     Remove-Item -LiteralPath $root -Recurse -Force
+    [System.IO.File]::WriteAllText($vulnerabilityInventory, $fixtureFinding, [System.Text.UTF8Encoding]::new($false))
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { 'POLICY_BLOCKED' } }) -NoExit
+    $dependencyEvidence = Get-Content -LiteralPath (Join-Path $root 'vulnerability-inventory.json') -Raw | ConvertFrom-Json
+    if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'BLOCKED' -or @($dependencyEvidence.findings).Count -ne 1) { throw 'TEST_STRUCTURED_DEPENDENCY_POLICY_BLOCK_EVIDENCE_MISSING' }
+    Write-Host '[PASS] Completed dependency policy block preserves sanitized findings'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $prebuildWarning = @()
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ prebuild = { throw 'unclassified prebuild child failure' } }) -NoExit -WarningVariable +prebuildWarning
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.failureCode -ne 'SBOM_BUILD_FAILED' -or (@($prebuildWarning) -join "`n") -notmatch 'Container prebuild diagnostic: phase=stage-dispatch; exceptionType=RuntimeException') { throw 'TEST_PREBUILD_FALLBACK_DIAGNOSTIC_LOST' }
+    Write-Host '[PASS] Unclassified prebuild failure exposes only a sanitized phase and exception type'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $prebuildWarning = @()
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ prebuild = { throw 'CONTAINER_PREBUILD_SBOM_INVALID' } }) -NoExit -WarningVariable +prebuildWarning
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.failureCode -ne 'SBOM_BUILD_FAILED' -or (@($prebuildWarning) -join "`n") -notmatch 'Container prebuild diagnostic: failureCode=CONTAINER_PREBUILD_SBOM_INVALID') { throw 'TEST_PREBUILD_CLASSIFIED_DIAGNOSTIC_LOST' }
+    Write-Host '[PASS] Classified prebuild failures retain a sanitized specific diagnostic'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $repositoryOnlyAdapters = New-Adapters @{
+        prebuild = { throw 'REPOSITORY_ONLY_RAN_PREBUILD' }
+        base = { throw 'REPOSITORY_ONLY_RAN_BASE_IMAGE_STAGE' }
+        image = { throw 'REPOSITORY_ONLY_RAN_IMAGE_STAGE' }
+        smoke = { throw 'REPOSITORY_ONLY_RAN_SMOKE_STAGE' }
+        container = { throw 'REPOSITORY_ONLY_RAN_CONTAINER_STAGE' }
+    }
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters $repositoryOnlyAdapters -NoExit
+    if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'PASS') { throw 'TEST_REPOSITORY_ONLY_SCENARIO_FAILED' }
+    $repositoryOnlyContainer = Get-Content -LiteralPath (Join-Path $root 'container-vulnerability-inventory.json') -Raw | ConvertFrom-Json
+    if (@($repositoryOnlyContainer.findings).Count -ne 0) { throw 'TEST_REPOSITORY_ONLY_CONTAINER_INVENTORY_NOT_EMPTY' }
+    foreach ($evidenceName in @('run-summary.json','vulnerability-inventory.json','gitleaks-inventory.json','container-vulnerability-inventory.json','image-identity.json','smoke-summary.json','policy-summary.json')) {
+        $repositoryEvidence = Get-Content -LiteralPath (Join-Path $root $evidenceName) -Raw | ConvertFrom-Json
+        if ($repositoryEvidence.commit -cne $commit) { throw 'TEST_REPOSITORY_ONLY_EVIDENCE_COMMIT_MISMATCH' }
+    }
+    Write-Host '[PASS] Repository-only execution keeps shared scans without invoking service build/image/smoke stages'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $dependencyWarning = @()
+    $rawDependencyError = 'private /runner/path detail TRIVY_DB_REFRESH_FAILED opaque child output'
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { throw $rawDependencyError } }) -NoExit -WarningVariable +dependencyWarning
+    $warningText = @($dependencyWarning) -join "`n"
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -notmatch 'Dependency scan diagnostic: failureCode=TRIVY_DB_REFRESH_FAILED' -or $warningText.Contains('/runner/path') -or $warningText.Contains('opaque child output')) { throw 'TEST_DEPENDENCY_SCAN_DIAGNOSTIC_NOT_SANITIZED' }
+    Write-Host '[PASS] Dependency scan failure exposes only a fixed classified code and remains implementation failure'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $dependencyWarning = @()
+    $rawDependencyError = 'private /runner/path detail TRIVY_DB_REFRESH_FAILED|phase=verify-db'
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { throw $rawDependencyError } }) -NoExit -WarningVariable +dependencyWarning
+    $warningText = @($dependencyWarning) -join "`n"
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -notmatch 'Dependency scan diagnostic: phase=verify-db; failureCode=TRIVY_DB_REFRESH_FAILED' -or $warningText.Contains('/runner/path') -or $warningText.Contains('private')) { throw 'TEST_DEPENDENCY_SCAN_PHASE_DIAGNOSTIC_NOT_SANITIZED' }
+    Write-Host '[PASS] Dependency scan diagnostic retains only the fixed phase and failure code'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $dependencyWarning = @()
+$spoofedPolicyError = 'runtime failure /private/runner VULNERABILITY_POLICY_BLOCKED HIGH_OR_CRITICAL_DISPOSITION_REQUIRED'
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { throw $spoofedPolicyError } }) -NoExit -WarningVariable +dependencyWarning
+    $warningText = @($dependencyWarning) -join "`n"
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -match 'POLICY_BLOCKED|HIGH_OR_CRITICAL') { throw 'TEST_SPOOFED_POLICY_MARKER_BECAME_BLOCKED' }
+    Write-Host '[PASS] Spoofed policy marker remains an implementation failure'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $dependencyWarning = @()
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly -Adapters (New-Adapters @{ dependency = { throw 'private unclassified scanner details' } }) -NoExit -WarningVariable +dependencyWarning
+    $warningText = @($dependencyWarning) -join "`n"
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.policyState -ne 'NOT_EVALUATED' -or $result.failureCode -ne 'DEPENDENCY_SCAN_FAILED' -or $warningText -notmatch 'Dependency scan diagnostic: failureCode=DEPENDENCY_SCAN_UNCLASSIFIED; exceptionType=RuntimeException' -or $warningText.Contains('private unclassified scanner details')) { throw 'TEST_DEPENDENCY_SCAN_FALLBACK_NOT_SANITIZED' }
+    Write-Host '[PASS] Unclassified dependency failure remains generic and emits only its exception class'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ container = { throw 'CONTAINER_SCAN_POLICY_BLOCKED' } }) -NoExit
     $containerEvidence = Get-Content -LiteralPath (Join-Path $root 'container-vulnerability-inventory.json') -Raw | ConvertFrom-Json
     if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'BLOCKED' -or @($containerEvidence.findings).Count -ne 1 -or $null -eq $containerEvidence.findings[0].scanner) { throw 'TEST_POLICY_BLOCKED_CONTAINER_EVIDENCE_MISSING' }
@@ -118,6 +204,13 @@ try {
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ smoke = { throw $childErrorRecord } }) -NoExit -WarningVariable +smokeWarning
     if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.failureCode -ne 'SMOKE_FAILED' -or (@($smokeWarning) -join "`n") -notmatch 'Container smoke diagnostic: failureCode=CONTAINER_SMOKE_START_FAILED') { throw 'TEST_SMOKE_ERROR_RECORD_DIAGNOSTIC_LOST' }
     Write-Host '[PASS] ErrorRecord-formatted smoke failure remains diagnosable'
+
+    Remove-Item -LiteralPath $root -Recurse -Force
+    $smokeWarning = @()
+    $numericSmokeError = 'CONTAINER_SMOKE_DOCKER_CLIENT_EXIT_125|phase=start-container|exceptionType=RuntimeException'
+    $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ smoke = { throw $numericSmokeError } }) -NoExit -WarningVariable +smokeWarning
+    if ($result.executionState -ne 'IMPLEMENTATION_FAILURE' -or $result.failureCode -ne 'SMOKE_FAILED' -or (@($smokeWarning) -join "`n") -notmatch 'Container smoke diagnostic: phase=start-container; failureCode=CONTAINER_SMOKE_DOCKER_CLIENT_EXIT_125; exceptionType=RuntimeException') { throw 'TEST_NUMERIC_SMOKE_ERROR_RECORD_DIAGNOSTIC_LOST' }
+    Write-Host '[PASS] Numeric Docker smoke failure remains classified and diagnosable'
 
     Remove-Item -LiteralPath $root -Recurse -Force
     $smokeWarning = @()

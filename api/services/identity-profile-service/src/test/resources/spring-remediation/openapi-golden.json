@@ -1,0 +1,28 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "OpenAPI definition", "version": "v0"},
+  "servers": [{"url": "http://baseline.invalid", "description": "Generated server url"}],
+  "paths": {
+    "/internal/technical-baseline/validate": {
+      "post": {
+        "tags": ["technical-baseline-controller"], "operationId": "validate",
+        "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/TechnicalValidationRequest"}}}, "required": true},
+        "responses": {"200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/TechnicalValidationResponse"}}}}}
+      }
+    },
+    "/api/v1/identity-profile-samples": {
+      "post": {
+        "tags": ["create-sample-controller"], "operationId": "create",
+        "parameters": [{"name": "Idempotency-Key", "in": "header", "required": true, "schema": {"type": "string", "maxLength": 128, "minLength": 1, "pattern": "^[A-Za-z0-9._:-]+$"}}],
+        "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/CreateSampleRequest"}}}, "required": true},
+        "responses": {"200": {"description": "OK", "content": {"*/*": {"schema": {"$ref": "#/components/schemas/CreateSampleResponse"}}}}}
+      }
+    }
+  },
+  "components": {"schemas": {
+    "TechnicalValidationRequest": {"type": "object", "properties": {"value": {"type": "string", "maxLength": 100, "minLength": 0}}, "required": ["value"]},
+    "TechnicalValidationResponse": {"type": "object", "properties": {"accepted": {"type": "boolean"}, "valueLength": {"type": "integer", "format": "int32"}}},
+    "CreateSampleRequest": {"type": "object", "properties": {"purpose": {"type": "string", "enum": ["PHASE_0_BASELINE"]}, "sampleRequestId": {"type": "string", "format": "uuid"}}, "required": ["purpose"]},
+    "CreateSampleResponse": {"type": "object", "properties": {"sampleId": {"type": "string", "format": "uuid"}, "status": {"type": "string"}}}
+  }}
+}

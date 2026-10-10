@@ -35,6 +35,39 @@ function writeFixture(root, name, mutate) {
   return writeJson(root, `${name}.json`, value);
 }
 
+function writeServiceFixture(root, name, serviceId, mutate = () => {}) {
+  const value = clone(canonicalBom);
+  const previousRef = value.metadata.component["bom-ref"];
+  const nextRef = `pkg:maven/com.auctionpromax/${serviceId}@0.0.1-SNAPSHOT?type=jar`;
+  value.metadata.component.name = serviceId;
+  value.metadata.component["bom-ref"] = nextRef;
+  value.metadata.component.purl = nextRef;
+  for (const dependency of value.dependencies) {
+    if (dependency.ref === previousRef) dependency.ref = nextRef;
+    dependency.dependsOn = dependency.dependsOn?.map((reference) => reference === previousRef ? nextRef : reference);
+  }
+  mutate(value);
+  return writeJson(root, `${name}.json`, value);
+}
+
+function removeGatewayDatastoreComponents(value) {
+  const isDatastore = (component) => component.group === "org.postgresql" || component.group === "org.flywaydb"
+    || component.group === "jakarta.persistence" || component.group === "org.hibernate.orm"
+    || component.group === "org.hibernate.common"
+    || (component.group === "org.springframework.boot" && ["spring-boot-starter-jdbc", "spring-boot-starter-data-jpa"].includes(component.name))
+    || (component.group === "org.springframework" && ["spring-jdbc", "spring-orm", "spring-tx"].includes(component.name))
+    || (component.group === "com.zaxxer" && component.name === "HikariCP");
+  const removedReferences = new Set(value.components.filter(isDatastore).map((component) => component["bom-ref"]));
+  value.components = value.components.filter((component) => !removedReferences.has(component["bom-ref"]));
+  value.dependencies = value.dependencies
+    .filter((dependency) => !removedReferences.has(dependency.ref))
+    .map((dependency) => ({
+      ...dependency,
+      ...(dependency.dependsOn ? { dependsOn: dependency.dependsOn.filter((reference) => !removedReferences.has(reference)) } : {}),
+    }));
+  return value;
+}
+
 function rootDependencyIndex(value) {
   const rootRef = value.metadata?.component?.["bom-ref"];
   const index = value.dependencies?.findIndex((entry) => entry.ref === rootRef) ?? -1;
@@ -50,6 +83,7 @@ function assertScenario(name, bomPath, expectedValid, options = {}, expectedFail
     "--trust-manifest", options.trustManifest ?? fixtureManifestPath,
   ];
   if (options.referenceBom) args.push("--reference-bom", options.referenceBom);
+  if (options.serviceId) args.push("--service", options.serviceId);
   const result = spawnSync(process.execPath, args, { encoding: "utf8" });
   const valid = result.status === 0;
   if (valid !== expectedValid) {
@@ -140,6 +174,84 @@ try {
     }), false]
   ];
 
+  fixtures.push([
+    "Registered relational service artifact identity accepted",
+    writeServiceFixture(temporaryRoot, "auction-service-relational", "auction-service"),
+    true,
+    { serviceId: "auction-service" },
+  ]);
+  fixtures.push([
+    "Forged service SBOM root coordinate rejected",
+    writeServiceFixture(temporaryRoot, "auction-service-forged-root", "auction-service", (value) => {
+      value.metadata.component.group = "example.invalid";
+    }),
+    false,
+    { serviceId: "auction-service" },
+    "ROOT_COMPONENT_GROUP_INVALID",
+  ]);
+  fixtures.push([
+    "Forged service SBOM root PURL rejected",
+    writeServiceFixture(temporaryRoot, "auction-service-forged-purl", "auction-service", (value) => {
+      value.metadata.component.purl = "pkg:maven/example.invalid/auction-service@0.0.1-SNAPSHOT?type=jar";
+    }),
+    false,
+    { serviceId: "auction-service" },
+    "ROOT_COMPONENT_PURL_INVALID",
+  ]);
+  fixtures.push([
+    "Gateway SBOM containing relational components rejected",
+    writeServiceFixture(temporaryRoot, "gateway-with-datastore", "realtime-gateway"),
+    false,
+    { serviceId: "realtime-gateway" },
+    "FORBIDDEN_GATEWAY_COMPONENT",
+  ]);
+  fixtures.push([
+    "Database-free gateway service artifact accepted",
+    writeServiceFixture(temporaryRoot, "gateway-database-free", "realtime-gateway", removeGatewayDatastoreComponents),
+    true,
+    { serviceId: "realtime-gateway" },
+  ]);
+  fixtures.push([
+    "Gateway JDBC dependency rejected independently",
+    writeServiceFixture(temporaryRoot, "gateway-jdbc-only", "realtime-gateway", (value) => {
+      removeGatewayDatastoreComponents(value);
+      value.components.push({ type: "library", group: "org.springframework.boot", name: "spring-boot-starter-jdbc", version: "3.5.16", "bom-ref": "pkg:maven/org.springframework.boot/spring-boot-starter-jdbc@3.5.16?type=jar", purl: "pkg:maven/org.springframework.boot/spring-boot-starter-jdbc@3.5.16?type=jar" });
+    }),
+    false,
+    { serviceId: "realtime-gateway" },
+    "FORBIDDEN_GATEWAY_COMPONENT",
+  ]);
+  for (const [name, group, artifact] of [
+    ["PostgreSQL", "org.postgresql", "postgresql"],
+    ["Flyway", "org.flywaydb", "flyway-core"],
+    ["JPA API", "jakarta.persistence", "jakarta.persistence-api"],
+    ["Hibernate", "org.hibernate.orm", "hibernate-core"],
+  ]) {
+    const purl = `pkg:maven/${group}/${artifact}@1.0.0?type=jar`;
+    const fixtureName = `gateway-${artifact}`;
+    fixtures.push([
+      `Gateway ${name} dependency rejected independently`,
+      writeServiceFixture(temporaryRoot, fixtureName, "realtime-gateway", (value) => {
+        removeGatewayDatastoreComponents(value);
+        value.components.push({ type: "library", group, name: artifact, version: "1.0.0", "bom-ref": purl, purl });
+      }),
+      false,
+      { serviceId: "realtime-gateway" },
+      "FORBIDDEN_GATEWAY_COMPONENT",
+    ]);
+  }
+  fixtures.push([
+    "Service SBOM missing a required technical dependency rejected",
+    writeServiceFixture(temporaryRoot, "auction-service-missing-common", "auction-service", (value) => {
+      const starter = value.components.find((component) => component.group === "org.springframework.boot" && component.name === "spring-boot-starter-validation");
+      if (!starter) throw new Error("Canonical SBOM fixture is missing the validation starter.");
+      starter.name = "unexpected-starter";
+    }),
+    false,
+    { serviceId: "auction-service" },
+    "REQUIRED_COMPONENT_MISSING",
+  ]);
+
   const missingReferenceRoot = path.join(temporaryRoot, "schemas-missing-spdx");
   fs.cpSync(fixtureSchemaRoot, missingReferenceRoot, { recursive: true });
   fs.rmSync(path.join(missingReferenceRoot, "spdx.schema.json"));
@@ -206,6 +318,16 @@ try {
     ["Wrong root group rejected", "ROOT_COMPONENT_GROUP_INVALID"],
     ["Wrong root name rejected", "ROOT_COMPONENT_NAME_INVALID"],
     ["Wrong root version rejected", "ROOT_COMPONENT_VERSION_INVALID"],
+    ["Forged service SBOM root coordinate rejected", "ROOT_COMPONENT_GROUP_INVALID"],
+    ["Forged service SBOM root PURL rejected", "ROOT_COMPONENT_PURL_INVALID"],
+    ["Gateway SBOM containing relational components rejected", "FORBIDDEN_GATEWAY_COMPONENT"],
+    ["Database-free gateway service artifact accepted", undefined],
+    ["Gateway JDBC dependency rejected independently", "FORBIDDEN_GATEWAY_COMPONENT"],
+    ["Gateway PostgreSQL dependency rejected independently", "FORBIDDEN_GATEWAY_COMPONENT"],
+    ["Gateway Flyway dependency rejected independently", "FORBIDDEN_GATEWAY_COMPONENT"],
+    ["Gateway JPA API dependency rejected independently", "FORBIDDEN_GATEWAY_COMPONENT"],
+    ["Gateway Hibernate dependency rejected independently", "FORBIDDEN_GATEWAY_COMPONENT"],
+    ["Service SBOM missing a required technical dependency rejected", "REQUIRED_COMPONENT_MISSING"],
     ["Missing component inventory rejected", "COMPONENT_INVENTORY_EMPTY"],
     ["Empty component inventory rejected", "COMPONENT_INVENTORY_EMPTY"],
     ["Missing dependency graph rejected", "DEPENDENCY_GRAPH_EMPTY"],
@@ -228,6 +350,7 @@ try {
     assertScenario(name, bomPath, expectedValid, options, expectedFailureCodes.get(name));
   }
   const canonicalArguments = ["--bom", canonicalFixture, "--schema-root", fixtureSchemaRoot, "--trust-manifest", fixtureManifestPath];
+  assertArgumentFailure("Unknown registered service rejected", [...canonicalArguments, "--service", "not-registered"], "SERVICE_UNKNOWN");
   assertArgumentFailure("Duplicate CLI argument rejected", [...canonicalArguments, "--bom", canonicalFixture], "INVALID_ARGUMENTS");
   assertArgumentFailure("Unsupported CLI argument rejected", [...canonicalArguments, "--unexpected", "value"], "UNSUPPORTED_ARGUMENT");
   process.stdout.write("Identity SBOM fixture tests: PASS\n");

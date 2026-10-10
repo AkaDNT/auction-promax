@@ -15,10 +15,14 @@ export function validateTemplateConformance(root) {
   const texts = new Map(entries.map(entry => [entry.source,
     normalized(path.join(root, 'api/service-foundation', entry.source))]));
   const logging = texts.get('templates/common/StructuredLoggingTest.java') ?? '';
+  const probeController = texts.get('templates/common/TechnicalProbeController.java') ?? '';
+  requireCondition(/public\s+TechnicalValidationResponse\s+validate\(@Valid\s+@RequestBody\s+TechnicalValidationRequest\s+request\)/.test(probeController));
+  requireCondition((logging.match(/Optional\.ofNullable\(MDC\.getCopyOfContextMap\(\)\)\.orElseGet\(Map::of\)/g) ?? []).length === 2);
   for (const pattern of [/new StructuredLogEncoder\(/, /encoder\.encode\(/,
     /STRICT_DUPLICATE_DETECTION/, /@NullSource/, /fixture-correlation/, /outer-correlation/,
     /TechnicalProbeController\.class/, /new CorrelationIdFilter\(\)\.doFilter/,
-    /prepareForDeferredProcessing/, /MDC\.getCopyOfContextMap\(\)\)\.isEqualTo\(expectedMdc\)/,
+    /prepareForDeferredProcessing/,
+    /assertThat\(actualMdc\)\.isEqualTo\(expectedMdc\)/,
     /doesNotContain\(raw\)/]) requireCondition(pattern.test(logging));
   const architecture = texts.get('templates/common/ArchitectureTest.java') ?? '';
   for (const fixture of ['InvalidAdapterDependency', 'InvalidFrameworkDependency', 'InvalidInboundDependency']) {
@@ -30,6 +34,8 @@ export function validateTemplateConformance(root) {
     requireCondition(architecture.includes(`${rule}.allowEmptyShould(true).check(PRODUCTION)`));
   }
   requireCondition(!/allowEmptyShould\(true\)\.check\(fixture\)/.test(architecture));
+  const problemAdvice = texts.get('templates/common/TechnicalProblemAdvice.java') ?? '';
+  requireCondition(/ResponseEntity<Object> unexpected\(Exception exception, HttpServletRequest request\)/.test(problemAdvice));
   for (const entry of entries) {
     const text = texts.get(entry.source);
     const values = Object.fromEntries([...tokens].filter(token => !entry.variants.includes('gateway')
@@ -57,6 +63,10 @@ export function validateTemplateConformance(root) {
     requireCondition(pom.includes(`<include>${selector}</include>`) && !/<skipITs>\s*true/.test(pom));
     const className = variant === 'gateway' ? 'GatewayNoDatastoreIT' : 'RelationalBoundaryTestcontainersIT';
     requireCondition(paths.has(`src/test/java/__PACKAGE_PATH__/${className}.java`));
+    if (variant === 'relational') {
+      const integrationTest = texts.get(selected.find(entry => entry.destination.endsWith('/RelationalBoundaryTestcontainersIT.java')).source) ?? '';
+      requireCondition(/DockerImageName\.parse\([\s\S]*?\)\s*\.asCompatibleSubstituteFor\("postgres"\)/.test(integrationTest));
+    }
     if (variant === 'gateway') {
       requireCondition(!/spring-boot-starter-(?:data-jpa|jdbc)|<artifactId>spring-jdbc<|org\.postgresql|flyway|<artifactId>postgresql</i.test(pom));
       for (const entry of selected) {

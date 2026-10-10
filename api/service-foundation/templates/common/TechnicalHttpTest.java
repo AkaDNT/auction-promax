@@ -6,9 +6,12 @@ import __PACKAGE_NAME__.configuration.TechnicalConfiguration;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -22,6 +25,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({TechnicalConfiguration.class, CorrelationIdFilter.class, TechnicalProblemAdvice.class})
 class TechnicalHttpTest {
     @Autowired MockMvc mockMvc;
+    @Autowired RequestMappingHandlerAdapter handlerAdapter;
+
+    @Test
+    void selectsOnlyJackson3ForMvcJson() {
+        org.assertj.core.api.Assertions.assertThat(handlerAdapter.getMessageConverters())
+            .anyMatch(JacksonJsonHttpMessageConverter.class::isInstance)
+            .noneMatch(MappingJackson2HttpMessageConverter.class::isInstance);
+    }
 
     @Test
     void correlationFilterRestoresAbsentMatchingAndDifferentPriorMdc() throws Exception {
@@ -63,6 +74,27 @@ class TechnicalHttpTest {
         String id = response.getHeader(CorrelationIdFilter.HEADER_NAME);
         org.assertj.core.api.Assertions.assertThat(id).matches("^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$");
         org.assertj.core.api.Assertions.assertThat(MDC.get(CorrelationIdFilter.MDC_KEY)).isNull();
+    }
+
+    @Test
+    void preservesTechnicalSuccessAndMalformedProblemContracts() throws Exception {
+        mockMvc.perform(post("/internal/technical-baseline/validate")
+                .header(CorrelationIdFilter.HEADER_NAME, "spring-baseline-success")
+                .contentType(APPLICATION_JSON).content("{\"value\":\"hello\"}"))
+            .andExpect(status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                .json("{\"accepted\":true,\"valueLength\":5}", true));
+        mockMvc.perform(post("/internal/technical-baseline/validate")
+                .header(CorrelationIdFilter.HEADER_NAME, "spring-baseline-malformed")
+                .contentType(APPLICATION_JSON).content("{\"value\":"))
+            .andExpect(status().isBadRequest())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                .contentTypeCompatibleWith(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().json("""
+                {"type":"urn:auction-promax:problem:malformed-request","title":"Request rejected",
+                 "status":400,"detail":"The request is invalid.","instance":"/internal/technical-baseline/validate",
+                 "code":"MALFORMED_REQUEST","correlationId":"spring-baseline-malformed"}
+                """, true));
     }
 
     @Test

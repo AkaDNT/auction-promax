@@ -17,7 +17,7 @@ public class TechnicalProbeController {
 
     @PostMapping("/validate")
     @ResponseStatus(HttpStatus.OK)
-    TechnicalValidationResponse validate(@Valid @RequestBody TechnicalValidationRequest request) {
+    public TechnicalValidationResponse validate(@Valid @RequestBody TechnicalValidationRequest request) {
         int length = request.value().length();
         log.atInfo().addKeyValue("event", "technical_validation.accepted")
             .addKeyValue("valueLength", length).log("Technical validation accepted");

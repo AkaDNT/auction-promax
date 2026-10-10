@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM docker.io/library/amazoncorretto:21.0.12-al2023-headless@sha256:82eb6e99cb91fb87f5a65a933750ae5bb23cab4ab396e4bba4a5b0b07dcd32ff
+FROM docker.io/library/amazoncorretto:21.0.12-al2023-headless@sha256:a1659a04c445036c54b49fe5163e46554ca24030e94c6eeffefe46fad127b400
 
 WORKDIR /app
 

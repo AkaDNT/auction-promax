@@ -46,7 +46,7 @@ function validateEvidenceRoot(root, commit) {
     if (evidence.commit !== commit) fail("HOSTED_EVIDENCE_COMMIT_MISMATCH");
     const allowed = entry.name === "run-summary.json"
       ? new Set(["schemaVersion", "workflow", "commit", "executionState", "policyState", "reviewState", "deltaState", "failureCode"])
-      : new Set(["schemaVersion", "commit", "findings", "counts", "dispositions", "imageId", "platform", "jarSha256", "baseManifestDigest", "readiness", "runtimeUser", "readOnlyRootFilesystem", "dropAllCapabilities", "noNewPrivileges", "policyState", "reviewState", "deltaState"]);
+      : new Set(["schemaVersion", "commit", "findings", "counts", "dispositions", "imageId", "imageReference", "platform", "jarSha256", "baseManifestDigest", "readiness", "runtimeUser", "readOnlyRootFilesystem", "dropAllCapabilities", "noNewPrivileges", "policyState", "reviewState", "deltaState"]);
     if (Object.keys(evidence).some((key) => !allowed.has(key))) fail("HOSTED_EVIDENCE_FIELD_INVALID");
     if (entry.name === "vulnerability-inventory.json" || entry.name === "container-vulnerability-inventory.json") validateFindings(evidence, vulnerabilityFindingFields);
     if (entry.name === "gitleaks-inventory.json") validateFindings(evidence, gitleaksFindingFields);

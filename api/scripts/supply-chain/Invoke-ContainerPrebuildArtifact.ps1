@@ -1,14 +1,21 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [ValidateNotNullOrEmpty()][string]$ServiceId = 'identity-profile-service'
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$serviceRoot = Join-Path $repoRoot 'services\identity-profile-service'
+$serviceResolverPath = Join-Path $PSScriptRoot 'ServiceArtifact.psm1'
+$artifact = $null
+if (-not (Test-Path -LiteralPath $serviceResolverPath -PathType Leaf)) { throw 'CONTAINER_PREBUILD_SERVICE_RESOLVER_MISSING' }
+Import-Module $serviceResolverPath -Force
+try { $artifact = Resolve-ServiceArtifact -ServiceId $ServiceId }
+catch { throw 'CONTAINER_PREBUILD_SERVICE_IDENTITY_INVALID' }
+$serviceRoot = $artifact.projectPath
 $targetRoot = Join-Path $serviceRoot 'target'
 $contractPath = Join-Path $repoRoot 'security\tooling\container-image-contract.json'
 $contractTestPath = Join-Path $PSScriptRoot 'Test-ContainerImageContract.mjs'
@@ -20,6 +27,7 @@ $sbomSchemaRoot = Join-Path $repoRoot 'security\schemas\cyclonedx\1.6'
 
 function Throw-ContainerPrebuildFailure {
     param([Parameter(Mandatory)][string]$Code)
+    Write-Output $Code
     throw $Code
 }
 
@@ -126,12 +134,27 @@ if (-not $SkipBuild) {
 }
 
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json -ErrorAction Stop
-$jarRelativePath = [string]$contract.build.canonicalJarRelativePath
-$jarPath = Join-Path $repoRoot ($jarRelativePath -replace '/', [System.IO.Path]::DirectorySeparatorChar)
-$bomPath = Join-Path $targetRoot 'bom.json'
-if (-not (Test-Path -LiteralPath $jarPath -PathType Leaf) -or -not (Test-Path -LiteralPath $bomPath -PathType Leaf)) {
-    Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_ARTIFACT_MISSING'
+$artifact = $null
+try { $artifact = Resolve-ServiceArtifact -ServiceId $ServiceId }
+catch { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_SERVICE_IDENTITY_INVALID' }
+$jarRelativePath = [string]$artifact.jarApiRelativePath
+$jarPath = [string]$artifact.jarPath
+$bomPath = [string]$artifact.sbomPath
+if (-not (Test-Path -LiteralPath $jarPath -PathType Leaf)) { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_JAR_MISSING' }
+if (-not (Test-Path -LiteralPath $bomPath -PathType Leaf)) { Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_SBOM_MISSING' }
+$validatedArtifact = $null
+try { $validatedArtifact = Resolve-ServiceArtifact -ServiceId $ServiceId -RequireBuiltArtifact }
+catch {
+    $resolverCode = [string]$_.Exception.Message
+    if ($resolverCode -ceq 'SERVICE_JAR_MANIFEST_MISMATCH') {
+        Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_JAR_IDENTITY_INVALID'
+    }
+    if ($resolverCode -ceq 'SERVICE_POM_IDENTITY_MISMATCH') {
+        Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_POM_IDENTITY_INVALID'
+    }
+    Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_CANONICAL_ARTIFACT_INVALID'
 }
+$artifact = $validatedArtifact
 
 $jarCandidates = @(Get-ChildItem -LiteralPath $targetRoot -Filter '*.jar' -File -ErrorAction Stop)
 if ($jarCandidates.Count -ne 1 -or $jarCandidates[0].FullName -cne $jarPath -or $jarCandidates[0].Length -le 0) {
@@ -139,16 +162,16 @@ if ($jarCandidates.Count -ne 1 -or $jarCandidates[0].FullName -cne $jarPath -or 
 }
 
 Invoke-NodeGate -Path $sbomTrustTestPath -FailureCode 'CONTAINER_PREBUILD_SBOM_TRUST_INVALID'
-Invoke-NodeGate -Path $sbomValidatorPath -Arguments @('--bom', $bomPath, '--schema-root', $sbomSchemaRoot, '--trust-manifest', $sbomTrustManifestPath) -FailureCode 'CONTAINER_PREBUILD_SBOM_INVALID'
+Invoke-NodeGate -Path $sbomValidatorPath -Arguments @('--bom', $bomPath, '--schema-root', $sbomSchemaRoot, '--trust-manifest', $sbomTrustManifestPath, '--service', $ServiceId) -FailureCode 'CONTAINER_PREBUILD_SBOM_INVALID'
 
 $manifest = Get-JarManifestAttributes -JarPath $jarPath
 if ($manifest['Main-Class'] -cne 'org.springframework.boot.loader.launch.JarLauncher') {
     Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_MAIN_CLASS_INVALID'
 }
-if ($manifest['Start-Class'] -cne 'com.auctionpromax.identityprofileservice.IdentityProfileServiceApplication') {
+if ($manifest['Start-Class'] -cne ($artifact.packageName + '.' + $artifact.entryClass)) {
     Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_START_CLASS_INVALID'
 }
-if ($manifest['Spring-Boot-Version'] -ne '3.5.16' -or $manifest['Spring-Boot-Layers-Index'] -ne 'BOOT-INF/layers.idx') {
+if ($manifest['Spring-Boot-Version'] -ne '4.0.8' -or $manifest['Spring-Boot-Layers-Index'] -ne 'BOOT-INF/layers.idx') {
     Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_BOOT_METADATA_INVALID'
 }
 
