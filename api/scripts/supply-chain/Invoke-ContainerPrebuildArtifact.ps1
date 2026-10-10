@@ -171,7 +171,7 @@ if ($manifest['Main-Class'] -cne 'org.springframework.boot.loader.launch.JarLaun
 if ($manifest['Start-Class'] -cne ($artifact.packageName + '.' + $artifact.entryClass)) {
     Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_START_CLASS_INVALID'
 }
-if ($manifest['Spring-Boot-Version'] -ne '3.5.16' -or $manifest['Spring-Boot-Layers-Index'] -ne 'BOOT-INF/layers.idx') {
+if ($manifest['Spring-Boot-Version'] -ne '4.0.8' -or $manifest['Spring-Boot-Layers-Index'] -ne 'BOOT-INF/layers.idx') {
     Throw-ContainerPrebuildFailure -Code 'CONTAINER_PREBUILD_BOOT_METADATA_INVALID'
 }
 

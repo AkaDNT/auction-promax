@@ -179,6 +179,8 @@ function validateServiceSemantics(bom, serviceId) {
     "org.junit.jupiter:junit-jupiter",
     "org.testcontainers:junit-jupiter",
     "org.testcontainers:postgresql",
+    "org.testcontainers:testcontainers-junit-jupiter",
+    "org.testcontainers:testcontainers-postgresql",
     "com.tngtech.archunit:archunit-junit5"
   ]);
   for (const component of bom.components) {
@@ -187,7 +189,7 @@ function validateServiceSemantics(bom, serviceId) {
 
   const coordinates = new Set(bom.components.map((component) => `${component?.group}:${component?.name}`));
   const common = [
-    "org.springframework.boot:spring-boot-starter-web",
+    "org.springframework.boot:spring-boot-starter-webmvc",
     "org.springframework.boot:spring-boot-starter-validation",
     "org.springframework.boot:spring-boot-starter-security",
     "org.springframework.boot:spring-boot-starter-actuator",

@@ -58,7 +58,7 @@ test('technical exception advice uses the shared ResponseEntity<Object> return c
   assert.match(source, /ResponseEntity<Object> unexpected\(Exception exception, HttpServletRequest request\)/);
 });
 
-test('all service source POMs use only the approved Jackson BOM override', async () => {
+test('all service source POMs use separate approved Boot 4 Jackson BOM controls', async () => {
   const pomPaths = [
     path.join(foundationRoot, 'templates/relational/pom.xml'),
     path.join(foundationRoot, 'templates/gateway/pom.xml'),
@@ -66,7 +66,10 @@ test('all service source POMs use only the approved Jackson BOM override', async
   ];
   for (const pomPath of pomPaths) {
     const pom = await readFile(pomPath, 'utf8');
-    assert.match(pom, /<jackson-bom\.version>2\.21\.7<\/jackson-bom\.version>/, pomPath);
+    assert.match(pom, /<jackson-bom\.version>3\.1\.7<\/jackson-bom\.version>/, pomPath);
+    assert.match(pom, /<jackson-2-bom\.version>2\.21\.7<\/jackson-2-bom\.version>/, pomPath);
+    assert.match(pom, /<artifactId>spring-boot-starter-parent<\/artifactId>\s*<version>4\.0\.8<\/version>/, pomPath);
+    assert.doesNotMatch(pom, /<tomcat\.version>/, pomPath);
     assert.doesNotMatch(pom, /<artifactId>jackson-[^<]+<\/artifactId>\s*<version>/, pomPath);
   }
 });
@@ -296,7 +299,7 @@ test('relational POM selects the Testcontainers IT class and required persistenc
   const pomEntry = entries.find(entry => entry.source === 'templates/relational/pom.xml');
   const pom = await readFile(path.join(root, 'api/service-foundation', ...pomEntry.source.split('/')), 'utf8');
   for (const dependency of [
-    'spring-boot-starter-data-jpa', 'org.postgresql', 'flyway-core', 'flyway-database-postgresql',
+    'spring-boot-starter-data-jpa', 'org.postgresql', 'spring-boot-starter-flyway', 'flyway-database-postgresql',
     'org.testcontainers', 'archunit-junit5',
   ]) assert.ok(pom.includes(`<artifactId>${dependency}</artifactId>`) || pom.includes(`<groupId>${dependency}</groupId>`), dependency);
   assert.match(pom, /\*\*\/\*TestcontainersIT\.java/);

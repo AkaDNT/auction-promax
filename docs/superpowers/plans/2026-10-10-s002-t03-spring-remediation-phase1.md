@@ -36,7 +36,7 @@
 - [x] Add exact event/response/null JSON assertions and complete malformed/validation ProblemDetail assertions. Preserve existing public/denied security behavior, including docs and bearer-header requests.
 - [x] Add an OpenAPI structural golden test against `/v3/api-docs` with filters disabled in that test only. Normalize only the generated server URL. Explicit capture mode writes only `target/spring-remediation/openapi-baseline.json`; ordinary mode requires a reviewed tracked fixture.
 - [x] Run baseline unit tests plus canonical `mvnw verify`/named Identity Failsafe where Docker is available. Retain reports and capture the reviewed OpenAPI fixture before changing dependencies.
-- [ ] Independently review baseline assertions/results and commit the scoped baseline. Do not migrate with a failing baseline.
+- [x] Independently review baseline assertions/results and commit the scoped baseline. Do not migrate with a failing baseline.
 
 ### Task 2: Migrate POMs and directly affected integrations
 
@@ -44,10 +44,10 @@
 
 **Interfaces:** Same controllers/ports/JSON behavior; Boot 4 managed runtime and Jackson 3 mapper.
 
-- [ ] Change parent/starter/module coordinates using the graph-resolved candidate. Add classic test support as the minimal compatibility strategy and the proper security-test starter.
-- [ ] Port direct Jackson API usage to Jackson 3 without changing domain/port interfaces; adapt sanitized serialization-failure tests to the actual Jackson 3 exception API.
-- [ ] Update Boot 4 test and configuration class package moves. Validate Mockito/JUnit/Testcontainers API compatibility through compilation and tests.
-- [ ] Run unchanged golden assertions and canonical Identity verify/Failsafe. Diagnose failures from actual output and retain baseline expectations unless evidence shows only documented generated metadata differs.
+- [x] Change parent/starter/module coordinates using the graph-resolved candidate. Add classic test support as the minimal compatibility strategy and the proper security-test starter.
+- [x] Port direct Jackson API usage to Jackson 3 without changing domain/port interfaces; adapt sanitized serialization-failure tests to the actual Jackson 3 exception API.
+- [x] Update Boot 4 test and configuration class package moves. Validate Mockito/JUnit/Testcontainers API compatibility through compilation and tests.
+- [x] Run unchanged golden assertions and canonical Identity verify/Failsafe. Diagnose failures from actual output and retain baseline expectations unless evidence shows only documented generated metadata differs.
 
 ### Task 3: Assert graph and update repository contracts
 
@@ -55,9 +55,9 @@
 
 **Interfaces:** A complete Maven dependency-tree input must fail closed for incorrect Framework/Tomcat/Jackson coordinates or database-bearing gateway dependencies.
 
-- [ ] Add graph-positive and mutation-negative fixtures for old Spring/Tomcat, vulnerable Jackson 2/3 nested paths, and legitimate annotations exception.
-- [ ] Validate Identity resolved graph and BOM; update existing migration/conformance assertions to the selected supported POM shape without weakening checks.
-- [ ] Run template conformance, registry, schema/SBOM/evidence, matrix and workflow contracts.
+- [x] Add graph-positive and mutation-negative fixtures for old Spring/Tomcat, vulnerable Jackson 2/3 nested paths, and legitimate annotations exception.
+- [x] Validate Identity resolved graph and BOM; update existing migration/conformance assertions to the selected supported POM shape without weakening checks.
+- [x] Run template conformance, registry, schema/SBOM/evidence, matrix and workflow contracts.
 
 ### Task 4: Review and hosted validation
 

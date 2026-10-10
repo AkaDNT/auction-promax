@@ -212,14 +212,15 @@ jobs:
           test -x ./mvnw
           ./mvnw -B verify
       - id: jackson-dependency-graph
-        name: Verify effective Jackson BOM dependency graph
+        name: Verify effective Spring and both Jackson dependency graphs
         if: steps.maven-verify.outcome == 'success'
         shell: bash
         working-directory: api/services/${{ matrix.service }}
         run: |
           set -euo pipefail
-          ./mvnw -B -ntp dependency:tree "-Dincludes=com.fasterxml.jackson.core:*,com.fasterxml.jackson.dataformat:*,com.fasterxml.jackson.datatype:*,com.fasterxml.jackson.module:*" "-DoutputFile=target/jackson-dependency-tree.txt"
-          node "$GITHUB_WORKSPACE/api/scripts/supply-chain/JacksonDependencyTree.mjs" target/jackson-dependency-tree.txt
+          node --test "$GITHUB_WORKSPACE/api/scripts/supply-chain/Test-SpringMigrationDependencyTree.mjs"
+          ./mvnw -B -ntp dependency:tree "-DoutputFile=target/spring-dependency-tree.txt"
+          node "$GITHUB_WORKSPACE/api/scripts/supply-chain/SpringMigrationDependencyTree.mjs" target/spring-dependency-tree.txt "${{ matrix.service }}"
       - id: failsafe-execution
         name: Require the registered Failsafe integration test to execute without skips
         if: steps.maven-verify.outcome == 'success'

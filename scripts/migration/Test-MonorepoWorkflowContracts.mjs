@@ -72,7 +72,7 @@ function validateWorkflowSet(workflows) {
         }
         if (item["working-directory"]) {
           const expectedDir = file === "web-baseline.yml" ? "web" : jobId === "verify-cdk-toolchain" ? "api/infra" : jobId === "verify-identity-profile-service" ? "api/services/identity-profile-service" : "api/contracts";
-          if (jobId === "service-matrix" && ["maven-verify", "failsafe-execution"].includes(item.id)) check(item["working-directory"] === "api/services/${{ matrix.service }}", `WORKING_DIRECTORY_INVALID: ${file}:${jobId}`);
+          if (jobId === "service-matrix" && ["maven-verify", "jackson-dependency-graph", "failsafe-execution"].includes(item.id)) check(item["working-directory"] === "api/services/${{ matrix.service }}", `WORKING_DIRECTORY_INVALID: ${file}:${jobId}`);
           else check(item["working-directory"] === expectedDir, `WORKING_DIRECTORY_INVALID: ${file}:${jobId}`);
         }
         const command = String(item.run ?? "");
@@ -200,6 +200,7 @@ function runFixtures() {
   expectRejected("hashFiles stale root rejected", (w) => { w["api-baseline.yml"].jobs["verify-cdk-toolchain"].steps[1].with["cache-dependency-path"] = "${{ hashFiles('contracts/package-lock.json') }}"; });
   expectRejected("path-valued env stale root rejected", (w) => { w["api-baseline.yml"].jobs["verify-cdk-toolchain"].env = { LOCKFILE_PATH: "infra/package-lock.json" }; });
   expectRejected("working directory default stale root rejected", (w) => { w["api-baseline.yml"].defaults = { run: { "working-directory": "contracts" } }; });
+  expectRejected("service graph working directory must match the selected service", (w) => { w["supply-chain.yml"].jobs["service-matrix"].steps.find(s => s.id === "jackson-dependency-graph")["working-directory"] = "api/contracts"; });
   expectRejected("release policy merged into verification rejected", (w) => { delete w["supply-chain.yml"].jobs["release-policy"]; });
   process.stdout.write("Root workflow negative fixtures: PASS\n");
 }

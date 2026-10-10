@@ -4,21 +4,24 @@ import com.auctionpromax.identityprofileservice.adapter.in.web.baseline.Technica
 import com.auctionpromax.identityprofileservice.adapter.in.web.sample.CreateSampleController;
 import com.auctionpromax.identityprofileservice.ports.in.sample.CreateSampleResult;
 import com.auctionpromax.identityprofileservice.ports.in.sample.CreateSampleUseCase;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,6 +36,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("t03")
 class OpenApiGoldenContractTest {
   @Autowired MockMvc mockMvc;
+  @Autowired RequestMappingHandlerAdapter handlerAdapter;
+
+  @Test
+  void selectsOnlyJackson3ForMvcJson() {
+    assertThat(handlerAdapter.getMessageConverters())
+        .anyMatch(JacksonJsonHttpMessageConverter.class::isInstance)
+        .noneMatch(MappingJackson2HttpMessageConverter.class::isInstance);
+  }
 
   @Configuration(proxyBeanMethods = false)
   @EnableAutoConfiguration
@@ -58,7 +69,7 @@ class OpenApiGoldenContractTest {
 
   @Test
   void preservesActualOpenApiOperationsAndSchemaContracts() throws Exception {
-    var mapper = new ObjectMapper();
+    var mapper = JsonMapper.builder().build();
     String body = mockMvc.perform(get("/v3/api-docs"))
         .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
     ObjectNode actual = (ObjectNode) mapper.readTree(body);

@@ -1,6 +1,6 @@
 # T03 Spring Remediation Phase 0 Evidence Dossier
 
-Status: `PHASE0_BLOCKED` at Task 6 / Owner decision. Tasks 1–5 are recorded. Twelve disposable candidate graphs resolved and their separate Enforcer convergence checks passed. Phase 0 recommends a candidate path for planning, but exact `/v3/api-docs` behavior and Jackson mapper runtime remain untested, the Jackson 3 source migration has not been validated, and explicit Owner Phase 1 authorization is still required. The separate `52–98 h` Spring envelope (including `12–20 h` reserve) authorizes this Phase 0 work without Sprint 002 burn reconciliation; the four-week schedule is not a gate for this self-project. This dossier is not Spring Boot 4 product validation or Phase 1 authorization.
+Status: PHASE0_RECOMMENDATION_SELECTED under subsequent Owner delegation (2026-10-10). The Owner now delegates suitable project choices and completion without further routine consultation, superseding the earlier Task 6 authorization stop. Selected path: Boot 4.0.8 / managed Framework 7.0.9 / springdoc 3.0.3 / managed Tomcat 11.0.24 / Jackson 3 BOM 3.1.7 and remaining Jackson 2 BOM 2.21.7. Phase 1 follows the baseline-first [implementation plan](2026-10-10-s002-t03-spring-remediation-phase1.md); current runtime evidence belongs in the separate [execution record](2026-10-10-s002-t03-spring-remediation-execution.md). The read-only graph results below remain Phase 0 evidence, not product validation. The separate 52–98 h envelope remains; no merge/deployment/release or policy bypass is authorized.
 
 ## Provenance and boundary
 
@@ -50,7 +50,7 @@ Key source locations inventoried:
 
 This is an inventory of existing coverage, not a claim that the specified golden baseline exists. Phase 1 must add only the approved missing assertions on unchanged Boot `3.5.16`/Jackson `2.21.7`, execute and retain the baseline before any POM/source migration task.
 
-## Preliminary incremental effort estimate (not capacity approval)
+## Incremental effort estimate (separately authorized Spring envelope)
 
 Estimate for the separately scoped Spring delta, assuming one selected supported tuple, no domain changes, existing T03 workflows remain usable, and no more than two hosted correction cycles:
 
@@ -67,7 +67,7 @@ Estimate for the separately scoped Spring delta, assuming one selected supported
 
 Risks that could exceed this range: Boot 4 starter/module migration across three POM shapes; Jackson 2/3 mapper ambiguity or springdoc/swagger-core incompatibility; Tomcat 11/Servlet 6.1 and Identity's current override; Maven plugin/Failsafe/CycloneDX incompatibility; changes required to preserve `/v3/api-docs` and security/JSON behavior; hosted scanning or infrastructure failures. No synthesis compatibility is claimed because there is no CDK application source.
 
-The estimate is compared only to the parent 86–136-hour original total envelope. Since actual Sprint/T03 burn and remaining capacity are not recorded or owner-confirmed, it cannot be compared to a valid remaining balance, reserve availability, elapsed four-week budget, or T07 forecast. It is not evidence that the estimate fits.
+The original Sprint balance cannot be reconciled because actual burn/remaining capacity remain unverified. The later Owner ruling allocates the separate Spring envelope below; its PASS is explicit authorization, not evidence that this estimate fits the Sprint 002 balance. Reserve is included once in the 52–98 h total.
 
 ## Task 2 capacity gate — OWNER-AUTHORIZED SEPARATE ENVELOPE / PASS
 
@@ -164,7 +164,7 @@ The separate Spring estimate remains `40–78 h` engineering plus `12–20 h` re
 
 Boot `4.1.1` / springdoc `3.1.1` remains a viable alternate graph, not the recommended first test: its tree and convergence pass, and Maven's J2 BOM property resolves swagger-core paths to `2.21.7`, but the upstream springdoc release notes describe Boot `4.1.0` and issue #3373 reports swagger-core's Jackson `2.22.1` build line in Gradle. The local Maven tree converges under the reviewed Jackson 2 BOM override; this does not prove binary/runtime behavior. Do not pick this alternate without the same Phase 1/2 contract and OpenAPI tests.
 
-Phase 0 remains `PHASE0_BLOCKED` / not PASS for governance and runtime boundaries: Owner has approved only Phase 0, not Phase 1 scope/version/capacity; exact springdoc patch runtime compatibility, selected Jackson mapper, service compilation, golden behavior, scan/SBOM, container smoke, and final exact-SHA hosted evidence remain untested. The recommendation is a candidate for owner review, not a claim that either candidate has been adopted or that CVEs disappeared in a real service image. Document consistency checks passed; exact-SHA independent review remains required before finalizing this dossier. No Spring POM/source changes, product tests, vulnerability disposition, scanner changes, push, merge, deployment or release occurred. PR #21 remains Draft; release-policy remains BLOCKED.
+At this historical Phase 0 snapshot, status was `PHASE0_BLOCKED` pending Owner authorization: exact springdoc patch runtime compatibility, selected Jackson mapper, service compilation, golden behavior, scan/SBOM, container smoke, and final exact-SHA hosted evidence were untested. The subsequent delegation and selected path are recorded in the current status above; implementation and hosted results belong in the linked execution record. These graph probes do not prove CVEs disappeared in a real image. PR #21 remains Draft; release-policy is not waived.
 
 ### Exact-SHA review correction - Enforcer log capture
 

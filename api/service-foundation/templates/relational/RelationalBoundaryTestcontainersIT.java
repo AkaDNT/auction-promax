@@ -3,7 +3,7 @@ package __PACKAGE_NAME__;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -11,7 +11,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -35,7 +35,7 @@ class RelationalBoundaryTestcontainersIT {
         .asCompatibleSubstituteFor("postgres");
 
     @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(IMAGE)
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(IMAGE)
         .withDatabaseName(DATABASE).withUsername("tc_bootstrap")
         .withPassword("test-only-bootstrap-not-a-secret")
         .withInitScript("db/testcontainers/bootstrap.sql");

@@ -91,7 +91,9 @@ export function validateServiceMatrixWorkflow(workflow) {
     && step(matrix, 'generated-conformance')?.if === "steps.select-source.outputs.source_kind == 'ephemeral-generated'", 'SERVICE_WORKFLOW_BUILD_INVALID');
   const jacksonGraph = step(matrix, 'jackson-dependency-graph');
   check(String(jacksonGraph?.run ?? '').includes('./mvnw -B -ntp dependency:tree')
-    && String(jacksonGraph?.run ?? '').includes('JacksonDependencyTree.mjs')
+    && String(jacksonGraph?.run ?? '').includes('Test-SpringMigrationDependencyTree.mjs')
+    && String(jacksonGraph?.run ?? '').includes('SpringMigrationDependencyTree.mjs" target/spring-dependency-tree.txt "${{ matrix.service }}"')
+    && !String(jacksonGraph?.run ?? '').includes('-Dincludes=')
     && jacksonGraph.if === "steps.maven-verify.outcome == 'success'"
     && matrix.steps.indexOf(jacksonGraph) > matrix.steps.indexOf(step(matrix, 'maven-verify'))
     && matrix.steps.indexOf(jacksonGraph) < matrix.steps.indexOf(step(matrix, 'failsafe-execution')), 'SERVICE_WORKFLOW_JACKSON_GRAPH_INVALID');
@@ -178,7 +180,9 @@ export function validateFreshnessMatrixWorkflow(workflow) {
     && step(matrix, 'generated-conformance')?.if === "steps.select-source.outputs.source_kind == 'ephemeral-generated'", 'FRESHNESS_WORKFLOW_MAVEN_INVALID');
   const jacksonGraph = step(matrix, 'jackson-dependency-graph');
   check(String(jacksonGraph?.run ?? '').includes('./mvnw -B -ntp dependency:tree')
-    && String(jacksonGraph?.run ?? '').includes('JacksonDependencyTree.mjs')
+    && String(jacksonGraph?.run ?? '').includes('Test-SpringMigrationDependencyTree.mjs')
+    && String(jacksonGraph?.run ?? '').includes('SpringMigrationDependencyTree.mjs" target/spring-dependency-tree.txt "${{ matrix.service }}"')
+    && !String(jacksonGraph?.run ?? '').includes('-Dincludes=')
     && jacksonGraph.if === "steps.maven-verify.outcome == 'success'"
     && matrix.steps.indexOf(jacksonGraph) > matrix.steps.indexOf(step(matrix, 'maven-verify'))
     && matrix.steps.indexOf(jacksonGraph) < matrix.steps.indexOf(step(matrix, 'failsafe-execution')), 'FRESHNESS_WORKFLOW_JACKSON_GRAPH_INVALID');

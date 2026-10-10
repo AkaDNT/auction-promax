@@ -9,7 +9,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
@@ -70,7 +70,7 @@ class MicrometerSlf4jSampleCommandObservabilityAdapterTest {
       assertThat(MDC.getCopyOfContextMap()).isEqualTo(expectedMdc);
 
       assertThat(capture.list).hasSize(2);
-      var mapper = new ObjectMapper();
+      var mapper = JsonMapper.builder().build();
       for (int i = 0; i < 2; i++) {
         var event = capture.list.get(i);
         assertThatNoException().isThrownBy(() -> encoder.encode(event));

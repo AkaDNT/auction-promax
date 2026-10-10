@@ -8,10 +8,10 @@ import ch.qos.logback.core.read.ListAppender;
 import __PACKAGE_NAME__.adapter.in.web.CorrelationIdFilter;
 import __PACKAGE_NAME__.adapter.in.web.TechnicalProbeController;
 import __PACKAGE_NAME__.adapter.in.web.TechnicalValidationRequest;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.StreamReadFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JsonFactory;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -78,7 +78,7 @@ class StructuredLoggingTest {
             String jsonLine = new String(encoded, StandardCharsets.UTF_8);
             JsonFactory factory = JsonFactory.builder()
                 .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build();
-            JsonNode json = new ObjectMapper(factory).readTree(jsonLine);
+            JsonNode json = JsonMapper.builder(factory).build().readTree(jsonLine);
             assertThat(json.path("event").asText()).isEqualTo("technical_validation.accepted");
             assertThat(json.path("valueLength").asInt()).isEqualTo(raw.length());
             assertThat(json.path("correlationId").asText()).isEqualTo("fixture-correlation");

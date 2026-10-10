@@ -18,11 +18,11 @@ class ArchitectureTest {
             "jakarta.persistence..", "jakarta.servlet..", "org.slf4j..");
     private static final ArchRule APPLICATION_RULE = noClasses().that().resideInAPackage("..application..")
         .should().dependOnClassesThat().resideInAnyPackage("..adapter..", "org.springframework..", "org.slf4j..",
-            "com.fasterxml.jackson..", "io.micrometer..", "java.sql..", "javax.sql..",
+            "com.fasterxml.jackson..", "tools.jackson..", "io.micrometer..", "java.sql..", "javax.sql..",
             "jakarta.persistence..", "jakarta.servlet..");
     private static final ArchRule PORTS_RULE = noClasses().that().resideInAPackage("..ports..")
         .should().dependOnClassesThat().resideInAnyPackage("..adapter..", "org.springframework..", "org.slf4j..",
-            "com.fasterxml.jackson..", "io.micrometer..", "java.sql..", "javax.sql..", "jakarta..");
+            "com.fasterxml.jackson..", "tools.jackson..", "io.micrometer..", "java.sql..", "javax.sql..", "jakarta..");
     private static final ArchRule INBOUND_RULE = noClasses().that().resideInAPackage("..adapter.in..")
         .should().dependOnClassesThat().resideInAPackage("..application..");
 

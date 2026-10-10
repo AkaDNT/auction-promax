@@ -2,9 +2,10 @@ package com.auctionpromax.identityprofileservice.adapter.out.serialization.sampl
 
 import com.auctionpromax.identityprofileservice.ports.out.sample.SampleRecordedEventData;
 import com.auctionpromax.identityprofileservice.ports.out.sample.StoredSampleResponseData;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,7 @@ class JacksonSamplePayloadSerializerAdapterTest {
       UUID.fromString("0192f1c0-0000-7000-8000-000000000022");
   private static final Instant OCCURRED_AT = Instant.parse("2026-09-06T12:00:00Z");
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = JsonMapper.builder().build();
   private final JacksonSamplePayloadSerializerAdapter adapter =
       new JacksonSamplePayloadSerializerAdapter(objectMapper);
 
@@ -88,8 +89,8 @@ class JacksonSamplePayloadSerializerAdapterTest {
   void serializationFailureUsesSafeMessage() {
     ObjectMapper failingMapper = new ObjectMapper() {
       @Override
-      public String writeValueAsString(Object value) throws JsonProcessingException {
-        throw new JsonProcessingException("sensitive serializer detail") {
+      public String writeValueAsString(Object value) throws JacksonException {
+        throw new JacksonException("sensitive serializer detail") {
         };
       }
     };

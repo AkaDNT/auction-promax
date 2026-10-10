@@ -6,9 +6,12 @@ import __PACKAGE_NAME__.configuration.TechnicalConfiguration;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -22,6 +25,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({TechnicalConfiguration.class, CorrelationIdFilter.class, TechnicalProblemAdvice.class})
 class TechnicalHttpTest {
     @Autowired MockMvc mockMvc;
+    @Autowired RequestMappingHandlerAdapter handlerAdapter;
+
+    @Test
+    void selectsOnlyJackson3ForMvcJson() {
+        org.assertj.core.api.Assertions.assertThat(handlerAdapter.getMessageConverters())
+            .anyMatch(JacksonJsonHttpMessageConverter.class::isInstance)
+            .noneMatch(MappingJackson2HttpMessageConverter.class::isInstance);
+    }
 
     @Test
     void correlationFilterRestoresAbsentMatchingAndDifferentPriorMdc() throws Exception {

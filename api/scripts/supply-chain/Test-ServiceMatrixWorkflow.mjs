@@ -42,6 +42,8 @@ function ownershipFixtures() {
 
 function fixtures() {
   const mutations = [
+    ['graph must include Spring and both Jackson stacks', (workflow) => { workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run += '\n./mvnw dependency:tree -Dincludes=com.fasterxml.jackson.core:*'; }],
+    ['graph must use the selected service identity', (workflow) => { workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run = workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run.replace('"${{ matrix.service }}"', 'identity-profile-service'); }],
     ['mutable downloader pin', (workflow) => { workflow.jobs['supply-chain-verification'].steps.find((item) => item.id === 'download-results').uses = 'actions/download-artifact@v8'; }],
     ['merged result artifacts', (workflow) => { workflow.jobs['supply-chain-verification'].steps.find((item) => item.id === 'download-results').with['merge-multiple'] = true; }],
     ['PR source checkout', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'checkout').with.ref = '${{ github.event.pull_request.head.sha }}'; }],
@@ -67,6 +69,7 @@ function fixtures() {
 
 function freshnessFixtures() {
   const mutations = [
+    ['freshness graph must remain complete', (workflow) => { workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run += '\n./mvnw dependency:tree -Dincludes=tools.jackson.core:*'; }],
     ['mutable freshness downloader', (workflow) => { workflow.jobs['security-freshness'].steps.find((item) => item.id === 'download-results').uses = 'actions/download-artifact@v8'; }],
     ['freshness pinned to event SHA', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'checkout').with.ref = '${{ github.sha }}'; }],
     ['freshness aggregate must pin and verify resolved SHA', (workflow) => { workflow.jobs['security-freshness'].steps.find((item) => item.id === 'checkout').with.ref = '${{ github.event.repository.default_branch }}'; }],
