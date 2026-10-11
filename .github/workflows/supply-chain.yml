@@ -96,6 +96,7 @@ jobs:
           set -euo pipefail
           node --test scripts/migration/Test-ServiceMatrixResults.mjs scripts/migration/Test-ServiceMatrixEvidence.mjs
           node --test api/scripts/foundation/Test-GeneratedServiceConformanceFixtures.mjs
+          pwsh -NoProfile -NonInteractive -File api/scripts/Test-RunServiceLocal.ps1
           node api/scripts/supply-chain/Test-ServiceArtifactPropagation.mjs
           node api/scripts/supply-chain/Test-ServiceSupplyChainEvidence.mjs
           node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --fixtures

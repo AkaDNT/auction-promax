@@ -298,6 +298,18 @@ test('relational probe schema is technical-only and bootstrap is isolated to the
   assert.doesNotMatch(bootstrapText, /DROP DATABASE|DROP SCHEMA|CREATE ROLE tc_bootstrap/);
 });
 
+test('relational Testcontainers proof denies runtime DDL and access to another registered database', async () => {
+  const source = await readFile(path.join(foundationRoot,
+    'templates/relational/RelationalBoundaryTestcontainersIT.java'), 'utf8');
+  assert.match(source, /FOREIGN_DATABASE = "identity_db"/);
+  assert.match(source, /CREATE DATABASE " \+ FOREIGN_DATABASE/);
+  assert.match(source, /REVOKE ALL PRIVILEGES ON DATABASE " \+ FOREIGN_DATABASE/);
+  assert.match(source, /CREATE TABLE __SCHEMA_NAME__\.runtime_ddl_forbidden/);
+  assert.match(source, /runtimeRoleCannotCreateSchemaObjects/);
+  assert.match(source, /SQLState\(\)\)\.isEqualTo\("42501"\)/);
+  assert.match(source, /replace\("\/" \+ DATABASE, "\/" \+ FOREIGN_DATABASE\)/);
+});
+
 test('relational POM selects the Testcontainers IT class and required persistence dependencies', async () => {
   const root = await fixture();
   await cp(foundationRoot, path.join(root, 'api/service-foundation'), { recursive: true });
