@@ -1,5 +1,7 @@
 # T02 — Deterministic two-variant service template: hướng dẫn tự chứa
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 > Execute task-by-task using the owner-approved direct sequential method in an isolated worktree; scoped independent review remains required. Steps use checkbox syntax. Agent skills are environment instructions, not project dependencies.
 
 **Goal:** Tạo registry đóng và template relational/gateway có generator fail-closed, deterministic LF, không overwrite và không copy Identity business/sample.

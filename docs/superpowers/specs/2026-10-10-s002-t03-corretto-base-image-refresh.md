@@ -1,5 +1,7 @@
 # T03 Amazon Corretto Base Image Refresh Design
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 Status: CONDITIONALLY APPROVED (2026-10-10). Feasibility investigation is approved; changing tracked image pins is permitted only after Phase 0 passes. This status is not merge authorization.
 
 ## Purpose

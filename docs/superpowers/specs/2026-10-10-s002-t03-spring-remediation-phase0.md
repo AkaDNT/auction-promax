@@ -1,5 +1,7 @@
 # T03 Spring Framework Remediation — Phase 0 Feasibility Specification
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 Status: APPROVED WITH AMENDMENTS — PHASE 0 PLANNING (2026-10-10). Phase 0 is authorized for read-only feasibility, specification and planning only. This document does not authorize Spring POM/source changes, migration implementation, vulnerability dispositions, merge, deployment, or release.
 
 ## Purpose and decision boundary

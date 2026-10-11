@@ -6,7 +6,7 @@ This directory contains the closed registry and source templates used by `api/sc
 
 - Node.js 24.15.0, as pinned by `api/.nvmrc`.
 - PowerShell 7 on Windows/Linux, or Windows PowerShell 5.1 on Windows, for the no-overwrite publisher (`System.IO.Directory.Move`). No execution-policy bypass is required or supported.
-- Generated relational service builds use Java 21, Spring Boot 3.5.16 and Maven Wrapper 3.3.4 / Maven 3.9.16. Relational integration tests require Docker. The gateway has no datastore and requires no Docker service.
+- Generated relational service builds use Java 21, Spring Boot 4.0.8 and Maven Wrapper 3.3.4 / Maven 3.9.16. Relational integration tests require Docker. The gateway has no datastore and requires no Docker service.
 
 ## Use
 

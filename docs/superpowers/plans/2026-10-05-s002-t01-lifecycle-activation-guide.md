@@ -1,5 +1,7 @@
 # T01 — Lifecycle an toàn và protected Sprint 002 activation: hướng dẫn tự chứa
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 > Execute task-by-task using the owner-approved execution method; each task requires its specified review and evidence gates. Steps use checkbox (`- [ ]`) syntax for tracking. Agent-specific skills are execution-environment instructions, not project dependencies.
 
 **Goal:** Chứng minh lifecycle validator chặn phase/status sai, bảo toàn Sprint 001, và chỉ ghi nhận Sprint 002 active sau các gate owner/publication.

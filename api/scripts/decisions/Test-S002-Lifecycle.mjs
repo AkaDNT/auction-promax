@@ -209,6 +209,50 @@ function runFixtureSuite() {
   const active = activeFixture();
   assert.equal(validateLifecycle(active).valid, true, 'active S002 with verified activation publication is valid');
 
+  const unbounded = structuredClone(active);
+  unbounded.exitEvidence.capacityApproval = {
+    owner: OWNER, date: '2026-10-12', scope: 'CAPACITY',
+    reference: 'OWNER-DECISION-2026-10-12-SELF-PROJECT-NO-TIME-LIMIT',
+    effectiveHours: null, reserveHours: null, envelopeMaximumHours: null, plannedDates: null,
+  };
+  assert.equal(validateLifecycle(unbounded).valid, true,
+    'owner-approved personal project has no time or hour limit');
+  const unapprovedUnbounded = structuredClone(unbounded);
+  unapprovedUnbounded.exitEvidence.capacityApproval.reference = DECISION_REF;
+  assertInvalid(validateLifecycle(unapprovedUnbounded), 'APPROVAL_MISSING',
+    'unbounded capacity requires its explicit superseding owner decision');
+  for (const [key, value, code] of [
+    ['date', '2026-10-11', 'APPROVAL_MISSING'],
+    ['owner', 'Unapproved owner', 'APPROVAL_MISSING'],
+    ['scope', 'DESIGN', 'APPROVAL_SCOPE_INVALID'],
+    ['reserveHours', undefined, 'APPROVAL_MISSING'],
+    ['plannedDates', '2026-10-12', 'APPROVAL_MISSING'],
+  ]) {
+    const invalid = structuredClone(unbounded);
+    if (value === undefined) delete invalid.exitEvidence.capacityApproval[key];
+    else invalid.exitEvidence.capacityApproval[key] = value;
+    assertInvalid(validateLifecycle(invalid), code, `unbounded capacity rejects invalid ${key}`);
+  }
+  const unboundedMarkdown = markdownFixture();
+  unboundedMarkdown.evidenceMarkdown = unboundedMarkdown.evidenceMarkdown.replace(
+    /- Capacity approval: .*/,
+    '- Capacity approval: APPROVED | ' + OWNER +
+      ' | 2026-10-12 | CAPACITY | OWNER-DECISION-2026-10-12-SELF-PROJECT-NO-TIME-LIMIT | UNBOUNDED | UNBOUNDED | NONE | UNSET',
+  );
+  const parsedUnbounded = parseLifecycleDocuments(unboundedMarkdown);
+  assert.deepEqual(parsedUnbounded.errors, [], 'unbounded approval parses without inventing hours');
+  assert.equal(validateLifecycle(parsedUnbounded).valid, true);
+  for (const [before, after] of [
+    ['UNBOUNDED | UNBOUNDED | NONE', 'UNBOUNDED | 14-22 | NONE'],
+    ['UNBOUNDED | UNBOUNDED | NONE', 'UNBOUNDED | UNBOUNDED | 136'],
+    ['NONE | UNSET', 'NONE | 2026-10-12'],
+  ]) {
+    const malformed = { ...unboundedMarkdown,
+      evidenceMarkdown: unboundedMarkdown.evidenceMarkdown.replace(before, after) };
+    assert.ok(parseLifecycleDocuments(malformed).errors.length > 0,
+      'partially malformed unbounded tokens must fail closed');
+  }
+
   const pendingActivation = structuredClone(active);
   pendingActivation.sprint.status = 'ACTIVATION_PENDING';
   pendingActivation.delivery.currentSprint = 'SPRINT-001';

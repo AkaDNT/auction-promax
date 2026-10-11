@@ -1,5 +1,7 @@
 # T03 — Independent CI and artifact-aware security: hướng dẫn tự chứa
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 > Execute task-by-task with the owner-approved DIRECT_SEQUENTIAL_ISOLATED_WORKTREE method using superpowers:executing-plans; scoped independent review remains required. Steps use checkbox syntax. No implementation is authorized by this draft alone.
 
 **Goal:** CI chọn đúng service, build độc lập và supply-chain evidence bind đúng registry artifact/revision, giữ nguyên Identity compatibility và execution PASS khác policy BLOCKED.

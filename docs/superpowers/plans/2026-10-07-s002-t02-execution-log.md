@@ -1,5 +1,7 @@
 # T02 execution log — 2026-10-07
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 Status: T02_PUBLISHED_VERIFIED. PR20 merged into `migration/monorepo`; source delivery and postmerge required checks are verified. release-policy remains BLOCKED. Generated service/runtime acceptance remains T04/T05 work.
 
 ## Publication and closeout — current state

@@ -105,6 +105,14 @@ function parseApproval(value, scope, errors) {
     owner: parts[1], date: parts[2], scope: parts[3], reference: parts[4],
   };
   if (scope === 'CAPACITY') {
+    if (parts[5] === 'UNBOUNDED' && parts[6] === 'UNBOUNDED' &&
+        parts[7] === 'NONE' && parts[8] === 'UNSET') {
+      approval.effectiveHours = null;
+      approval.reserveHours = null;
+      approval.envelopeMaximumHours = null;
+      approval.plannedDates = null;
+      return approval;
+    }
     const ranges = parts[5]?.match(/^(\d+)-(\d+)$/);
     const reserve = parts[6]?.match(/^(\d+)-(\d+)$/);
     const envelopeMaximumHours = Number(parts[7]);
@@ -300,9 +308,12 @@ function validateApproval(approval, expectedScope, errors) {
   if (expectedScope === 'CAPACITY') {
     const hours = approval.effectiveHours;
     const reserve = approval.reserveHours;
-    if (!hours || hours.min !== 72 || hours.max !== 114 ||
+    const unbounded = approval.reference === 'OWNER-DECISION-2026-10-12-SELF-PROJECT-NO-TIME-LIMIT' &&
+      approval.date === '2026-10-12' && hours === null && reserve === null &&
+      approval.envelopeMaximumHours === null && approval.plannedDates === null;
+    if (!unbounded && (!hours || hours.min !== 72 || hours.max !== 114 ||
       !reserve || reserve.min !== 14 || reserve.max !== 22 ||
-      approval.envelopeMaximumHours !== 136) addError(errors, 'APPROVAL_MISSING');
+      approval.envelopeMaximumHours !== 136)) addError(errors, 'APPROVAL_MISSING');
   }
   if (expectedScope === 'EXECUTION_METHOD' && approval.method !== 'DIRECT_SEQUENTIAL_ISOLATED_WORKTREE') {
     addError(errors, 'APPROVAL_MISSING');

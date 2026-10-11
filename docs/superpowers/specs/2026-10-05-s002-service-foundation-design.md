@@ -1,5 +1,7 @@
 # Sprint 002 — reusable service foundation and independent core builds
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 Status: APPROVED_DESIGN. AkaDNT (Project Owner / Repository Owner) approved this written design on 2026-10-05 ("Ok chốt vậy đi, bắt đầu lên plan đi"). This authorizes implementation planning, not Sprint 002 activation, implementation, merge, risk disposition or phase advancement.
 
 V1 architecture amendment (Project Owner instruction, 2026-10-05): the [revised blueprint](../../../api/docs/Auction_Platform_Final_Production_Architecture_Blueprint_and_Roadmap.md), [ADR-026](../../../api/docs/adr/ADR-026-marketplace-transaction-and-monetization-boundary.md) and [ADR-027](../../../api/docs/adr/ADR-027-bidding-billing-and-listing-entitlement-ownership.md) now govern the five service identities and marketplace boundary. This amends planning authority before activation/T02; it does not grant activation, merge or Phase 1 implementation. The prior design approval and Sprint 001 evidence remain historical facts.

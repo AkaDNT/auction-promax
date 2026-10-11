@@ -14,10 +14,10 @@
 - Sprint status: IN_PROGRESS
 - Publication status: NOT_PUBLISHED
 - Activation evidence: [S002 review evidence](sprints/S002_REVIEW_EVIDENCE.md)
-- Activation record publication: PENDING_PROTECTED_PR; this candidate is not yet authoritative default-branch activation.
-- Delivery scope: Phase 0 foundation execution; prerequisite PR18 verified. This factual record must pass its own protected publication/read-back before T01 delivery or T02 start. Phase 0 exit and release readiness remain open.
+- Activation record publication: PUBLISHED_VERIFIED through PR #19 / merge 6459baf17ae8a88aeceb5d5d24bc0c601ba6868b.
+- Delivery scope: Phase 0 foundation execution; prerequisite PR18 verified. T01/T02 are published; T03 integrated technical and freshness acceptance is verified; T04 runtime/hosted acceptance remains open. Phase 0 exit and release readiness remain open.
 - Target environment: Local developer environment and CI baseline
-- Last updated: 2026-10-06
+- Last updated: 2026-10-12
 
 ## Sprint 001 historical lifecycle
 
@@ -36,7 +36,7 @@ Establish reproducible, independently buildable service foundations with approve
 
 ## Current Sprint Goal
 
-Complete the approved Sprint 002 Phase 0 service-foundation and exit obligations through T01–T07. Current-S002 metadata is a factual-record candidate pending its own protected publication; no Phase 0 exit is claimed.
+Complete the approved Sprint 002 Phase 0 service-foundation and exit obligations through T01–T07. T01–T03 are accepted within their technical scopes; T04–T07 remain incomplete and no Phase 0 exit is claimed.
 
 ## Phase Exit Gate Progress
 
@@ -85,4 +85,4 @@ S001-T01 through S001-T09 have accepted technical task outcomes. S001-T09 decisi
 
 ## Next Action
 
-Publish and verify this factual activation-record candidate after the verified PR18 prerequisite. Current default-branch metadata remains S001 until this patch is merged; local proposed current is S002/Phase 0. Separate authorization is required for this PR's merge. T02 must wait for exact factual-record merge/push read-back. Keep Phase 0 open, prohibit Phase 1 implementation, and keep release-policy visible and BLOCKED.
+Complete T04 from the preserved local checkpoint with actual PowerShell runtime and isolated Auction evidence. Follow the [completion log](../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md). Time/capacity limits are superseded by OWNER-DECISION-2026-10-12-SELF-PROJECT-NO-TIME-LIMIT; Phase 0 remains open and all technical, security and publication gates remain mandatory.
