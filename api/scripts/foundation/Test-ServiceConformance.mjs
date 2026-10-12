@@ -4,7 +4,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import YAML from '../../contracts/node_modules/yaml/dist/index.js';
 
 import { validateInventory } from './Generate-Service.mjs';
 import { validateTemplateConformance } from './ServiceTemplateConformance.mjs';
@@ -60,12 +59,10 @@ test('Boot 4 tracing is wired by its starter and local exporters are disabled wi
     const pom = await readFile(path.join(foundationRoot, location, 'pom.xml'), 'utf8');
     assert.match(pom, /<artifactId>spring-boot-starter-opentelemetry<\/artifactId>/);
     assert.doesNotMatch(pom, /<artifactId>(?:micrometer-tracing-bridge-otel|opentelemetry-exporter-otlp)<\/artifactId>/);
-    const config = YAML.parse(await readFile(path.join(foundationRoot, location, 'application-local.yaml'), 'utf8'));
-    assert.equal(config.management.tracing.export.otlp.enabled, false);
-    assert.equal(config.management.tracing.export.enabled, undefined);
-    assert.equal(config.management.otlp.metrics.export.enabled, false);
-    assert.equal(config.management.logging.export.otlp.enabled, false);
-    assert.equal(config.management.tracing.sampling.probability, 1);
+    const config = (await readFile(path.join(foundationRoot, location, 'application-local.yaml'), 'utf8')).replaceAll('\r\n', '\n');
+    assert.match(config, /^  tracing:\n    export:\n      otlp:\n        enabled: false\n    sampling:\n      probability: 1\.0$/m);
+    assert.match(config, /^  otlp:\n    metrics:\n      export:\n        enabled: false$/m);
+    assert.match(config, /^  logging:\n    export:\n      otlp:\n        enabled: false$/m);
   }
 });
 
