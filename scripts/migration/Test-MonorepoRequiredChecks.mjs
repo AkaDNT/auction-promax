@@ -197,6 +197,24 @@ test('unconditional lifecycle owns exact structural matrix fixtures and frozen G
   ]) {const job=structuredClone(workflow.jobs.lifecycle);mutate(job);assert.throws(()=>validatePhase0MatrixStep(job));}
 });
 
+function validateTransitionSuiteStep(lifecycle) {
+  assert.equal(lifecycle.if,undefined);
+  const command='node --test api/scripts/decisions/Test-S002-Transition.mjs';
+  const matches=lifecycle.steps.filter(step=>(step.run??'').split(/\r?\n/).filter(line=>line.trim()===command).length===1);
+  assert.equal(matches.length,1);
+  assert.equal(matches[0].if,undefined);
+  assert.equal(matches[0]['continue-on-error'],undefined);
+}
+test('unconditional lifecycle cannot omit or skip actual-exit transition fixtures',()=> {
+  const workflow=YAML.parse(fs.readFileSync(path.join(root,'.github/workflows/monorepo-verification.yml'),'utf8'));
+  validateTransitionSuiteStep(workflow.jobs.lifecycle);
+  for(const mutate of [
+    job=>{for(const step of job.steps)if(step.run)step.run=step.run.replace('node --test api/scripts/decisions/Test-S002-Transition.mjs','');},
+    job=>{job.steps.find(step=>step.run?.includes('Test-S002-Transition.mjs')).if='false';},
+    job=>{job.steps.find(step=>step.run?.includes('Test-S002-Transition.mjs'))['continue-on-error']=true;},
+  ]){const job=structuredClone(workflow.jobs.lifecycle);mutate(job);assert.throws(()=>validateTransitionSuiteStep(job));}
+});
+
 test("unconditional lifecycle gate runs T02 source suites and Linux publisher fixtures", () => {
   const workflow = YAML.parse(fs.readFileSync(path.join(root, ".github/workflows/monorepo-verification.yml"), "utf8"));
   const lifecycle = workflow.jobs.lifecycle;

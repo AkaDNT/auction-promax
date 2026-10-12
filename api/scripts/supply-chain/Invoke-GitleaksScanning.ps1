@@ -74,7 +74,7 @@ try {
     Confirm-FullReachableHistory
 
     $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
-    $allowlistRegistry = Get-Content -LiteralPath $allowlistPath -Raw | ConvertFrom-Json
+    $allowlistRegistry = ConvertFrom-GitleaksAllowlistJson -Json (Get-Content -LiteralPath $allowlistPath -Raw)
     $gitleaksPath = Get-VerifiedGitleaksExecutable
     New-Item -ItemType Directory -Path $temporaryRoot | Out-Null
     $snapshotRoot = Join-Path $temporaryRoot 'working-tree-snapshot'

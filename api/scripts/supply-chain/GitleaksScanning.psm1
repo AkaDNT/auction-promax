@@ -304,6 +304,37 @@ function ConvertTo-SanitizedGitleaksInventory {
     return $inventory.ToArray()
 }
 
+function ConvertFrom-GitleaksAllowlistJson {
+    param(
+        [Parameter(Mandatory)][string]$Json,
+        [bool]$PreferDateKindString = $true
+    )
+    try {
+        $converter = Get-Command ConvertFrom-Json -CommandType Cmdlet
+        if ($PreferDateKindString -and $converter.Parameters.ContainsKey('DateKind')) {
+            return ConvertFrom-Json -InputObject $Json -DateKind String
+        }
+        $registry = ConvertFrom-Json -InputObject $Json
+        if ($PSVersionTable.PSVersion.Major -ge 7) {
+            # Older PS7 also converts ISO values automatically but lacks
+            # DateKind. Recover the original string tokens through the built-in
+            # .NET JSON reader; never normalize a locale-formatted DateTime.
+            $document = [System.Text.Json.JsonDocument]::Parse($Json)
+            try {
+                $entryIndex = 0
+                foreach ($element in $document.RootElement.GetProperty('entries').EnumerateArray()) {
+                    $registry.entries[$entryIndex].approvedAt = $element.GetProperty('approvedAt').GetString()
+                    $registry.entries[$entryIndex].expiresAt = $element.GetProperty('expiresAt').GetString()
+                    $entryIndex++
+                }
+            } finally { $document.Dispose() }
+        }
+        return $registry
+    } catch {
+        Throw-GitleaksScanFailure -Code 'GITLEAKS_ALLOWLIST_JSON_INVALID'
+    }
+}
+
 function ConvertTo-GitleaksUtcTimestamp {
     param([Parameter(Mandatory)][string]$Value, [Parameter(Mandatory)][string]$FailureCode)
     try {
@@ -361,4 +392,4 @@ function Assert-ExpectedGitleaksFixtureFinding {
     return $matches[0]
 }
 
-Export-ModuleMember -Function 'Get-WorkingTreeCandidatePaths', 'New-WorkingTreeSnapshot', 'Get-VerifiedGitleaksExecutable', 'Get-GitleaksScanArguments', 'Invoke-GitleaksScan', 'ConvertTo-SanitizedGitleaksInventory', 'Test-GitleaksPolicy', 'Assert-ExpectedGitleaksFixtureFinding'
+Export-ModuleMember -Function 'Get-WorkingTreeCandidatePaths', 'New-WorkingTreeSnapshot', 'Get-VerifiedGitleaksExecutable', 'Get-GitleaksScanArguments', 'Invoke-GitleaksScan', 'ConvertTo-SanitizedGitleaksInventory', 'ConvertFrom-GitleaksAllowlistJson', 'Test-GitleaksPolicy', 'Assert-ExpectedGitleaksFixtureFinding'

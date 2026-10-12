@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseLifecycleDocuments, validateLifecycle } from './SprintLifecycle.mjs';
+import {validateTransitionPublicationRepository} from './Phase0Transition.mjs';
 
 const OWNER = 'AkaDNT (Project Owner / Repository Owner)';
 const DECISION_REF = 'OWNER-DECISION-2026-10-05-S002-EXECUTION';
@@ -454,6 +455,7 @@ function runRepositoryMode() {
     deliveryMarkdown: read('docs/DELIVERY_STATE.md'),
     indexMarkdown: read('docs/SPRINT_INDEX.md'),
     evidenceMarkdown,
+    phase0MatrixMarkdown:read('docs/decisions/PHASE_0_EXIT_MATRIX.md',true),
   });
   if (parsed.errors.length > 0) {
     console.error(parsed.errors.join('\n'));
@@ -465,6 +467,12 @@ function runRepositoryMode() {
     console.error(result.errors.join('\n'));
     process.exitCode = 1;
     return;
+  }
+  if(parsed.exitEvidence?.kind==='PHASE0_EXIT_TRANSITION') {
+    const transition=parsed.exitEvidence.transition;
+    const handoff=fs.lstatSync(path.join(repositoryRoot,'docs/decisions/PHASE_1_HANDOFF.md'));
+    if(!handoff.isFile()||handoff.isSymbolicLink())throw new Error('TRANSITION_HANDOFF_REFERENCE_INVALID');
+    validateTransitionPublicationRepository({transition,repositoryRoot:path.resolve(repositoryRoot,'..')});
   }
   console.log('S002_LIFECYCLE_REPOSITORY_PASS');
 }

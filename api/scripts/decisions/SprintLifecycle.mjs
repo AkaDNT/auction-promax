@@ -1,3 +1,6 @@
+import {parsePhase0Transition,validatePhase0Transition} from './Phase0Transition.mjs';
+import {parsePhase0ExitMatrix} from '../foundation/Phase0ExitMatrix.mjs';
+
 const OWNER = 'AkaDNT (Project Owner / Repository Owner)';
 const REPOSITORY = 'https://github.com/AkaDNT/auction-promax';
 const S001_MERGE = 'ab2d8256b25919cc7479fa6d6aad7a41eb964f83';
@@ -247,7 +250,7 @@ function parseEvidence(markdown, errors) {
   for (const match of evidence.matchAll(/^- ([^:]+):/gm)) {
     if (!allowedFields.has(match[1])) addError(errors, 'INPUT_INVALID');
   }
-  return {
+  const result = {
     kind: fieldValue(evidence, 'Evidence kind', errors),
     designApproval: parseApproval(fieldValue(evidence, 'Design approval', errors), 'DESIGN', errors),
     planApproval: parseApproval(fieldValue(evidence, 'Plan approval', errors), 'IMPLEMENTATION_PLAN', errors),
@@ -256,10 +259,15 @@ function parseEvidence(markdown, errors) {
     activationApproval: parseApproval(fieldValue(evidence, 'Activation approval', errors), 'SPRINT_ACTIVATION', errors),
     activationPublication: parsePublication(fieldValue(evidence, 'Activation publication', errors), errors),
   };
+  if(result.kind==='PHASE0_EXIT_TRANSITION') {
+    try {result.transition=parsePhase0Transition(markdown);}
+    catch {addError(errors,'TRANSITION_RECORD_INVALID');result.transition=null;}
+  }
+  return result;
 }
 
 export function parseLifecycleDocuments({
-  sprintMarkdown, deliveryMarkdown, indexMarkdown, evidenceMarkdown,
+  sprintMarkdown, deliveryMarkdown, indexMarkdown, evidenceMarkdown, phase0MatrixMarkdown,
 } = {}) {
   const errors = [];
   const delivery = parseDelivery(deliveryMarkdown, errors);
@@ -277,14 +285,18 @@ export function parseLifecycleDocuments({
       id: fieldValue(context, 'Sprint ID', errors),
       deliveryPhase: parsePhase(fieldValue(context, 'Roadmap phase', errors), errors),
       status: parseEnum(fieldValue(context, 'Sprint status', errors),
-        new Set(['PLANNED', 'ACTIVATION_PENDING', 'IN_PROGRESS']), errors),
+        new Set(['PLANNED', 'ACTIVATION_PENDING', 'IN_PROGRESS', 'TRANSITION_PENDING', 'COMPLETED']), errors),
       publicationStatus: parseEnum(fieldValue(context, 'Publication status', errors),
-        new Set(['NOT_PUBLISHED']), errors),
+        new Set(['NOT_PUBLISHED','PENDING_PROTECTED_PR','PUBLISHED_VERIFIED']), errors),
     };
     exitEvidence = parseEvidence(evidenceMarkdown, errors);
   }
 
   const records = { sprint, delivery, index, exitEvidence };
+  if(exitEvidence?.kind==='PHASE0_EXIT_TRANSITION') {
+    try {records.phase0Matrix=parsePhase0ExitMatrix(phase0MatrixMarkdown);}
+    catch {addError(errors,'TRANSITION_MATRIX_NOT_PUBLISHED');records.phase0Matrix=null;}
+  }
   const lifecycleResult = validateLifecycle(records);
   for (const error of lifecycleResult.errors) addError(errors, error);
   const state = errors.length > 0 ? 'INVALID' : lifecycleResult.state;
@@ -385,7 +397,7 @@ function validateHistoricalSprint1(delivery, index, errors) {
   if (!valid) addError(errors, 'INPUT_INVALID');
 }
 
-export function validateLifecycle({ sprint, delivery, index, exitEvidence } = {}) {
+export function validateLifecycle({ sprint, delivery, index, exitEvidence, phase0Matrix } = {}) {
   const errors = [];
   if (!delivery || !index || typeof delivery !== 'object' || typeof index !== 'object') {
     return { valid: false, state: 'INVALID', errors: ['INPUT_INVALID'] };
@@ -403,7 +415,9 @@ export function validateLifecycle({ sprint, delivery, index, exitEvidence } = {}
     !['PENDING_PROTECTED_PR', 'PUBLISHED_VERIFIED', 'NOT_PUBLISHED'].includes(index.publicationStatus)) {
     addError(errors, 'STATE_UNKNOWN');
   }
-  if (delivery.currentPhase !== 0 || index.currentPhase !== 0 ||
+  const transitionComplete=sprint?.status==='COMPLETED'&&exitEvidence?.kind==='PHASE0_EXIT_TRANSITION';
+  const expectedCurrentPhase=transitionComplete?1:0;
+  if (delivery.currentPhase !== expectedCurrentPhase || index.currentPhase !== expectedCurrentPhase ||
     delivery.currentPhase !== index.currentPhase || (sprint && sprint.deliveryPhase !== 0)) {
     addError(errors, 'PHASE_MISMATCH');
   }
@@ -418,17 +432,21 @@ export function validateLifecycle({ sprint, delivery, index, exitEvidence } = {}
     return { valid: errors.length === 0, state: errors.length ? 'INVALID' : 'BASELINE', errors };
   }
 
+  const evidenceKeys=['kind','designApproval','planApproval','capacityApproval','executionApproval','activationApproval','activationPublication'];
+  if(exitEvidence?.kind==='PHASE0_EXIT_TRANSITION')evidenceKeys.push('transition');
   if (!hasExactKeys(sprint, ['id', 'deliveryPhase', 'status', 'publicationStatus']) ||
-    !hasExactKeys(exitEvidence, ['kind', 'designApproval', 'planApproval', 'capacityApproval',
-      'executionApproval', 'activationApproval', 'activationPublication'])) {
+    !hasExactKeys(exitEvidence, evidenceKeys)) {
     addError(errors, 'INPUT_INVALID');
   }
 
-  if (sprint.id !== 'SPRINT-002' || !['PLANNED', 'ACTIVATION_PENDING', 'IN_PROGRESS'].includes(sprint.status)) {
+  const allowedSprintStates=exitEvidence?.kind==='PHASE0_EXIT_TRANSITION'
+    ?['TRANSITION_PENDING','COMPLETED']:['PLANNED','ACTIVATION_PENDING','IN_PROGRESS'];
+  if (sprint.id !== 'SPRINT-002' || !allowedSprintStates.includes(sprint.status)) {
     addError(errors, 'STATE_UNKNOWN');
   }
-  if (sprint.publicationStatus !== 'NOT_PUBLISHED') addError(errors, 'STATUS_MISMATCH');
-  if (!exitEvidence || exitEvidence.kind !== 'SPRINT_ACTIVATION') addError(errors, 'INPUT_INVALID');
+  const isTransition=exitEvidence?.kind==='PHASE0_EXIT_TRANSITION';
+  if (!isTransition&&sprint.publicationStatus !== 'NOT_PUBLISHED') addError(errors, 'STATUS_MISMATCH');
+  if (!exitEvidence || !['SPRINT_ACTIVATION','PHASE0_EXIT_TRANSITION'].includes(exitEvidence.kind)) addError(errors, 'INPUT_INVALID');
   if (exitEvidence && typeof exitEvidence === 'object' && 'publication' in exitEvidence) {
     addError(errors, 'INPUT_INVALID');
   }
@@ -440,6 +458,16 @@ export function validateLifecycle({ sprint, delivery, index, exitEvidence } = {}
     ['capacityApproval', 'CAPACITY'],
     ['executionApproval', 'EXECUTION_METHOD'],
   ];
+  if(isTransition) {
+    for(const [field,scope] of commonApprovals)validateApproval(approvals[field],scope,errors);
+    validateApproval(approvals.activationApproval,'SPRINT_ACTIVATION',errors);
+    validateActivationPublication(approvals.activationPublication,errors);
+    if(approvals.activationPublication?.status!=='PUBLISHED_VERIFIED')addError(errors,'PUBLICATION_PENDING');
+    validateHistoricalSprint1(delivery,index,errors);
+    const transitionResult=validatePhase0Transition({sprint,delivery,index,transition:approvals.transition,matrix:phase0Matrix});
+    for(const code of transitionResult.errors)addError(errors,code);
+    return {valid:errors.length===0,state:errors.length?'INVALID':transitionResult.state,errors};
+  }
   let state = 'INVALID';
   if (sprint.status === 'PLANNED') {
     state = 'PLANNED';

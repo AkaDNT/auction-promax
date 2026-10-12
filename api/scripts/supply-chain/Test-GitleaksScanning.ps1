@@ -79,10 +79,50 @@ try {
         $decisions = @(Test-GitleaksPolicy -Inventory $inventory -Allowlist @((New-AllowlistEntry)) -NowUtc $nowUtc)
         if ($decisions.Count -ne 1 -or $decisions[0].status -ne 'false-positive' -or $decisions[0].remediationReference -ne 'TEST-GL-001') { throw 'Exact false-positive policy result is invalid.' }
     }
+    Invoke-TestCase -Name 'Real JSON registry preserves exact timestamp strings before policy validation' -Body {
+        $inventory = @(ConvertTo-SanitizedGitleaksInventory -ReportPath (Write-TestReport @((New-Finding))) -ScanMode dir -RepositoryRoot $testRoot -SnapshotRoot $testRoot)
+        $json = @{ schemaVersion = 1; entries = @((New-AllowlistEntry)) } | ConvertTo-Json -Depth 10
+        $registry = ConvertFrom-GitleaksAllowlistJson -Json $json
+        if ($registry.entries[0].approvedAt -isnot [string] -or $registry.entries[0].expiresAt -isnot [string]) { throw 'Registry timestamp strings changed type.' }
+        $decisions = @(Test-GitleaksPolicy -Inventory $inventory -Allowlist @($registry.entries) -NowUtc $nowUtc)
+        if ($decisions.Count -ne 1 -or $decisions[0].status -cne 'false-positive') { throw 'Real JSON registry entry was not accepted.' }
+    }
+    Invoke-TestCase -Name 'Legacy JSON parser path preserves lexical timestamps and expiry rejection' -Body {
+        $inventory = @(ConvertTo-SanitizedGitleaksInventory -ReportPath (Write-TestReport @((New-Finding))) -ScanMode dir -RepositoryRoot $testRoot -SnapshotRoot $testRoot)
+        $entry = New-AllowlistEntry
+        $json = @{ schemaVersion = 1; entries = @($entry) } | ConvertTo-Json -Depth 10
+        $registry = ConvertFrom-GitleaksAllowlistJson -Json $json -PreferDateKindString $false
+        if ($registry.entries[0].approvedAt -cne $entry.approvedAt -or $registry.entries[0].expiresAt -cne $entry.expiresAt) { throw 'Legacy parser altered timestamp bytes.' }
+        Test-GitleaksPolicy -Inventory $inventory -Allowlist @($registry.entries) -NowUtc $nowUtc | Out-Null
+        $entry.expiresAt = '2026-09-13T11:59:59Z'
+        $expired = ConvertFrom-GitleaksAllowlistJson -Json (@{ schemaVersion = 1; entries = @($entry) } | ConvertTo-Json -Depth 10) -PreferDateKindString $false
+        Assert-ThrowsCode -Code 'GITLEAKS_ALLOWLIST_EXPIRED' -Body { Test-GitleaksPolicy -Inventory $inventory -Allowlist @($expired.entries) -NowUtc $nowUtc | Out-Null }
+    }
+    Invoke-TestCase -Name 'Parsed registry still rejects changed fingerprint and future approval' -Body {
+        $inventory = @(ConvertTo-SanitizedGitleaksInventory -ReportPath (Write-TestReport @((New-Finding))) -ScanMode dir -RepositoryRoot $testRoot -SnapshotRoot $testRoot)
+        $entry = New-AllowlistEntry; $entry.scannerFingerprint = 'fixtures/example.txt:fixture-rule:2'
+        $registry = ConvertFrom-GitleaksAllowlistJson -Json (@{ schemaVersion = 1; entries = @($entry) } | ConvertTo-Json -Depth 10)
+        Assert-ThrowsCode -Code 'GITLEAKS_FINDING_REQUIRES_INCIDENT' -Body { Test-GitleaksPolicy -Inventory $inventory -Allowlist @($registry.entries) -NowUtc $nowUtc | Out-Null }
+        $entry = New-AllowlistEntry; $entry.approvedAt = '2026-09-14T00:00:00Z'
+        $registry = ConvertFrom-GitleaksAllowlistJson -Json (@{ schemaVersion = 1; entries = @($entry) } | ConvertTo-Json -Depth 10)
+        Assert-ThrowsCode -Code 'GITLEAKS_ALLOWLIST_APPROVAL_IN_FUTURE' -Body { Test-GitleaksPolicy -Inventory $inventory -Allowlist @($registry.entries) -NowUtc $nowUtc | Out-Null }
+    }
     Invoke-TestCase -Name 'Expired false-positive entry rejected' -Body {
         $inventory = @(ConvertTo-SanitizedGitleaksInventory -ReportPath (Write-TestReport @((New-Finding))) -ScanMode dir -RepositoryRoot $testRoot -SnapshotRoot $testRoot)
         $entry = New-AllowlistEntry; $entry.expiresAt = '2026-09-13T11:59:59Z'
         Assert-ThrowsCode -Code 'GITLEAKS_ALLOWLIST_EXPIRED' -Body { Test-GitleaksPolicy -Inventory $inventory -Allowlist @($entry) -NowUtc $nowUtc | Out-Null }
+    }
+    Invoke-TestCase -Name 'JSON timestamp offsets are preserved and rejected rather than normalized to UTC' -Body {
+        $inventory = @(ConvertTo-SanitizedGitleaksInventory -ReportPath (Write-TestReport @((New-Finding))) -ScanMode dir -RepositoryRoot $testRoot -SnapshotRoot $testRoot)
+        foreach ($preferDateKind in @($true, $false)) {
+            $entry = New-AllowlistEntry; $entry.approvedAt = '2026-09-12T01:00:00+01:00'
+            $registry = ConvertFrom-GitleaksAllowlistJson -Json (@{ schemaVersion = 1; entries = @($entry) } | ConvertTo-Json -Depth 10) -PreferDateKindString $preferDateKind
+            if ($registry.entries[0].approvedAt -cne $entry.approvedAt) { throw 'Noncanonical timestamp was normalized.' }
+            Assert-ThrowsCode -Code 'GITLEAKS_ALLOWLIST_APPROVAL_INVALID' -Body { Test-GitleaksPolicy -Inventory $inventory -Allowlist @($registry.entries) -NowUtc $nowUtc | Out-Null }
+        }
+    }
+    Invoke-TestCase -Name 'Malformed registry JSON fails with a fixed code' -Body {
+        Assert-ThrowsCode -Code 'GITLEAKS_ALLOWLIST_JSON_INVALID' -Body { ConvertFrom-GitleaksAllowlistJson -Json '{not-json' | Out-Null }
     }
     Invoke-TestCase -Name 'Case-drifted exact match is rejected' -Body {
         $inventory = @(ConvertTo-SanitizedGitleaksInventory -ReportPath (Write-TestReport @((New-Finding))) -ScanMode dir -RepositoryRoot $testRoot -SnapshotRoot $testRoot)
@@ -95,7 +135,7 @@ try {
     }
 } finally { if (Test-Path -LiteralPath $testRoot) { Remove-Item -LiteralPath $testRoot -Recurse -Force } }
 
-Write-Output 'Tests: 13'
+Write-Output 'Tests: 18'
 Write-Output "Failures: $($failures.Count)"
 if ($failures.Count -gt 0) { $failures | ForEach-Object { Write-Output "[DETAIL] $_" }; exit 1 }
 Write-Output 'Gitleaks scanning sanitizer and policy tests: PASS'

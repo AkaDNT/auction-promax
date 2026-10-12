@@ -13,6 +13,7 @@ const ids = ['identity-profile-service', 'auction-service', 'bidding-service', '
 const scopes = [ ['architecture-decisions'], ['repository'], ids.slice(1), ids, ids, ['shared-contracts'], ids,
   [ids[0]], [ids[0]], ids.slice(0,4), ids, ids, ids, ids, [ids[0]] ];
 const requirementIds = [...Array.from({length:12}, (_,i) => `D${String(i+1).padStart(2,'0')}`), 'E01','E02','E03'];
+const frozenImplementationPaths=['.',':(top,exclude)api/docs/**',':(top,exclude)docs/**'];
 function fixture() {
   return {schemaVersion:1, phase:0, status:'PUBLISHED_VERIFIED', implementationRevision:revision, implementationTree:tree,
     requirements:requirementIds.map((requirementId,i) => ({requirementId, authority:'api/docs/Auction_Platform_Final_Production_Architecture_Blueprint_and_Roadmap.md#phase-0',
@@ -96,7 +97,7 @@ if(!process.argv.includes('--repository')&&!process.argv.includes('--require-exi
     ...value.inheritedGaps.flatMap(gap=>[gap.source,gap.authority,gap.evidenceReference])];
   for(const ref of refs.filter(ref=>!ref.startsWith('https://')))write(ref.split('#')[0],'# Synthetic Git fixture\n');
   const inputs=['api/services/fixture.txt','api/contracts/fixture.txt','api/service-foundation/fixture.txt','api/infra/fixture.txt','web/fixture.txt',
-    '.github/workflows/fixture.yml','api/scripts/runtime-gate.ps1','scripts/security-gate.mjs'];
+    '.github/workflows/fixture.yml','api/scripts/runtime-gate.ps1','scripts/security-gate.mjs','api/security/fixture.json','api/.nvmrc','.gitignore'];
   for(const input of inputs)write(input,'baseline\n');
   git('init','--quiet');git('config','user.email','fixture@example.invalid');git('config','user.name','Synthetic fixture');
   git('add','.');git('commit','--quiet','-m','synthetic frozen implementation');
@@ -141,11 +142,10 @@ if(process.argv.includes('--repository')||process.argv.includes('--require-exit'
     assert.ok(stat.isFile()&&!stat.isSymbolicLink(),'local evidence reference must be an ordinary existing file');
   }
   if(matrix.status!=='IN_PROGRESS') {
-    const applicablePaths=['api/services','api/contracts','api/service-foundation','api/infra','web','.github/workflows','api/scripts','scripts'];
-    const delta=spawnSync('git',['diff','--quiet',matrix.implementationRevision,'--',...applicablePaths],
+    const delta=spawnSync('git',['diff','--quiet',matrix.implementationRevision,'--',...frozenImplementationPaths],
       {cwd:root,encoding:'utf8',timeout:10000});
     assert.equal(delta.status,0,'frozen implementation/source tree changed; renewed evidence required');
-    const untracked=spawnSync('git',['ls-files','--others','--exclude-standard','--',...applicablePaths],
+    const untracked=spawnSync('git',['ls-files','--others','--exclude-standard','--',...frozenImplementationPaths],
       {cwd:root,encoding:'utf8',timeout:10000});
     assert.equal(untracked.status,0);
     assert.equal(untracked.stdout.trim(),'','untracked implementation files cannot join the frozen candidate');
@@ -157,7 +157,7 @@ if(process.argv.includes('--repository')||process.argv.includes('--require-exit'
     assert.equal(actualTree.stdout.trim(),publication.tree,'published Git tree must match the actual object');
     const publishedAncestor=spawnSync('git',['merge-base','--is-ancestor',publication.merge,'HEAD'],{cwd:root,encoding:'utf8',timeout:10000});
     assert.equal(publishedAncestor.status,0,'published merge must be an ancestor of actual checkout');
-    const publishedDelta=spawnSync('git',['diff','--quiet',matrix.implementationRevision,publication.merge,'--','api/services','api/contracts','api/service-foundation','api/infra','web','.github/workflows','api/scripts','scripts'],
+    const publishedDelta=spawnSync('git',['diff','--quiet',matrix.implementationRevision,publication.merge,'--',...frozenImplementationPaths],
       {cwd:root,encoding:'utf8',timeout:10000});
     assert.equal(publishedDelta.status,0,'published runtime/source differs from frozen evidence');
   }
