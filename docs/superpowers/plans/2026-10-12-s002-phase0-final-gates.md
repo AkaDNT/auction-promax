@@ -1,6 +1,6 @@
 # Sprint 002 final Phase 0 gates
 
-This expands T06/T07 of the [approved parent plan](2026-10-05-s002-phase0-exit-and-service-foundation.md), under its approved [design](../specs/2026-10-05-s002-service-foundation-design.md). Execute inline with RED/GREEN and independent review. Source delivery is reviewed and all-five committed-source CI passed on `9b33152`; the final frozen-candidate rehearsal remains pending. No new product behavior is included.
+This expands T06/T07 of the [approved parent plan](2026-10-05-s002-phase0-exit-and-service-foundation.md), under its approved [design](../specs/2026-10-05-s002-service-foundation-design.md). Execute inline with RED/GREEN and independent review. Source delivery is reviewed and all-five committed-source CI passed on `9b33152`; the final frozen-candidate rehearsal and protected technical/transition publications are verified; factual closeout hosting/readback remains the final gate. No new product behavior is included.
 
 ## T06 matrix and exact evidence
 
@@ -25,7 +25,7 @@ Inherited reconciliation must include service-template, authentication/authoriza
 
 Prepare and review transition-support code/negative fixtures before the T06 implementation freeze, while actual Phase 0 stays open. This lets the later T07 factual approval/publication change remain documentation-only; workflow/tooling changes cannot silently reuse the frozen runtime proof. Actual exit, handoff and transition publication still occur only after the T06 published evidence and explicit owner decisions.
 
-- [x] Prepared/reviewed RED/GREEN lifecycle transition support before freeze: 30 fixtures reject candidate-only approval, missing actual merge checks, wrong candidate/tree, absent actual-exit/handoff confirmation, premature COMPLETE and policy manipulation. Real Git publication/known-PR binding and historical S001/current Phase 1 coexistence passed. This was gate preparation; actual owner approvals are now recorded, while protected transition/closeout publication remains pending.
+- [x] Prepared/reviewed RED/GREEN lifecycle transition support before freeze: 30 fixtures reject candidate-only approval, missing actual merge checks, wrong candidate/tree, absent actual-exit/handoff confirmation, premature COMPLETE and policy manipulation. Real Git publication/known-PR binding and historical S001/current Phase 1 coexistence passed. This was gate preparation; actual owner approvals and protected PR25 transition/checks are now verified. Factual closeout hosting/readback remains pending.
 - [x] Present published T06 facts for explicit owner actual Phase 0 exit and Phase 1 handoff approval. Prepare separate protected transition record with truthful pending/final publication state and no invented self-merge identity.
 - [ ] Obtain separate transition merge permission, verify actual transition merge/default/push checks, and finish any factual follow-up before final completion claim.
 - [ ] Verify published lifecycle/matrix/links/security range; provide clear completion log and residual Phase 1 backlog. No Phase 1 implementation or deploy/release starts automatically.

@@ -1,6 +1,6 @@
 # Phase 1 handoff
 
-Status: **OWNER_APPROVED_TRANSITION_PENDING**. The technical foundation is actually published and verified; owner ACTUAL_PHASE0_EXIT / PHASE1_HANDOFF confirmation was received on 2026-10-12; protected transition/closeout publication remains pending. This record does not start Phase 1 implementation or deployment.
+Status: **OWNER_APPROVED_TRANSITION_VERIFIED**. The technical foundation is actually published and verified; owner ACTUAL_PHASE0_EXIT / PHASE1_HANDOFF confirmation was received on 2026-10-12; protected PR25 transition/actual-merge checks are verified. This factual closeout requires its own protected hosting/readback gate. This record does not start Phase 1 implementation or deployment.
 
 ## Verified foundation and publication
 
@@ -28,4 +28,8 @@ Historical tracing/lifecycle failures and the old-default scheduled SECRET_SCAN_
 
 ## Owner and transition gates
 
-Technical-candidate acceptance and conditional PR24 merge were already separately approved. The owner explicitly confirmed actual roadmap Phase 0 exit and Phase 1 handoff on 2026-10-12 for PR24 actual merge/tree, under OWNER-DECISION-2026-10-12-S002-T07-ACTUAL_PHASE0_EXIT and OWNER-DECISION-2026-10-12-S002-T07-PHASE1_HANDOFF. Conditional PR25 merge was separately authorized; factual closeout merge remains separate. The prepared TRANSITION_PENDING record is recorded with actual technical identity, approved scopes and no invented future merge. Protected transition publication/checks and the factual closeout record must be verified before authoritative current Phase 1 / completed Sprint 002 is published. Preserve Sprint 001 history and Sprint 002's historical delivery phase 0.
+Technical-candidate acceptance and conditional PR24 merge were already separately approved. The owner explicitly confirmed actual roadmap Phase 0 exit and Phase 1 handoff on 2026-10-12 for PR24 actual merge/tree, under OWNER-DECISION-2026-10-12-S002-T07-ACTUAL_PHASE0_EXIT and OWNER-DECISION-2026-10-12-S002-T07-PHASE1_HANDOFF. Conditional PR25 merge was separately authorized; factual closeout merge remains separate. PR25 published the historical TRANSITION_PENDING record with actual technical identity and approved scopes. Its actual publication is verified below; this factual closeout preserves those scopes. Protected transition publication/checks and the factual closeout record must be verified before authoritative current Phase 1 / completed Sprint 002 is published. Preserve Sprint 001 history and Sprint 002's historical delivery phase 0.
+
+## Actual protected transition
+
+[PR25](https://github.com/AkaDNT/auction-promax/pull/25) merged as `1e5bcd95506b4c57fa5d7367608270661e72aead`, tree `8166ffceba18a58327d7c75eda2908ca8f1c044d`, with parents `0475661743c5da0114eba04810bf24f962a53b60` and `f30eedf10059726b9fee695f513df033f8764af3`. Actual-merge push [monorepo-required](https://github.com/AkaDNT/auction-promax/actions/runs/38269605016) and [supply-chain-verification](https://github.com/AkaDNT/auction-promax/actions/runs/38269605167) passed with configured app 15368. The default tip matched this merge at readback. Frozen implementation inputs remain unchanged. The current phase becomes Phase 1 through this separately reviewed factual closeout; no Phase 1 implementation, deployment or release is authorized.

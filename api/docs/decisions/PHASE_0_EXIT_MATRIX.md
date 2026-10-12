@@ -1,6 +1,6 @@
 # Phase 0 exit matrix
 
-Status: **PUBLISHED_VERIFIED** for the technical foundation. Actual exit/handoff is owner-approved in [T07 evidence](../sprints/S002_REVIEW_EVIDENCE.md); Sprint 002 and authoritative current Phase 0 remain open until protected transition and factual closeout are verified. Frozen candidate/results are recorded in the [exact evidence dossier](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md); historical increments remain in the [completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
+Status: **PUBLISHED_VERIFIED** for the technical foundation. Actual exit/handoff is owner-approved in [T07 evidence](../sprints/S002_REVIEW_EVIDENCE.md); PR25 protected transition and actual-merge checks are now verified; this factual closeout records completed Sprint 002 and closed Phase 0/current Phase 1. Its own protected publication/readback remains pending and will be verified through hosting metadata; no self-merge identity is invented. Frozen candidate/results are recorded in the [exact evidence dossier](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md); historical increments remain in the [completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
 
 ## Authority and interpretation
 
@@ -36,7 +36,7 @@ The [Sprint 001 incomplete-work record](../sprints/SPRINT_001.md) and [productio
 
 | Gap | Disposition | Owning scope and authority |
 | --- | --- | --- |
-| Service-template and revised database mapping | RESOLVED_PHASE0 technical proof | D03/D04/D05/D07/D10/D11/D12/E01/E02; final frozen rehearsal and protected technical publication are verified; actual exit/handoff is owner-approved; protected transition/closeout remains pending. |
+| Service-template and revised database mapping | RESOLVED_PHASE0 technical proof | D03/D04/D05/D07/D10/D11/D12/E01/E02; final frozen rehearsal and protected technical publication are verified; actual exit/handoff is owner-approved; protected PR25 transition/checks are verified; this factual closeout records current Phase 1. |
 | Authentication/authorization | OPEN_LATER_PHASE | Blueprint Phase 1 and ADR-003; technical allowlists are not Cognito/product authentication. |
 | Product functions | OPEN_LATER_PHASE | Blueprint Phases 2–7, ADR-026/027. Auction-item payment, escrow, payout and monetary wallet remain excluded V1 capabilities, not promised future delivery. |
 | Producer/consumer compatibility | DEFERRED_NO_PRODUCER_CONTRACT | Approved [consumer addendum](../../../docs/superpowers/specs/2026-09-27-s001-t09-phase0-consumer-gate-addendum.md); later producer contracts own this proof. No compatibility PASS. |
@@ -45,7 +45,7 @@ The [Sprint 001 incomplete-work record](../sprints/SPRINT_001.md) and [productio
 
 ## Acceptance and publication
 
-Owner technical acceptance: APPROVED, 2026-10-12, `OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE` for the exact frozen implementation/tree and stated evidence limits. Protected technical publication: VERIFIED through PR24, actual merge `0475661743c5da0114eba04810bf24f962a53b60`, tree `d74d07cc76d96c2a651438bc7a1d1e873b4791ca`, with both actual-merge push checks PASS. Actual Phase 0 exit/handoff confirmation: OWNER_APPROVED (T07); protected transition and factual closeout remain pending. Technical matrix validation, including `--require-exit`, passes with the actual protected technical publication. Actual roadmap exit/handoff and current phase advancement remain separate T07 owner/publication gates. This record neither permits merge nor advances the authoritative phase.
+Owner technical acceptance: APPROVED, 2026-10-12, `OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE` for the exact frozen implementation/tree and stated evidence limits. Protected technical publication: VERIFIED through PR24, actual merge `0475661743c5da0114eba04810bf24f962a53b60`, tree `d74d07cc76d96c2a651438bc7a1d1e873b4791ca`, with both actual-merge push checks PASS. Actual Phase 0 exit/handoff confirmation: OWNER_APPROVED (T07); protected PR25 transition/checks are verified; factual closeout is prepared for its own protected publication. Technical matrix validation, including `--require-exit`, passes with the actual protected technical publication. Actual roadmap exit/handoff is owner-approved and protected transition publication/checks are verified in T07 evidence. Current phase advancement is recorded by this factual closeout. This record neither permits merge nor advances the authoritative phase.
 
 ## Machine-readable evidence
 
