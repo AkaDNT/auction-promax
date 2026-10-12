@@ -172,6 +172,31 @@ test("invalid classifier inputs select every registry target and retain a saniti
   }
 });
 
+function validatePhase0MatrixStep(lifecycle) {
+  assert.equal(lifecycle.if, undefined);
+  const checkout=lifecycle.steps.find(step => step.uses?.startsWith('actions/checkout@'));
+  assert.equal(checkout?.with?.['fetch-depth'],0);
+  const matches=lifecycle.steps.filter(step => step.name==='Verify Phase 0 exit matrix without claiming exit');
+  assert.equal(matches.length,1);
+  const matrixStep=matches[0];
+  assert.equal(matrixStep.if,undefined);
+  assert.equal(matrixStep['continue-on-error'],undefined);
+  assert.equal(matrixStep.run.trim(),'node --test api/scripts/foundation/Test-Phase0ExitMatrix.mjs\nnode api/scripts/foundation/Test-Phase0ExitMatrix.mjs --repository');
+}
+
+test('unconditional lifecycle owns exact structural matrix fixtures and frozen Git history',()=> {
+  const workflow=YAML.parse(fs.readFileSync(path.join(root,'.github/workflows/monorepo-verification.yml'),'utf8'));
+  validatePhase0MatrixStep(workflow.jobs.lifecycle);
+  for(const mutate of [
+    job=>{job.steps=job.steps.filter(step=>step.name!=='Verify Phase 0 exit matrix without claiming exit');},
+    job=>{job.steps.find(step=>step.name==='Verify Phase 0 exit matrix without claiming exit').if='false';},
+    job=>{job.steps.find(step=>step.name==='Verify Phase 0 exit matrix without claiming exit')['continue-on-error']=true;},
+    job=>{job.steps.push(structuredClone(job.steps.find(step=>step.name==='Verify Phase 0 exit matrix without claiming exit')));},
+    job=>{job.steps.find(step=>step.name==='Verify Phase 0 exit matrix without claiming exit').run='node api/scripts/foundation/Test-Phase0ExitMatrix.mjs --require-exit';},
+    job=>{job.steps.find(step=>step.uses?.startsWith('actions/checkout@')).with['fetch-depth']=1;},
+  ]) {const job=structuredClone(workflow.jobs.lifecycle);mutate(job);assert.throws(()=>validatePhase0MatrixStep(job));}
+});
+
 test("unconditional lifecycle gate runs T02 source suites and Linux publisher fixtures", () => {
   const workflow = YAML.parse(fs.readFileSync(path.join(root, ".github/workflows/monorepo-verification.yml"), "utf8"));
   const lifecycle = workflow.jobs.lifecycle;

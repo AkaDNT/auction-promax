@@ -1,6 +1,6 @@
 # SPRINT-002 lifecycle and review evidence
 
-Status: ACTIVATION_PUBLISHED_VERIFIED; T01/T02 published and T03 technically accepted. T04–T07 remain incomplete. Phase 0 exit remains open. The older narrative below records activation chronology; current facts are in the [completion audit](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
+Status: ACTIVATION_PUBLISHED_VERIFIED; T01/T02 published and T03 technically accepted. T04/T05 have reviewed committed source and actual all-five hosted technical proof; their protected publication remains pending. T06 final matrix/rehearsal and T07 exit/handoff remain incomplete. Phase 0 exit remains open. The older narrative below records activation chronology; current facts are in the [completion audit](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
 
 ## Lifecycle Evidence
 

@@ -40,7 +40,7 @@
 - [x] Write positive fixture bundles from existing synthetic generator fixtures and RED missing-module test.
 - [x] Add negatives: preserved/unknown service, mismatched SHA, malformed/extra keys, missing/extra/duplicate/case-colliding/traversal file, wrong mode, corrupt hash, modified contents with recomputed hash and a generated tree containing target/log/config or a link.
 - [x] Implement the closed module/CLI; run `node --test api/scripts/foundation/Test-ServiceSourceBundle.mjs` GREEN and existing registry/template/generated conformance regressions. Bundle/CLI suite 26/26, combined generated/bundle 34/34; actual exporter CI proof remains pending.
-- [ ] Document the exact file set and provenance; independent review and local commit before isolated push.
+- [x] Document the exact file set and provenance; independent exact-SHA review and local commit before authorized isolated push (`8796928`).
 
 ## Task 2 — Owning CI export and hosted proof
 
@@ -50,8 +50,8 @@
 
 - [x] RED workflow mutation fixtures: missing export, export after Maven, missing/non-exact SHA binding, mutable upload pin, overly broad upload path, missing required success condition, Identity export.
 - [x] Implement the source step/upload and GREEN the owning repository/negative/ownership/root/hosted contracts. Conditional source upload is a narrow reviewed exception; sanitized evidence still uploads unconditionally and separately.
-- [ ] Exact-SHA review, authorized isolated push, verify actual PR execution SHA and all service jobs. Retain failed runs without relabeling them.
-- [ ] Download only named source/evidence artifacts from the exact successful run; independently validate each source bundle and security/evidence binding.
+- [x] Exact-SHA review, authorized isolated push, verify actual PR execution SHA and all service jobs. Successful PR run 38199242294 binds `8796928` to execution `f8063366d41c1672316499ae481b89c0a10ad222`; historical/failed evidence retained.
+- [x] Download only named source/evidence artifacts from the exact successful run; independently validate each source bundle and security/evidence binding (25/25/25/23 source files; exact-five sanitized aggregate PASS).
 
 ## Task 3 — Reviewed import and service delivery
 
@@ -59,12 +59,14 @@
 
 **Interfaces:** A private one-time import script validates the already downloaded bundle through the committed validator, checks that the registered destination and any case alias are absent, writes only validated source records to an owned sibling stage and invokes existing `Publish-ServiceDirectory.ps1`. It imports CI-produced bytes; it never calls `Generate-Service.mjs` or synthesizes a real destination from templates. Existing destination/link failure is terminal and non-destructive.
 
-- [ ] Review the source bundle identity and complete inventory against the actual run and exact execution SHA before import.
+- [x] Review the source bundle identity and complete inventory against the actual run and exact execution SHA before import.
 - [ ] Import Auction first; verify generated conformance, exact byte/hash inventory and tracked modes; commit a scoped local candidate and review it. This satisfies source delivery only after protected publication and actual service-specific hosted gates.
 - [ ] Repeat controlled imports for Bidding/Billing/Gateway as T05 increments, with per-service proof and no domain/product code.
-- [ ] Rerun actual CI on committed-source candidates so evidence proves their builds/scans independently and provenance changes from ephemeral to committed truthfully.
+- [x] Rerun actual CI on committed-source candidates: Auction head `02e4c72` PR run 38199769493; all-five head `9b33152` PR run 38200222130 explicitly records committed provenance, canonical tests/scan/smoke/aggregate/release PASS.
 - [ ] Update task evidence only for satisfied acceptance; leave T06/T07 matrix/rehearsal/owner exit/handoff gates open.
 
 ## Rollback and evidence
 
 Keep each reviewed source/task commit and bundle provenance recoverable. Revert through reviewed commits; never overwrite/drop/reset a service or database. Private bundles/downloads/logs remain ignored. Source bundles are public review material only after trusted secret scanning and approved repository publication. The original native cluster remains intact; separate native cluster proof remains supplementary to the canonical pinned Testcontainers execution.
+
+All four source imports, scoped commits and independent exact-range reviews are complete. The two import/delivery checkboxes above intentionally remain open because their acceptance includes protected default publication, which is not yet authorized or executed. T04/T05 are technically verified; T06/T07 remain open. Current execution continues in the [final-gate detail](2026-10-12-s002-phase0-final-gates.md).

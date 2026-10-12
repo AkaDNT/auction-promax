@@ -15,7 +15,7 @@
 - Publication status: NOT_PUBLISHED
 - Activation evidence: [S002 review evidence](sprints/S002_REVIEW_EVIDENCE.md)
 - Activation record publication: PUBLISHED_VERIFIED through PR #19 / merge 6459baf17ae8a88aeceb5d5d24bc0c601ba6868b.
-- Delivery scope: Phase 0 foundation execution; prerequisite PR18 verified. T01/T02 are published; T03 integrated technical and freshness acceptance is verified; T04 runtime/hosted acceptance remains open. Phase 0 exit and release readiness remain open.
+- Delivery scope: Phase 0 foundation execution; prerequisite PR18 verified. T01/T02 are published; T03 integrated technical and freshness acceptance is verified; T04/T05 reviewed source and actual committed-source CI are technically verified but protected publication is pending. T06 final rehearsal/matrix is in progress. Phase 0 exit remains open; no release approval is implied.
 - Target environment: Local developer environment and CI baseline
 - Last updated: 2026-10-12
 
@@ -85,4 +85,4 @@ S001-T01 through S001-T09 have accepted technical task outcomes. S001-T09 decisi
 
 ## Next Action
 
-Complete T04 from the preserved local checkpoint with actual PowerShell runtime and isolated Auction evidence. Follow the [completion log](../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md). Time/capacity limits are superseded by OWNER-DECISION-2026-10-12-SELF-PROJECT-NO-TIME-LIMIT; Phase 0 remains open and all technical, security and publication gates remain mandatory.
+Complete T06's [exit matrix](decisions/PHASE_0_EXIT_MATRIX.md), frozen-candidate rehearsal and owner technical review, then protected publication and T07 actual exit/handoff. Follow the [completion log](../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md). Time/capacity limits are superseded by OWNER-DECISION-2026-10-12-SELF-PROJECT-NO-TIME-LIMIT; Phase 0 remains open and all technical, security and publication gates remain mandatory.

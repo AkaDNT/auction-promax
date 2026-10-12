@@ -4,10 +4,11 @@ This runbook describes local technical checks for an already-present service. It
 
 ## Safety boundaries
 
-- Use a reviewed checkout and a service directory that already exists. The local runner does not generate, repair, or overwrite a service. The four undelivered registered services must be generated only by the approved isolated CI workflow; do not run the generator locally for them.
+- Use a reviewed checkout and a service directory that already exists. The local runner does not generate, repair, or overwrite a service. Auction/Bidding/Billing/gateway source was generated in isolated CI, exported, reviewed and imported without overwriting a destination. Per-service origin/file hashes are recorded under `api/service-foundation/deliveries/`; do not regenerate them locally.
 - The runner accepts only a registered, non-preserved service and its canonical source path. It derives database and role names from `api/service-foundation/services.json`, rejects inherited Spring/JVM/Maven overrides and non-selected or generic database environment carriers, and binds the application to loopback. It restores the caller's environment and working directory after Maven exits.
 - Use a dedicated local database and locally provisioned least-privilege service roles. Do not point a service at shared, production, or another service's database. Do not reset or drop databases as part of this runbook.
 - Keep credentials in an ignored per-service config file. Never paste real secrets into commands, logs, screenshots, or this document. The HTTP verifier records only fixed result codes in the ignored log path; it does not write response bodies or credentials.
+- Preserve an existing legacy PostgreSQL cluster. The approved [separate-cluster decision](../decisions/S002_ISOLATED_LOCAL_POSTGRES.md) uses a dedicated loopback PostgreSQL 17 instance on port 55432 for the revised topology; examples below use 5432 only as a configurable placeholder, not permission to repurpose an old cluster.
 - Do not change PowerShell execution policy or use `-ExecutionPolicy Bypass`. Run fixtures in the host's normal supported PowerShell environment.
 
 ## Prerequisites

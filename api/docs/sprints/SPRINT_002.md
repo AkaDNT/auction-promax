@@ -26,13 +26,13 @@ Current Phase 0 foundation authority uses the revised [blueprint](../Auction_Pla
 | T01 | Safe lifecycle validation and protected activation bookkeeping | DONE |
 | T02 | Deterministic service foundation templates | DONE |
 | T03 | Service matrix and artifact-security interfaces | DONE — technical acceptance |
-| T04 | First relational service reference | IN_PROGRESS — local checkpoint; runtime/hosted acceptance pending |
-| T05 | Remaining service variants | PLANNED |
-| T06 | Frozen-candidate review and publication preparation | PLANNED |
+| T04 | First relational service reference | TECHNICALLY_VERIFIED — committed Auction source; protected publication pending |
+| T05 | Remaining service variants | TECHNICALLY_VERIFIED — all committed-source CI; protected publication pending |
+| T06 | Frozen-candidate review and publication preparation | IN_PROGRESS — final matrix/rehearsal/owner review pending |
 | T07 | Phase 0 exit evidence and Phase 1 transition decision | PLANNED |
 
 No Phase 1 implementation is authorized by this sprint plan. Activation approval and each PR merge authorization are separate owner decisions.
 
 ## Current completion audit
 
-See [2026-10-12 completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md). The owner removed time/capacity limits on 2026-10-12; quality, security, business decisions, publication and Phase 0 exit gates remain required. T04 checkpoint is local and unaccepted; T05–T07 remain planned.
+See [2026-10-12 completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md). The owner removed time/capacity limits on 2026-10-12; quality, security, business decisions, publication and Phase 0 exit gates remain required. T04/T05 have independently reviewed source delivery and actual all-five committed-source CI on candidate `9b33152`; protected default publication remains pending. T06 final matrix/rehearsal is in progress; T07 actual exit/transition remains planned.
