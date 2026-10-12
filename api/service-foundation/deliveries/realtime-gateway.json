@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "serviceId": "realtime-gateway",
+  "repository": "AkaDNT/auction-promax",
+  "sourceCandidateSha": "87969288d62af90fd40987980530de631fbad982",
+  "executionSha": "f8063366d41c1672316499ae481b89c0a10ad222",
+  "runId": "38199242294",
+  "artifactId": "11723824585",
+  "artifactName": "s002-service-source-realtime-gateway",
+  "artifactFileSha256": "4b392542b5e7a45a204463d1d9749a16eb9b53dcd0aedcb91f9b2d7fad877606",
+  "bundleSha256": "750e6ef821f4a7d72e4aeddbb5becae1b30db152c830ba44e2827605c5d08244",
+  "origin": "isolated-ci-generated",
+  "files": [
+    {
+      "path": ".mvn/wrapper/maven-wrapper.properties",
+      "mode": 420,
+      "sha256": "488e1b3f2e641779d4636abf9390845f901e64607261bc3c0b0bfe4fe96e6706"
+    },
+    {
+      "path": "Dockerfile",
+      "mode": 420,
+      "sha256": "3e067d763f53d228f23c4370bc393259ac67b9232f9741790f537a0f4f6870dc"
+    },
+    {
+      "path": "README.md",
+      "mode": 420,
+      "sha256": "b44ec6511f82f0543e0bb3a8fdff5ada87c925073945ef595ff3d686ca4939cd"
+    },
+    {
+      "path": "mvnw",
+      "mode": 493,
+      "sha256": "cae96cef89ebea3531221f4ae17c23cf8edf67d00eae8306d4186ae1bbed4d02"
+    },
+    {
+      "path": "mvnw.cmd",
+      "mode": 420,
+      "sha256": "584381858445e61a8ce6e70acd8b1845981812b8a6748b81aed5866689064586"
+    },
+    {
+      "path": "pom.xml",
+      "mode": 420,
+      "sha256": "841860d17a64f3531cba797462eab6a7ca638a9026cc50992e3af10b881e260e"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/realtimegateway/RealtimeGatewayApplication.java",
+      "mode": 420,
+      "sha256": "4850f144e4167f54097f770080facee48438383863582307942ffeccd3e21420"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/realtimegateway/adapter/in/web/CorrelationIdFilter.java",
+      "mode": 420,
+      "sha256": "3b261cae403bf807ada7ea305a65f2b870932b0fa19cfa619bc55f7cb7453d01"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/realtimegateway/adapter/in/web/TechnicalProbeController.java",
+      "mode": 420,
+      "sha256": "663ab643a24d864c004fc6b73bb06f9647e7aee2e6c7d127eaf026ea5159beb4"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/realtimegateway/adapter/in/web/TechnicalProblemAdvice.java",
+      "mode": 420,
+      "sha256": "8711b30c9150d140b06d455ded7fe254ad3b33aebb8a679b6828ab0d32e058e9"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/realtimegateway/adapter/in/web/TechnicalValidationRequest.java",
+      "mode": 420,
+      "sha256": "5a8f7c2468a4fe1b6d0204c7c73ac131e1addcbd4d0a04dcb1d5b8c360802654"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/realtimegateway/adapter/in/web/TechnicalValidationResponse.java",
+      "mode": 420,
+      "sha256": "aff61c7d09abbcaef81f0a22838156562879be37684f5c34f482d16dfa520f0e"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/realtimegateway/configuration/TechnicalConfiguration.java",
+      "mode": 420,
+      "sha256": "1a8c945696edd7874d1a5360f5e265c4f89f29c6fb36ad31656cd03aed539b4b"
+    },
+    {
+      "path": "src/main/resources/application-local.yaml",
+      "mode": 420,
+      "sha256": "ee3ac522ecb1273dff75a79a3122dbaf35493bca6c16e71c6d20b7b7df186eae"
+    },
+    {
+      "path": "src/main/resources/application.yaml",
+      "mode": 420,
+      "sha256": "f48d3cc11e5435a3dd059ceb47d24395ca3f6a80739a0a3e51b5b7098feb5e77"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/foundationfixtures/adapter/in/InvalidInboundDependency.java",
+      "mode": 420,
+      "sha256": "a487c6fa314e6317aa6ff74f6213d7eb653e65b81948e6850cf15173f122d547"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/foundationfixtures/application/FoundationApplicationFixture.java",
+      "mode": 420,
+      "sha256": "fe779e82a2e931eed32f15c70000dda94e08501717b6a2125bc9b4f73016f17b"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/foundationfixtures/application/InvalidAdapterDependency.java",
+      "mode": 420,
+      "sha256": "735fa92c62ba22508b7035c77c9eebe1d046a4761a5561021bc9f30a676ec0f4"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/foundationfixtures/application/InvalidFrameworkDependency.java",
+      "mode": 420,
+      "sha256": "4c9f7ecba3a43f5ce39f60874f1b318345deef4f9d2add2cae77f404538ed70b"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/realtimegateway/GatewayNoDatastoreIT.java",
+      "mode": 420,
+      "sha256": "ce3d611577700fe03225cd75615e23a8bec5b2a6f5471ad9aeacec808582fae5"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/realtimegateway/StructuredLoggingTest.java",
+      "mode": 420,
+      "sha256": "5b346bafd186305121c883b0bde3d1790da98f284454c48a3630774d87c24eb8"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/realtimegateway/TechnicalHttpTest.java",
+      "mode": 420,
+      "sha256": "beba2344f6155be2e6d9c5c2ae1c20c380f035069c7792ce65244c5b1c4e739a"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/realtimegateway/architecture/ArchitectureTest.java",
+      "mode": 420,
+      "sha256": "4099cd46b37429c4019e534272ffa24a05d8547f80a72001135c96e8fc2b1c29"
+    }
+  ]
+}

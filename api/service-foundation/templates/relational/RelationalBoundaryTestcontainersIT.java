@@ -1,10 +1,14 @@
 package __PACKAGE_NAME__;
 
 import java.util.Map;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -26,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers
 class RelationalBoundaryTestcontainersIT {
     private static final String DATABASE = "__TEST_DB_NAME__";
+    private static final String FOREIGN_DATABASE = "identity_db";
     private static final String APP_USER = "__ENV_PREFIX___test_app".toLowerCase(java.util.Locale.ROOT);
     private static final String APP_PASSWORD = "test-only-app-not-a-secret";
     private static final String MIGRATOR_USER = "__ENV_PREFIX___test_migrator".toLowerCase(java.util.Locale.ROOT);
@@ -54,6 +59,17 @@ class RelationalBoundaryTestcontainersIT {
         registry.add("management.endpoint.health.group.readiness.include", () -> "readinessState,db");
     }
 
+    @BeforeAll
+    static void prepareForeignRegisteredDatabase() throws SQLException {
+        try (var connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+             var statement = connection.createStatement()) {
+            statement.execute("CREATE DATABASE " + FOREIGN_DATABASE);
+            statement.execute("REVOKE ALL PRIVILEGES ON DATABASE " + FOREIGN_DATABASE
+                + " FROM PUBLIC, " + APP_USER + ", " + MIGRATOR_USER);
+        }
+    }
+
     private final JdbcTemplate jdbc;
     private final MockMvc mockMvc;
 
@@ -73,13 +89,53 @@ class RelationalBoundaryTestcontainersIT {
     }
 
     @Test
+    void runtimeRoleCannotCreateSchemaObjects() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.execute(
+                "CREATE TABLE __SCHEMA_NAME__.runtime_ddl_forbidden (id integer)"))
+            .isInstanceOf(DataAccessException.class)
+            .satisfies(error -> assertThat(((SQLException) error.getCause()).getSQLState()).isEqualTo("42501"));
+    }
+
+    @Test
+    void ownerIsNonLoginAndMigratorOwnsSchemaAndMigrationHistory() {
+        String owner = "__ENV_PREFIX___test_owner".toLowerCase(java.util.Locale.ROOT);
+        assertThat(jdbc.queryForObject(
+            "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = current_database()", String.class))
+            .isEqualTo(owner);
+        assertThat(jdbc.queryForObject("SELECT rolcanlogin FROM pg_roles WHERE rolname = ?", Boolean.class, owner))
+            .isFalse();
+        assertThat(jdbc.queryForObject(
+            "SELECT pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname = ?", String.class, "__SCHEMA_NAME__"))
+            .isEqualTo(MIGRATOR_USER);
+        assertThat(jdbc.queryForObject(
+            "SELECT tableowner FROM pg_tables WHERE schemaname = ? AND tablename = 'flyway_schema_history'",
+            String.class, "__SCHEMA_NAME__"))
+            .isEqualTo(MIGRATOR_USER);
+    }
+
+    @Test
+    void runtimeCannotReadOrModifyMigrationHistory() {
+        for (String sql : java.util.List.of(
+            "SELECT * FROM __SCHEMA_NAME__.flyway_schema_history",
+            "UPDATE __SCHEMA_NAME__.flyway_schema_history SET description = 'forbidden-runtime-write'",
+            "DELETE FROM __SCHEMA_NAME__.flyway_schema_history",
+            "INSERT INTO __SCHEMA_NAME__.flyway_schema_history "
+                + "(installed_rank, description, type, script, installed_by, execution_time, success) "
+                + "VALUES (9999, 'forbidden-runtime-write', 'SQL', 'V9999__forbidden.sql', 'test-only', 0, true)")) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.execute(sql))
+                .isInstanceOf(DataAccessException.class)
+                .satisfies(error -> assertThat(((SQLException) error.getCause()).getSQLState()).isEqualTo("42501"));
+        }
+    }
+
+    @Test
     void readinessIncludesDatabaseConnectivity() throws Exception {
         mockMvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk());
     }
 
     @Test
     void datasourceCannotCrossIntoAnotherRegisteredDatabase() throws Exception {
-        String foreignUrl = POSTGRES.getJdbcUrl().replace("/" + DATABASE, "/postgres");
+        String foreignUrl = POSTGRES.getJdbcUrl().replace("/" + DATABASE, "/" + FOREIGN_DATABASE);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> java.sql.DriverManager.getConnection(
             foreignUrl, APP_USER, APP_PASSWORD)).isInstanceOf(java.sql.SQLException.class)
             .satisfies(error -> assertThat(((java.sql.SQLException) error).getSQLState()).isEqualTo("42501"));

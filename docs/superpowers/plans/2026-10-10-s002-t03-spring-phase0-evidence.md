@@ -1,5 +1,7 @@
 # T03 Spring Remediation Phase 0 Evidence Dossier
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 Status: PHASE0_RECOMMENDATION_SELECTED under subsequent Owner delegation (2026-10-10). The Owner now delegates suitable project choices and completion without further routine consultation, superseding the earlier Task 6 authorization stop. Selected path: Boot 4.0.8 / managed Framework 7.0.9 / springdoc 3.0.3 / managed Tomcat 11.0.24 / Jackson 3 BOM 3.1.7 and remaining Jackson 2 BOM 2.21.7. Phase 1 follows the baseline-first [implementation plan](2026-10-10-s002-t03-spring-remediation-phase1.md); current runtime evidence belongs in the separate [execution record](2026-10-10-s002-t03-spring-remediation-execution.md). The read-only graph results below remain Phase 0 evidence, not product validation. The separate 52–98 h envelope remains; no merge/deployment/release or policy bypass is authorized.
 
 ## Provenance and boundary

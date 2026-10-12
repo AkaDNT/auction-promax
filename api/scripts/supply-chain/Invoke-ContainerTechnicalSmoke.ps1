@@ -320,6 +320,18 @@ try {
         Start-Sleep 2
     } while ([DateTime]::UtcNow -lt $deadline)
     if (-not $ready) { Fail 'CONTAINER_SMOKE_READINESS_TIMEOUT' }
+    if ($artifact.serviceId -cne 'identity-profile-service') {
+        $smokePhase = 'verify-technical-http'
+        # Keep fixed-code runtime logs separate from the seven sanitized scan summaries.
+        $httpRepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
+        $httpLogDirectory = Join-Path $httpRepositoryRoot '.superpowers/sdd/s002-service-http/logs'
+        [void][System.IO.Directory]::CreateDirectory($httpLogDirectory)
+        $httpLogPath = Join-Path $httpLogDirectory ($name + '.log')
+        try {
+            & (Join-Path $PSScriptRoot '../Test-ServiceHttp.ps1') -ServiceId $artifact.serviceId `
+                -BaseUri "http://127.0.0.1:$hostPort" -LogPath $httpLogPath
+        } catch { Fail 'CONTAINER_SMOKE_HTTP_CONTRACT_FAILED' }
+    }
     Write-Output ('Container technical smoke: PASS (container={0}, readiness={1})' -f $name,$uri)
     Write-SmokeStatus -State 'PASS' -Phase 'complete'
 } catch {

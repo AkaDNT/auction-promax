@@ -1,5 +1,7 @@
 # T03 Spring Remediation Implementation Plan
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 > **For agentic workers:** Use superpowers:executing-plans inline. Track checkbox steps and require independent review before publishing a candidate.
 
 **Goal:** Migrate Identity and shared service templates to the selected Boot 4.0.8 / Framework 7.0.9 path while preserving their externally visible contracts and verifying the target findings through the existing hosted gates.

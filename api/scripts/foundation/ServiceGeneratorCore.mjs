@@ -75,7 +75,7 @@ function canonicalRepositoryRoot(repositoryRoot) {
   return canonical;
 }
 
-function validateRegistry(repositoryRoot) {
+export function validateRegistry(repositoryRoot) {
   const filename = path.join(repositoryRoot, 'api/service-foundation/services.json');
   assertNoLinkedAncestors(filename);
   let registryStat;

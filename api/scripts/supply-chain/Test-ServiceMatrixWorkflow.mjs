@@ -41,7 +41,42 @@ function ownershipFixtures() {
 }
 
 function fixtures() {
+  const noHttpRuntime = structuredClone(load());
+  noHttpRuntime.jobs['repository-security'].steps.find(item => item.id === 'matrix-fixtures').run =
+    noHttpRuntime.jobs['repository-security'].steps.find(item => item.id === 'matrix-fixtures').run.replace(/node[^\n]*Test-ServiceHttpRuntime\.mjs\n?/, '');
+  assert.throws(() => validateServiceMatrixWorkflow(noHttpRuntime), undefined, 'HTTP runtime evidence fixtures are mandatory');
   const mutations = [
+    ['source export is required before build output', workflow => {
+      workflow.jobs['service-matrix'].steps = workflow.jobs['service-matrix'].steps.filter(item => item.id !== 'export-source');
+    }],
+    ['validated source must have a separate upload', workflow => {
+      workflow.jobs['service-matrix'].steps = workflow.jobs['service-matrix'].steps.filter(item => item.id !== 'upload-service-source');
+    }],
+    ['source export must precede Maven', workflow => {
+      const steps = workflow.jobs['service-matrix'].steps;
+      const exported = steps.splice(steps.findIndex(item => item.id === 'export-source'), 1)[0];
+      steps.splice(steps.findIndex(item => item.id === 'maven-verify') + 1, 0, exported);
+    }],
+    ['source export must bind execution revision', workflow => {
+      workflow.jobs['service-matrix'].steps.find(item => item.id === 'export-source').env.EXECUTION_SHA = '${{ github.event.pull_request.head.sha }}';
+    }],
+    ['Identity cannot be exported', workflow => {
+      workflow.jobs['service-matrix'].steps.find(item => item.id === 'export-source').if = undefined;
+    }],
+    ['source uploads require named Failsafe success', workflow => {
+      const uploaded = workflow.jobs['service-matrix'].steps.find(item => item.id === 'upload-service-source');
+      uploaded.if = uploaded.if.replace(" && steps.failsafe-execution.outcome == 'success'", '');
+    }],
+    ['source uploads must use pinned action', workflow => {
+      workflow.jobs['service-matrix'].steps.find(item => item.id === 'upload-service-source').uses = 'actions/upload-artifact@v4';
+    }],
+    ['source uploads cannot include arbitrary runner files', workflow => {
+      workflow.jobs['service-matrix'].steps.find(item => item.id === 'upload-service-source').with.path = '${{ runner.temp }}';
+    }],
+    ['source exporter cannot be duplicated', workflow => {
+      const steps = workflow.jobs['service-matrix'].steps;
+      steps.push(structuredClone(steps.find(item => item.id === 'export-source')));
+    }],
     ['graph must include Spring and both Jackson stacks', (workflow) => { workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run += '\n./mvnw dependency:tree -Dincludes=com.fasterxml.jackson.core:*'; }],
     ['graph must use the selected service identity', (workflow) => { workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run = workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run.replace('"${{ matrix.service }}"', 'identity-profile-service'); }],
     ['mutable downloader pin', (workflow) => { workflow.jobs['supply-chain-verification'].steps.find((item) => item.id === 'download-results').uses = 'actions/download-artifact@v8'; }],
@@ -57,6 +92,7 @@ function fixtures() {
     ['preserved Identity keeps the Failsafe runtime proof', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'failsafe-execution').if = "matrix.service != 'identity-profile-service'"; }],
     ['matrix result not always uploaded', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'upload-matrix-result').if = 'success()'; }],
     ['hosted supply-chain job omits ownership contract', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = 'node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --fixtures'; }],
+    ['hosted supply-chain job omits local runner runtime fixture', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run.replace(/pwsh[^\n]*Test-RunServiceLocal\.ps1\n?/, ''); }],
     ['hosted supply-chain job omits database-backed smoke fixtures', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run.replace('pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-ContainerTechnicalSmokeStatus.ps1', ''); }],
   ];
   for (const [name, mutate] of mutations) {
@@ -68,6 +104,10 @@ function fixtures() {
 }
 
 function freshnessFixtures() {
+  const noHttpRuntime = structuredClone(loadFreshness());
+  noHttpRuntime.jobs['repository-security'].steps.find(item => item.id === 'matrix-fixtures').run =
+    noHttpRuntime.jobs['repository-security'].steps.find(item => item.id === 'matrix-fixtures').run.replace(/node[^\n]*Test-ServiceHttpRuntime\.mjs\n?/, '');
+  assert.throws(() => validateFreshnessMatrixWorkflow(noHttpRuntime), undefined, 'freshness HTTP runtime evidence fixtures are mandatory');
   const mutations = [
     ['freshness graph must remain complete', (workflow) => { workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run += '\n./mvnw dependency:tree -Dincludes=tools.jackson.core:*'; }],
     ['mutable freshness downloader', (workflow) => { workflow.jobs['security-freshness'].steps.find((item) => item.id === 'download-results').uses = 'actions/download-artifact@v8'; }],
@@ -80,6 +120,7 @@ function freshnessFixtures() {
     ['freshness gates generated conformance by source provenance', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'generated-conformance').if = undefined; }],
     ['freshness keeps Identity Failsafe proof enabled', (workflow) => { workflow.jobs['service-matrix'].steps.find((item) => item.id === 'failsafe-execution').if = "matrix.service != 'identity-profile-service'"; }],
     ['hosted freshness job omits ownership contract', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = 'node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --freshness-fixtures'; }],
+    ['hosted freshness job omits local runner runtime fixture', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run.replace(/pwsh[^\n]*Test-RunServiceLocal\.ps1\n?/, ''); }],
     ['hosted freshness job omits database-backed smoke fixtures', (workflow) => { workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run = workflow.jobs['repository-security'].steps.find((item) => item.id === 'matrix-fixtures').run.replace('pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Test-ContainerTechnicalSmokeStatus.ps1', ''); }],
   ];
   for (const [name, mutate] of mutations) {

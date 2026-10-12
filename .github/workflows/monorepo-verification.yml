@@ -125,6 +125,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Set up Node.js 24.15.0
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -132,8 +133,13 @@ jobs:
       - name: Verify Sprint 002 lifecycle and Sprint 001 closeout
         run: |
           node api/scripts/decisions/Test-S002-Lifecycle.mjs
+          node --test api/scripts/decisions/Test-S002-Transition.mjs
           node api/scripts/decisions/Test-S001-T09-Decisions.mjs --require-complete --require-closeout
           node api/scripts/decisions/Test-S002-Lifecycle.mjs --repository
+      - name: Verify Phase 0 exit matrix without claiming exit
+        run: |
+          node --test api/scripts/foundation/Test-Phase0ExitMatrix.mjs
+          node api/scripts/foundation/Test-Phase0ExitMatrix.mjs --repository
       - name: Verify service foundation generator and publisher
         run: |
           node api/scripts/foundation/Test-ServiceGenerator.mjs

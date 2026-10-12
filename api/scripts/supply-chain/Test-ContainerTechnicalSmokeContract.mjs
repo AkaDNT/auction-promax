@@ -39,6 +39,8 @@ for (const [name, expected] of [
   ["Raw Docker output is passed only to the classifier", "Resolve-DockerFailureCode -Output ($output -join [Environment]::NewLine)"],
   ["Unknown smoke failures are sanitized", "CONTAINER_SMOKE_UNCLASSIFIED_FAILED"],
   ["Smoke selects a registry service", "[string]$ServiceId = 'identity-profile-service'"],
+  ["Generated artifact smoke exercises live typed HTTP contracts", "Test-ServiceHttp.ps1"],
+  ["Generated HTTP evidence cannot pass after a failed verifier", "CONTAINER_SMOKE_HTTP_CONTRACT_FAILED"],
   ["Smoke derives service and image identity from the resolver", "Resolve-ServiceArtifact -ServiceId $ServiceId -RequireBuiltArtifact"],
   ["Relational smoke runs the generated local profile", "'local'"],
   ["Gateway smoke explicitly has no database container", "$artifact.variant -ceq 'relational'"],

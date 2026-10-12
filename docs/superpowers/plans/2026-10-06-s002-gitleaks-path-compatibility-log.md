@@ -1,5 +1,7 @@
 # S002 — Gitleaks web-route path compatibility execution log
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 Recorded: 2026-10-06. Worktree: `.worktrees/s002-design`; branch: `work/s002-foundation-design`; HEAD: `904788e289f66ac5adc9006b11a52af75d462ffa`. Local uncommitted changes; no activation, merge or publication approval is inferred.
 
 ## Trigger and scope

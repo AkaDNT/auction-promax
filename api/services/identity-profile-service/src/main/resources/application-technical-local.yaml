@@ -6,11 +6,22 @@ spring:
       - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
 
 management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  logging:
+    export:
+      otlp:
+        enabled: false
   endpoints:
     web:
       exposure:
         include: health,info,metrics
   tracing:
+    export:
+      otlp:
+        enabled: false
     sampling:
       probability: 1.0
 

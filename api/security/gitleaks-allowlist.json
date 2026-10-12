@@ -1,4 +1,20 @@
 {
   "schemaVersion": 1,
-  "entries": []
+  "entries": [
+    {
+      "id": "GL-FP-001",
+      "scanMode": "git",
+      "ruleId": "generic-api-key",
+      "repositoryRelativePath": "docs/superpowers/plans/2026-10-12-s002-phase0-final-gates.md",
+      "scannerFingerprint": "6bb52949321c00ecce8c563a33fdafb11b0db259:docs/superpowers/plans/2026-10-12-s002-phase0-final-gates.md:generic-api-key:9",
+      "commitId": "6bb52949321c00ecce8c563a33fdafb11b0db259",
+      "status": "false-positive",
+      "owner": "AkaDNT (Project Owner / Repository Owner)",
+      "rationale": "The exact committed finding overlaps ordinary English design prose about repeated or missing requirement rows. The complete line contains no credential. Independent review confirmed this classification; the owner delegated selecting the cleanest scoped disposition on 2026-10-12.",
+      "remediationReference": "docs/superpowers/plans/2026-10-12-s002-gitleaks-documentation-finding.md",
+      "approvedBy": "AkaDNT (Project Owner / Repository Owner), delegated disposition decision",
+      "approvedAt": "2026-10-12T09:12:08Z",
+      "expiresAt": "2026-11-11T09:12:08Z"
+    }
+  ]
 }

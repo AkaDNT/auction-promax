@@ -19,10 +19,10 @@
 - Status: IN_PROGRESS
 - Publication status: NOT_PUBLISHED
 - Activation evidence: [S002 review evidence](sprints/S002_REVIEW_EVIDENCE.md)
-- Activation record publication: PENDING_PROTECTED_PR; candidate only until its own merge/push read-back.
-- Current execution task: T01 factual activation-record publication; T02 blocked until postmerge verification.
+- Activation record publication: PUBLISHED_VERIFIED through PR #19 / merge 6459baf17ae8a88aeceb5d5d24bc0c601ba6868b.
+- Current execution task: T06 final Phase 0 matrix and frozen-candidate rehearsal; T04/T05 technical proof verified, protected publication pending.
 - Start date: UNSET; no calendar commitment invented
-- End date: UNSET; maximum four engineering weeks under approved duration decision
+- End date: UNSET; no deadline under OWNER-DECISION-2026-10-12-SELF-PROJECT-NO-TIME-LIMIT
 
 ## Sprint History
 
@@ -34,5 +34,5 @@
 
 | Candidate | Phase | Dependency | Priority | Ready? |
 | --------- | ----- | ---------- | -------- | ------ |
-| SPRINT-002 — Complete Phase 0 gate | Phase 0 | Activation approved; PR18 prerequisite verified; factual-record publication pending | HIGH | T02 BLOCKED until factual-record postmerge verification |
+| SPRINT-002 — Complete Phase 0 gate | Phase 0 | T01/T02 published; T03 accepted; T04/T05 technically verified, publication pending | HIGH | T06 in progress; time/capacity is not a blocker |
 | SPRINT-003 — Identity walking skeleton | Phase 1 | Phase 0 exit gate passed | HIGH | NO |

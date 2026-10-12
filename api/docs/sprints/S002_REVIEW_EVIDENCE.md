@@ -1,16 +1,22 @@
 # SPRINT-002 lifecycle and review evidence
 
-Status: FACTUAL_ACTIVATION_RECORD_PUBLICATION_PENDING. PR18 prerequisite publication is verified; this record's own protected merge/push read-back is pending. T01 is not delivered; T02 must not start. Phase 0 exit remains open.
+Status: ACTIVATION_PUBLISHED_VERIFIED; T01/T02 published and T03 technically accepted. T04/T05 have reviewed committed source and actual all-five hosted technical proof; their protected publication remains pending. T06 final matrix/rehearsal and T07 exit/handoff remain incomplete. Phase 0 exit remains open. The older narrative below records activation chronology; current facts are in the [completion audit](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
 
 ## Lifecycle Evidence
+
+Current technical candidate: [frozen evidence](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md), implementation `8a6fd2eca7a8ac0da27c98fe71bad051592a3673`, tree `63aa3ee5dd5cea3870e94bea92c28951a8a76026`. [Phase 0 matrix](../decisions/PHASE_0_EXIT_MATRIX.md) is OWNER_ACCEPTED; technical gates and owner candidate acceptance passed, but protected technical publication and actual exit/handoff remain pending. Activation approval below does not approve those later gates.
 
 - Evidence kind: SPRINT_ACTIVATION
 - Design approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | DESIGN | Owner-approved design decision recorded in the approved S002 service-foundation design.
 - Plan approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | IMPLEMENTATION_PLAN | OWNER-DECISION-2026-10-05-S002-EXECUTION
-- Capacity approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | CAPACITY | OWNER-DECISION-2026-10-05-S002-EXECUTION | 72-114 | 14-22 | 136 | UNSET
+- Capacity approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-12 | CAPACITY | OWNER-DECISION-2026-10-12-SELF-PROJECT-NO-TIME-LIMIT | UNBOUNDED | UNBOUNDED | NONE | UNSET
 - Execution method approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | EXECUTION_METHOD | OWNER-DECISION-2026-10-05-S002-EXECUTION | DIRECT_SEQUENTIAL_ISOLATED_WORKTREE
 - Activation approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-06 | SPRINT_ACTIVATION | OWNER-DECISION-2026-10-06-S002-ACTIVATION candidate 5524dace463be247cdbcf71ba88b894df1b3d20a
-- Activation publication: PUBLISHED_VERIFIED | 747e62552a3ecff08fcf0580a55c5b03099a36fc | 2ab4b0023d74d288393644d695eceef7b78c29ef | https://github.com/AkaDNT/auction-promax/pull/18 | monorepo-required=SUCCESS,https://github.com/AkaDNT/auction-promax/actions/runs/37409286415,747e62552a3ecff08fcf0580a55c5b03099a36fc | supply-chain-verification=SUCCESS,https://github.com/AkaDNT/auction-promax/actions/runs/37409286418,747e62552a3ecff08fcf0580a55c5b03099a36fc
+- Activation publication: PUBLISHED_VERIFIED | 6459baf17ae8a88aeceb5d5d24bc0c601ba6868b | f5ce08f4c4c1d5f8ffe3b69ae3abaffed01ad2ba | https://github.com/AkaDNT/auction-promax/pull/19 | monorepo-required=SUCCESS,https://github.com/AkaDNT/auction-promax/actions/runs/37411870026,6459baf17ae8a88aeceb5d5d24bc0c601ba6868b | supply-chain-verification=SUCCESS,https://github.com/AkaDNT/auction-promax/actions/runs/37411869987,6459baf17ae8a88aeceb5d5d24bc0c601ba6868b
+
+## Historical activation chronology
+
+The paragraphs below preserve the pre-PR19 state; their pending-publication statements are superseded by the verified PR19 facts above.
 
 Owner decision OWNER-DECISION-2026-10-06-S002-ACTIVATION approves activation for candidate `5524dace463be247cdbcf71ba88b894df1b3d20a` (tree `009d1a911ebefbb1ca90b8edb436d760b5eeb293`) and preparation of the protected prerequisite PR. That approval did not itself authorize merge; PR18 subsequently received separate conditional merge authorization. Current published Sprint 001 remains unchanged until the separate factual activation-record publication. No branch protection change, Phase 0 exit, Phase 1 implementation, runtime acceptance or publication of this follow-up record is claimed. Verified prerequisite publication is recorded below.
 
@@ -18,7 +24,7 @@ PR18 actual merge has parents `9a625b96e97cac9900046a89131184e2d4427402` and `e5
 
 The current-S002 fields in this patch describe the factual activation-record candidate only. Their default-branch publication, exact merge identity and push checks must be verified separately; PR18 evidence cannot substitute for that gate. No future self-merge SHA is fabricated. Separate merge authorization is required for this follow-up PR.
 
-## V1 amendment applicability to T01
+## V1 amendment applicability to T01 (historical activation chronology)
 
 | T01 artifact or evidence | Ruling | Basis |
 | --- | --- | --- |

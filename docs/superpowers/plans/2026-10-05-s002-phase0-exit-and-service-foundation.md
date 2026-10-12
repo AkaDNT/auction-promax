@@ -1,12 +1,14 @@
 # Sprint 002 Phase 0 Exit and Service Foundation Implementation Plan
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 > Execute task-by-task using the owner-approved execution method; each task requires its specified review and evidence gates. Steps use checkbox (`- [ ]`) syntax for tracking. Agent-specific skills are execution-environment instructions, not project dependencies.
 
 **Goal:** Deliver independently verified foundations for five core services, close Phase 0 through owner-approved published evidence, and record the Phase 1 handoff without starting Phase 1 implementation.
 
 **Architecture:** Repository-owned deterministic templates generate standalone relational or gateway projects. Preserve Identity and its sample flow; extend existing CI/security boundaries explicitly rather than creating shared business/runtime libraries. Lifecycle activation and final transition are separately protected, evidence-backed changes.
 
-**Tech Stack:** Existing Java 21, Spring Boot 3.5.16, Maven distribution 3.9.16, PostgreSQL 17, PowerShell 5.1/7, Node and GitHub Actions baselines; committed scanner/image trust pins.
+**Tech Stack:** Java 21, approved S002 Spring Boot 4.0.8 baseline, Maven distribution 3.9.16, PostgreSQL 17, PowerShell 5.1/7, Node and GitHub Actions baselines; current committed scanner/image trust pins. Historical Boot 3.5.16 was superseded by approved T03 remediation.
 
 **Spec:** [Approved design](../specs/2026-10-05-s002-service-foundation-design.md).
 
@@ -18,7 +20,7 @@ V1 architecture amendment (Project Owner instruction, 2026-10-05): [Blueprint](.
 
 - Baseline PR17 merge: `9a625b96e97cac9900046a89131184e2d4427402`; preserve primary edits and all private evidence.
 - Exactly five core services: identity-profile-service, auction-service, bidding-service, billing-service, realtime-gateway. Supporting Lambda workloads are later-phase obligations. These are technical foundations, not product bidding/billing implementation.
-- Java 21, Spring Boot 3.5.16, Maven Wrapper 3.3.4 and its pinned Maven distribution 3.9.16 remain unchanged; wrapper implementation and integrity metadata come from the existing reviewed wrapper, not a new download.
+- Java 21, approved Boot 4.0.8 and the reviewed T03 framework/JSON/Tomcat pins, Maven Wrapper 3.3.4 and its Maven distribution 3.9.16 remain fixed; wrapper implementation/integrity metadata come from the existing reviewed wrapper. Boot 3.5.16's historical constraint is superseded by the approved [T03 remediation execution](2026-10-10-s002-t03-spring-remediation-execution.md), not by this plan or source exporter.
 - Preserve Identity business/sample code, migrations and accepted contracts. No shared business library, cross-service runtime dependency or mandatory root reactor.
 - Gateway has no PostgreSQL/JPA/Flyway/Valkey adapter or invented datastore readiness. No Cognito/AWS/product functionality.
 - Dedicated native PostgreSQL supplements canonical Testcontainers. No reset/drop, credential output, registry publication, policy bypass, settings mutation or inferred merge permission.
@@ -39,7 +41,7 @@ V1 architecture amendment (Project Owner instruction, 2026-10-05): [Blueprint](.
 
 Planning estimates, not commitments: T01 10–16h; T02 10–16h; T03 18–28h; T04 12–18h; T05 6–10h; T06 10–16h; T07 6–10h. Total **72–114 engineering hours**, plus **14–22h reserve** for platform/scan/review corrections; owner reviews, hosted queue and merge waiting are additional elapsed time. T01 includes always-run hosted lifecycle enforcement and protected activation bookkeeping; see its detailed guide. Refine after T03 interface audit, before enlarging scope.
 
-This does not fit Sprint 001's 45–50h capacity. The owner approved 72–114 engineering hours plus 14–22 hours reserve (maximum envelope 86–136 hours) over no more than four engineering weeks. No start/end dates are invented before execution begins. A delivery split means separately reviewed, CI/security-covered PRs or increments within the approved Sprint 002 execution envelope, not silent deferral of T07 to Sprint 003. Deferring Phase 0 closure to another sprint requires explicit owner re-baselining; Sprint 002 must not be marked successful against this plan. No gate is dropped to fit a date. Re-estimate after T03; stop and rebaseline if forecast exceeds 136 hours or T07 is no longer feasible in the approved envelope.
+This does not fit Sprint 001's 45–50h capacity. Historical estimate: 72–114 engineering hours plus 14–22 hours reserve. These are not current limits; the personal-project owner removed hour and duration constraints on 2026-10-12. No start/end dates are invented before execution begins. A delivery split means separately reviewed, CI/security-covered PRs or increments with the approved technical and publication gates, not silent deferral of T07 to Sprint 003. Deferring Phase 0 closure to another sprint requires explicit owner re-baselining; Sprint 002 must not be marked successful against this plan. No gate is dropped to fit a date. After T03, reassess technical readiness and remaining evidence. The owner removed hour ceilings, reserve limits and schedule stop gates on 2026-10-12; estimates do not block execution.
 
 Sequence: plan/capacity/method approval → T01 protected activation → T02 template → T03 CI/security interfaces → T04 first relational reference → T05 remaining variants → T06 frozen-candidate review/publication → T07 verified exit/transition. No new artifact is delivered before its T03 security route is exercised.
 
@@ -184,21 +186,21 @@ Rollback uses reviewed reverts with preserved commits/evidence, never reset/drop
 
 Spec coverage: acceptance 1 T02; 2–6 T04/T05/T06; 7–8 T03/T06; 9 T06/T07; 10 T06; 11 T01/T07; 12 T07. All five Review Focus risks have owning negative fixtures. Template/registry and artifact identities are shared explicit interfaces; historical phase differs from current lifecycle state. No Phase1 implementation or security-policy exemption included.
 
-The owner approved this plan for execution on 2026-10-05, including full Sprint 002 scope, the 86–136 hour envelope with a four-engineering-week maximum, the post-T03 re-estimate/stop rule, and direct sequential implementation in the isolated worktree with independent scoped/final review. The baseline LF/CRLF test-harness repair was separately authorized and must be GREEN before T01 RED/GREEN. Planning approval does not authorize activation or future merges; activation, candidate acceptance, actual exit and transition retain their separate gates.
+The owner approved this plan for execution on 2026-10-05, including full Sprint 002 scope, the 86–136 hour envelope with a four-engineering-week maximum, informational post-T03 estimation (time limits superseded on 2026-10-12), and direct sequential implementation in the isolated worktree with independent scoped/final review. The baseline LF/CRLF test-harness repair was separately authorized and must be GREEN before T01 RED/GREEN. Planning approval does not authorize activation or future merges; activation, candidate acceptance, actual exit and transition retain their separate gates.
 
 ### Owner execution decision
 
 Decision reference: `OWNER-DECISION-2026-10-05-S002-EXECUTION`.
 
-Recorded 2026-10-05 from the Project Owner:
+Recorded 2026-10-05 from the Project Owner; capacity, duration and re-estimate entries updated by the superseding 2026-10-12 no-time-limit decision:
 
 | Decision | Approved direction |
 | --- | --- |
 | Parent plan / T01 | APPROVED FOR EXECUTION; full Sprint 002 plan with the goal of closing Phase 0 |
 | Scope | Entire Sprint 002 plan, not only baseline repair |
-| Capacity | 72–114 engineering hours + 14–22 hours reserve; maximum total envelope 86–136 hours |
-| Duration | Maximum four engineering weeks; leave start/end unset until execution begins |
-| Re-estimate | Mandatory after T03; stop and rebaseline if forecast exceeds 136 hours or T07 is no longer feasible |
+| Capacity | No hour or reserve ceiling under the superseding 2026-10-12 owner decision; previous figures are historical estimates |
+| Duration | No maximum duration or deadline; leave dates unset rather than invent commitments |
+| Re-estimate | Informational effort tracking only; stop for unresolved business, security or acceptance blockers |
 | Execution method | Direct sequential implementation in isolated worktree; independent scoped/final review remains required |
 | Baseline failure | Minimum LF/CRLF-compatible test-harness repair authorized; rerun baseline to GREEN before T01 RED/GREEN |
 | Activation approval | NOT GRANTED; consider only after local T01 review is GREEN |

@@ -1,0 +1,55 @@
+spring:
+  datasource:
+    url: ${AUCTION_DB_URL}
+    username: ${AUCTION_DB_APP_USERNAME}
+    password: ${AUCTION_DB_APP_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    clean-disabled: true
+    validate-on-migrate: true
+    url: ${AUCTION_DB_URL}
+    user: ${AUCTION_DB_MIGRATOR_USERNAME}
+    password: ${AUCTION_DB_MIGRATOR_PASSWORD}
+    default-schema: auction
+    schemas: auction
+    table: flyway_schema_history
+    placeholders:
+      runtimeRole: ${AUCTION_DB_APP_USERNAME}
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  logging:
+    export:
+      otlp:
+        enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db
+  tracing:
+    export:
+      otlp:
+        enabled: false
+    sampling:
+      probability: 1.0
+
+logging:
+  structured:
+    format:
+      console: ecs
+    ecs:
+      service:
+        name: auction-service
+        environment: local

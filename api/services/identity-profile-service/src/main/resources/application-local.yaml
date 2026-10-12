@@ -14,11 +14,22 @@ spring:
       runtimeRole: ${IDENTITY_DB_APP_USERNAME}
 
 management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  logging:
+    export:
+      otlp:
+        enabled: false
   endpoints:
     web:
       exposure:
         include: health,info,metrics
   tracing:
+    export:
+      otlp:
+        enabled: false
     sampling:
       probability: 1.0
 

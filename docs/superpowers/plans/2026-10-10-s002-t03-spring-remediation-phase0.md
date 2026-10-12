@@ -1,5 +1,7 @@
 # T03 Spring Remediation Phase 0 Feasibility Plan
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to execute this plan task-by-task. This plan covers read-only Phase 0 only; it does not authorize Spring migration implementation.
 
 **Goal:** Decide whether one supported exact Spring Boot 4 / Framework 7 dependency path can remediate the two target Spring CVEs while preserving existing externally visible behavior and fitting owner-confirmed Sprint 002 capacity.

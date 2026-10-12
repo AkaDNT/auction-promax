@@ -1,5 +1,7 @@
 # Corretto exact-tag feasibility follow-up
 
+> Current owner ruling (2026-10-12): [personal-project execution without time limits](../../../api/docs/decisions/S002_NO_TIME_LIMIT.md) supersedes all earlier hour ceilings, reserve ceilings, deadlines, capacity reconciliation and time-based stop/reapproval rules in this document. Earlier estimates and execution records remain historical evidence. Technical verification, security policy, business decisions, review, merge and Phase 0 exit approval remain required.
+
 Status: PHASE0_PASS on 2026-10-10; Task 2 pin/trust delta applied locally. Hosted five-service acceptance and exact-SHA independent review remain pending. This dossier is feasibility evidence, not release-policy PASS.
 
 Read-only Docker Hub registry inspection on 2026-10-10 used the existing official `docker.io/library/amazoncorretto:21.0.12-al2023-headless` identity. The initial Docker client registry-auth request failed on IPv6. An IPv4 HTTPS retry obtained official registry metadata (anonymous bearer token was not printed).

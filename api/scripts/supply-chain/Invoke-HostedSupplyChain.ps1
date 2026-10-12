@@ -371,11 +371,13 @@ try {
         }
         $serviceEvidence = [string]$serviceArtifact.evidencePath
         $inventoryMap = @{ dependency='vulnerability-inventory.json'; gitleaks='gitleaks-inventory.json'; container='container-vulnerability-inventory.json' }
-        $allFindings = @()
+        $vulnerabilityFindings = @()
         foreach ($stageName in $inventoryMap.Keys) {
             $findings = @()
             if ($summary.executionState -eq 'PASS' -and $completedStages.Contains($stageName)) { $findings = @(Read-HostedSanitizedInventory -Path (Join-Path $serviceEvidence $inventoryMap[$stageName])) }
-            $allFindings += $findings
+            # Gitleaks findings retain their own visible inventory and policy
+            # disposition. Severity counts cover dependency/container findings.
+            if ($stageName -cne 'gitleaks') { $vulnerabilityFindings += $findings }
             $destination = switch ($stageName) { 'dependency' { 'vulnerability-inventory.json' } 'gitleaks' { 'gitleaks-inventory.json' } default { 'container-vulnerability-inventory.json' } }
             $documentType = [System.IO.Path]::GetFileNameWithoutExtension($destination)
             Write-HostedJson -Path (Join-Path $EvidenceRoot $destination) -Value (New-ServiceEvidenceRecord -Fields ([ordered]@{ documentType=$documentType;findings=$findings }))
@@ -388,7 +390,7 @@ try {
         Write-HostedJson -Path (Join-Path $EvidenceRoot 'image-identity.json') -Value (New-ServiceEvidenceRecord -Fields ([ordered]@{ documentType='image-identity';imageId=$imageId;imageReference=$serviceArtifact.imageReference;platform=$imageContract.image.platform;jarSha256=$jarHash;baseManifestDigest=$baseTrust.images[0].platformManifestDigest }))
         $smokeReady = if ($summary.executionState -eq 'PASS' -and $completedStages.Contains('smoke')) { 'UP' } else { 'unavailable' }
         Write-HostedJson -Path (Join-Path $EvidenceRoot 'smoke-summary.json') -Value (New-ServiceEvidenceRecord -Fields ([ordered]@{ documentType='smoke-summary';readiness=$smokeReady;platform=$imageContract.image.platform;runtimeUser=$imageContract.runtime.user;readOnlyRootFilesystem=$imageContract.technicalSmoke.readOnlyRootFilesystem;dropAllCapabilities=$imageContract.technicalSmoke.dropAllCapabilities;noNewPrivileges=$imageContract.technicalSmoke.noNewPrivileges }))
-        $counts = @{}; foreach ($severity in @('CRITICAL','HIGH','MEDIUM','LOW','UNKNOWN')) { $counts[$severity] = @($allFindings | Where-Object { $_.severity -eq $severity }).Count }
+        $counts = @{}; foreach ($severity in @('CRITICAL','HIGH','MEDIUM','LOW','UNKNOWN')) { $counts[$severity] = @($vulnerabilityFindings | Where-Object { $_.severity -eq $severity }).Count }
         Write-HostedJson -Path (Join-Path $EvidenceRoot 'policy-summary.json') -Value (New-ServiceEvidenceRecord -Fields ([ordered]@{ documentType='policy-summary';policyState=$summary.policyState;reviewState=$summary.reviewState;deltaState=$summary.deltaState;counts=$counts }))
     } finally {
         if (Test-Path -LiteralPath $temporaryRoot) { Remove-HostedTemporaryRoot -Root $temporaryRoot }

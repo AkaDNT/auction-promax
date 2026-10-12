@@ -8,6 +8,7 @@ const pins = Object.freeze({
 const fail = (code) => { throw new Error(code); };
 const check = (condition, code) => { if (!condition) fail(code); };
 const step = (job, id) => job.steps?.find((candidate) => candidate.id === id || candidate.name === id);
+export const sourceUploadCondition = "steps.export-source.outcome == 'success' && steps.maven-verify.outcome == 'success' && steps.failsafe-execution.outcome == 'success' && steps.jackson-dependency-graph.outcome == 'success' && steps.run-hosted.outcome == 'success' && steps.validate-service-evidence.outcome == 'success'";
 
 export function validateWorkflowOwnership({ supplyChain, freshness, apiBaseline, monorepo }) {
   validateServiceMatrixWorkflow(supplyChain);
@@ -70,6 +71,9 @@ export function validateServiceMatrixWorkflow(workflow) {
   const repositoryFixtures = String(step(repository, 'matrix-fixtures')?.run ?? '');
   check(repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --fixtures')
     && repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --ownership-fixtures')
+    && repositoryFixtures.includes('Test-RunServiceLocal.ps1')
+    && repositoryFixtures.includes('node --test api/scripts/foundation/Test-ServiceHttpRuntime.mjs')
+    && repositoryFixtures.includes('node --test api/scripts/foundation/Test-ServiceSourceBundle.mjs')
     && repositoryFixtures.includes('Test-ContainerTechnicalSmokeStatus.ps1')
     && repositoryFixtures.includes('Test-ServiceFailsafeExecution.ps1'), 'SERVICE_WORKFLOW_OWNERSHIP_FIXTURES_MISSING');
   check(repositoryRun.includes('-CommitSha') && repositoryRun.includes('steps.revision.outputs.commit')
@@ -90,6 +94,23 @@ export function validateServiceMatrixWorkflow(workflow) {
   check(String(step(matrix, 'maven-verify')?.run ?? '').includes('./mvnw -B verify') && String(step(matrix, 'generated-conformance')?.run ?? '').includes('Test-GeneratedServiceConformance.mjs')
     && step(matrix, 'generated-conformance')?.if === "steps.select-source.outputs.source_kind == 'ephemeral-generated'", 'SERVICE_WORKFLOW_BUILD_INVALID');
   const jacksonGraph = step(matrix, 'jackson-dependency-graph');
+  const sourceExport = step(matrix, 'export-source');
+  check(matrix.steps.filter(item => item.id === 'export-source').length === 1
+    && sourceExport.if === "steps.select-source.outputs.source_kind == 'ephemeral-generated'"
+    && sourceExport.env?.SERVICE_ID === '${{ matrix.service }}'
+    && sourceExport.env?.EXECUTION_SHA === '${{ needs.classify-services.outputs.execution_sha }}'
+    && sourceExport.run === 'node api/scripts/foundation/Export-ServiceSource.mjs --service "$SERVICE_ID" --commit "$EXECUTION_SHA"'
+    && matrix.steps.indexOf(sourceExport) > matrix.steps.indexOf(step(matrix, 'generated-conformance'))
+    && matrix.steps.indexOf(sourceExport) < matrix.steps.indexOf(step(matrix, 'maven-verify')), 'SERVICE_WORKFLOW_SOURCE_EXPORT_INVALID');
+  const sourceUpload = step(matrix, 'upload-service-source');
+  check(matrix.steps.filter(item => item.id === 'upload-service-source').length === 1
+    && sourceUpload.uses === pins.upload
+    && sourceUpload.if === sourceUploadCondition
+    && sourceUpload.with?.name === 's002-service-source-${{ matrix.service }}'
+    && sourceUpload.with?.path === '${{ runner.temp }}/s002-service-source/${{ matrix.service }}/service-source.json'
+    && sourceUpload.with?.['if-no-files-found'] === 'error' && sourceUpload.with?.['retention-days'] === 30
+    && matrix.steps.indexOf(sourceUpload) > matrix.steps.indexOf(step(matrix, 'validate-service-evidence'))
+    && matrix.steps.indexOf(sourceUpload) < matrix.steps.indexOf(step(matrix, 'write-matrix-result')), 'SERVICE_WORKFLOW_SOURCE_UPLOAD_INVALID');
   check(String(jacksonGraph?.run ?? '').includes('./mvnw -B -ntp dependency:tree')
     && String(jacksonGraph?.run ?? '').includes('Test-SpringMigrationDependencyTree.mjs')
     && String(jacksonGraph?.run ?? '').includes('SpringMigrationDependencyTree.mjs" target/spring-dependency-tree.txt "${{ matrix.service }}"')
@@ -166,6 +187,8 @@ export function validateFreshnessMatrixWorkflow(workflow) {
   const repositoryFixtures = String(step(repository, 'matrix-fixtures')?.run ?? '');
   check(repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --freshness-fixtures')
     && repositoryFixtures.includes('Test-ServiceMatrixWorkflow.mjs --ownership')
+    && repositoryFixtures.includes('Test-RunServiceLocal.ps1')
+    && repositoryFixtures.includes('node --test api/scripts/foundation/Test-ServiceHttpRuntime.mjs')
     && repositoryFixtures.includes('Test-ContainerTechnicalSmokeStatus.ps1')
     && repositoryFixtures.includes('Test-ServiceFailsafeExecution.ps1'), 'FRESHNESS_WORKFLOW_OWNERSHIP_FIXTURES_MISSING');
   check(String(step(repository, 'revision')?.run ?? '').includes('needs.resolve-services.outputs.execution_sha'), 'FRESHNESS_WORKFLOW_REPOSITORY_REVISION_INVALID');

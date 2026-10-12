@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import YAML from "../../api/contracts/node_modules/yaml/dist/index.js";
+import { sourceUploadCondition } from "../../api/scripts/supply-chain/ServiceMatrixWorkflowContract.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const names = ["api-baseline.yml", "web-baseline.yml", "supply-chain.yml", "security-freshness.yml"];
@@ -57,9 +58,13 @@ function validateWorkflowSet(workflows) {
           check(!extra && /^[0-9a-f]{40}$/.test(sha ?? "") && pins[action] === sha, `ACTION_PIN_INVALID: ${file}:${jobId}`);
           if (action === "actions/checkout") check(item.with?.["persist-credentials"] === false, `CHECKOUT_CREDENTIALS: ${file}:${jobId}`);
           if (action === "actions/upload-artifact") {
-            check(item.if?.startsWith("always()") && item.with?.["retention-days"] === 30 && item.with?.["if-no-files-found"] === "error", `EVIDENCE_UPLOAD_INVALID: ${file}:${jobId}`);
+            const sourceDelivery = file === "supply-chain.yml" && jobId === "service-matrix" && item.id === "upload-service-source";
+            check((sourceDelivery ? item.if === sourceUploadCondition : item.if?.startsWith("always()"))
+              && item.with?.["retention-days"] === 30 && item.with?.["if-no-files-found"] === "error", `EVIDENCE_UPLOAD_INVALID: ${file}:${jobId}`);
             if (jobId === "repository-security") check(item.with?.path === "${{ runner.temp }}/s001-t07-evidence/hosted", `EVIDENCE_UPLOAD_PATH_INVALID: ${file}:${jobId}`);
-            if (jobId === "service-matrix") check(["${{ runner.temp }}/s002-service-evidence", "${{ runner.temp }}/s002-service-result-${{ matrix.service }}"].includes(item.with?.path), `SERVICE_ARTIFACT_UPLOAD_PATH_INVALID: ${jobId}`);
+            if (jobId === "service-matrix") check(sourceDelivery
+              ? item.with?.path === "${{ runner.temp }}/s002-service-source/${{ matrix.service }}/service-source.json" && item.with?.name === "s002-service-source-${{ matrix.service }}"
+              : ["${{ runner.temp }}/s002-service-evidence", "${{ runner.temp }}/s002-service-result-${{ matrix.service }}"].includes(item.with?.path), `SERVICE_ARTIFACT_UPLOAD_PATH_INVALID: ${jobId}`);
           }
           if (action === "actions/setup-node") {
             const component = file === "web-baseline.yml" ? "web" : "api";
@@ -202,6 +207,9 @@ function runFixtures() {
   expectRejected("working directory default stale root rejected", (w) => { w["api-baseline.yml"].defaults = { run: { "working-directory": "contracts" } }; });
   expectRejected("service graph working directory must match the selected service", (w) => { w["supply-chain.yml"].jobs["service-matrix"].steps.find(s => s.id === "jackson-dependency-graph")["working-directory"] = "api/contracts"; });
   expectRejected("release policy merged into verification rejected", (w) => { delete w["supply-chain.yml"].jobs["release-policy"]; });
+  expectRejected("source export cannot upload on failed gates", w => { step(w['supply-chain.yml'].jobs['service-matrix'], 'upload-service-source').if = 'always()'; });
+  expectRejected("source export upload cannot include runner temp contents", w => { step(w['supply-chain.yml'].jobs['service-matrix'], 'upload-service-source').with.path = '${{ runner.temp }}'; });
+  expectRejected("source delivery exception cannot weaken sanitized evidence uploads", w => { step(w['supply-chain.yml'].jobs['service-matrix'], 'upload-service-evidence').if = sourceUploadCondition; });
   process.stdout.write("Root workflow negative fixtures: PASS\n");
 }
 

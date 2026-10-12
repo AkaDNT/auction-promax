@@ -12,6 +12,8 @@ All commands below run from the monorepo root unless specified. Use PowerShell 7
 
 ## Prerequisites
 
+The table and topology examples below record the historical Sprint 001 walkthrough. For current S002 execution, use [the approved version baseline](BUILD_VERSION_BASELINE.md): Spring Boot 4.0.8 and CDK library 2.273.0 supersede the earlier pins. The revised relational topology is Identity/Auction/Bidding/Billing, with a database-free gateway. The [separate PostgreSQL cluster decision](../decisions/S002_ISOLATED_LOCAL_POSTGRES.md) preserves the old cluster and provisions the new topology on loopback port 55432. Read connection settings from the ignored current configuration; do not use historical 5432/Transaction/Payment examples to repurpose the old cluster. The technical Identity HTTP/persistence walkthrough remains applicable; historical results are not current execution proof.
+
 | Dependency | Required baseline |
 | --- | --- |
 | Java | JDK 21 |
