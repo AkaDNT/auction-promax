@@ -1,12 +1,12 @@
 # SPRINT-002 lifecycle and review evidence
 
-Status: TECHNICAL_PUBLICATION_VERIFIED; T01/T02 published and T03 technically accepted. T04/T05/T06 have reviewed source/frozen evidence and actual protected PR24 publication, with actual-merge checks and current-default freshness verified. T07 actual exit/handoff and transition/closeout publication remain incomplete; roadmap Phase 0 stays open. The older narrative below records activation chronology; current facts are in the [completion audit](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
+Status: TRANSITION_PENDING; T01/T02 published and T03 technically accepted. T04/T05/T06 have reviewed source/frozen evidence and actual protected PR24 publication, with actual-merge checks and current-default freshness verified. Owner actual exit/handoff approvals were received on 2026-10-12; protected transition/closeout publication remains pending and authoritative current phase stays 0. The older narrative below records activation chronology; current facts are in the [completion audit](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
 
 ## Lifecycle Evidence
 
-Current technical candidate: [frozen evidence](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md), implementation `8a6fd2eca7a8ac0da27c98fe71bad051592a3673`, tree `63aa3ee5dd5cea3870e94bea92c28951a8a76026`. [Phase 0 matrix](../decisions/PHASE_0_EXIT_MATRIX.md) is PUBLISHED_VERIFIED for actual PR24 technical publication; owner actual exit/handoff and separate transition/closeout remain pending. Activation approval below does not approve those later gates.
+Current technical candidate: [frozen evidence](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md), implementation `8a6fd2eca7a8ac0da27c98fe71bad051592a3673`, tree `63aa3ee5dd5cea3870e94bea92c28951a8a76026`. [Phase 0 matrix](../decisions/PHASE_0_EXIT_MATRIX.md) is PUBLISHED_VERIFIED for actual PR24 technical publication; owner actual exit/handoff approvals are recorded below, while protected transition/closeout publication remains pending. Historical activation approval below does not substitute for those later decisions.
 
-- Evidence kind: SPRINT_ACTIVATION
+- Evidence kind: PHASE0_EXIT_TRANSITION
 - Design approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | DESIGN | Owner-approved design decision recorded in the approved S002 service-foundation design.
 - Plan approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | IMPLEMENTATION_PLAN | OWNER-DECISION-2026-10-05-S002-EXECUTION
 - Capacity approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-12 | CAPACITY | OWNER-DECISION-2026-10-12-SELF-PROJECT-NO-TIME-LIMIT | UNBOUNDED | UNBOUNDED | NONE | UNSET
@@ -35,3 +35,59 @@ The current-S002 fields in this patch describe the factual activation-record can
 | Existing T01 artifacts invalidated by this amendment | INVALIDATED: none identified | No approval, publication identity, SHA or historical acceptance was rewritten. |
 
 Trusted local Gitleaks worktree/history scans passed on 2026-10-06: exit 0 and zero findings in both modes, with unchanged source fingerprints. See the [scan execution log](../../../docs/superpowers/plans/2026-10-06-s002-gitleaks-path-compatibility-log.md). Candidate commit/tree and subsequent owner activation decision are recorded above; these local results do not prove hosted publication. The approval-record delta requires renewed local verification before publication.
+
+## Phase 0 transition
+
+```json
+{
+  "schemaVersion": 1,
+  "technicalPublication": {
+    "status": "PUBLISHED_VERIFIED",
+    "merge": "0475661743c5da0114eba04810bf24f962a53b60",
+    "tree": "d74d07cc76d96c2a651438bc7a1d1e873b4791ca",
+    "pr": "https://github.com/AkaDNT/auction-promax/pull/24",
+    "checks": [
+      {
+        "name": "monorepo-required",
+        "conclusion": "SUCCESS",
+        "commit": "0475661743c5da0114eba04810bf24f962a53b60",
+        "runUrl": "https://github.com/AkaDNT/auction-promax/actions/runs/38259366261"
+      },
+      {
+        "name": "supply-chain-verification",
+        "conclusion": "SUCCESS",
+        "commit": "0475661743c5da0114eba04810bf24f962a53b60",
+        "runUrl": "https://github.com/AkaDNT/auction-promax/actions/runs/38259366704"
+      }
+    ]
+  },
+  "exitApproval": {
+    "owner": "AkaDNT (Project Owner / Repository Owner)",
+    "date": "2026-10-12",
+    "scope": "ACTUAL_PHASE0_EXIT",
+    "reference": "OWNER-DECISION-2026-10-12-S002-T07-ACTUAL_PHASE0_EXIT",
+    "technicalMerge": "0475661743c5da0114eba04810bf24f962a53b60",
+    "technicalTree": "d74d07cc76d96c2a651438bc7a1d1e873b4791ca"
+  },
+  "handoffApproval": {
+    "owner": "AkaDNT (Project Owner / Repository Owner)",
+    "date": "2026-10-12",
+    "scope": "PHASE1_HANDOFF",
+    "reference": "OWNER-DECISION-2026-10-12-S002-T07-PHASE1_HANDOFF",
+    "technicalMerge": "0475661743c5da0114eba04810bf24f962a53b60",
+    "technicalTree": "d74d07cc76d96c2a651438bc7a1d1e873b4791ca"
+  },
+  "transitionPublication": {
+    "status": "PENDING_PROTECTED_PR",
+    "merge": null,
+    "tree": null,
+    "pr": "https://github.com/AkaDNT/auction-promax/pull/25",
+    "checks": []
+  },
+  "consumerCompatibility": "DEFERRED_NO_PRODUCER_CONTRACT",
+  "releasePolicy": "PASS",
+  "handoffReference": "api/docs/decisions/PHASE_1_HANDOFF.md"
+}
+```
+
+Owner explicitly confirmed ACTUAL_PHASE0_EXIT and PHASE1_HANDOFF for actual PR24 publication on 2026-10-12. Separately authorized conditional PR25 merge after review, secret scans and all required checks PASS. This does not authorize Phase 1 implementation, deployment, vulnerability risk acceptance or the separate factual closeout merge. Current phase remains 0 pending protected transition and closeout.
