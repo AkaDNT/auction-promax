@@ -153,6 +153,10 @@ try {
     if ([int]$infoResponse.StatusCode -ne 200) { Stop-HttpCheck 'SERVICE_HTTP_INFO_FAILED' }
     $metricsResponse = $client.GetAsync("$base/actuator/metrics").GetAwaiter().GetResult()
     if ([int]$metricsResponse.StatusCode -ne 200) { Stop-HttpCheck 'SERVICE_HTTP_METRICS_FAILED' }
+    $sensitiveResponse = $client.GetAsync("$base/actuator/env").GetAwaiter().GetResult()
+    if ([int]$sensitiveResponse.StatusCode -notin @(401, 403, 404)) {
+        Stop-HttpCheck 'SERVICE_HTTP_SENSITIVE_ACTUATOR_EXPOSED'
+    }
 
     $correlationId = 'local-probe-' + [guid]::NewGuid().ToString('N')
     $successContent = [Net.Http.StringContent]::new('{"value":"service-local-probe"}', [Text.Encoding]::UTF8, 'application/json')
@@ -163,8 +167,9 @@ try {
     $success = Get-JsonResponse -Response $successResponse
     if ($success.StatusCode -ne 200 -or
         $successResponse.Content.Headers.ContentType.MediaType -cne 'application/json' -or
-        $success.Body.accepted -ne $true -or
-        [int]$success.Body.valueLength -ne 19) {
+        $success.Body.accepted -isnot [bool] -or $success.Body.accepted -ne $true -or
+        ($success.Body.valueLength -isnot [int] -and $success.Body.valueLength -isnot [long]) -or
+        $success.Body.valueLength -ne 19) {
         Stop-HttpCheck 'SERVICE_HTTP_SUCCESS_PROBE_FAILED'
     }
     Assert-CorrelationHeader -Response $successResponse -Expected $correlationId
@@ -180,7 +185,8 @@ try {
         $validationResponse.Content.Headers.ContentType.MediaType -cne 'application/problem+json' -or
         $validation.Body.type -cne 'urn:auction-promax:problem:validation-failed' -or
         $validation.Body.title -cne 'Request rejected' -or
-        [int]$validation.Body.status -ne 400 -or
+        ($validation.Body.status -isnot [int] -and $validation.Body.status -isnot [long]) -or
+        $validation.Body.status -ne 400 -or
         $validation.Body.detail -cne 'The request is invalid.' -or
         $validation.Body.instance -cne '/internal/technical-baseline/validate' -or
         $validation.Body.code -cne 'VALIDATION_FAILED' -or
@@ -200,7 +206,8 @@ try {
         $malformedResponse.Content.Headers.ContentType.MediaType -cne 'application/problem+json' -or
         $malformed.Body.type -cne 'urn:auction-promax:problem:malformed-request' -or
         $malformed.Body.title -cne 'Request rejected' -or
-        [int]$malformed.Body.status -ne 400 -or
+        ($malformed.Body.status -isnot [int] -and $malformed.Body.status -isnot [long]) -or
+        $malformed.Body.status -ne 400 -or
         $malformed.Body.code -cne 'MALFORMED_REQUEST' -or
         $malformed.Body.detail -cne 'The request is invalid.' -or
         $malformed.Body.instance -cne '/internal/technical-baseline/validate' -or

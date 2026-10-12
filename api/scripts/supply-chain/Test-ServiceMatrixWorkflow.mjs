@@ -41,6 +41,10 @@ function ownershipFixtures() {
 }
 
 function fixtures() {
+  const noHttpRuntime = structuredClone(load());
+  noHttpRuntime.jobs['repository-security'].steps.find(item => item.id === 'matrix-fixtures').run =
+    noHttpRuntime.jobs['repository-security'].steps.find(item => item.id === 'matrix-fixtures').run.replace(/node[^\n]*Test-ServiceHttpRuntime\.mjs\n?/, '');
+  assert.throws(() => validateServiceMatrixWorkflow(noHttpRuntime), undefined, 'HTTP runtime evidence fixtures are mandatory');
   const mutations = [
     ['graph must include Spring and both Jackson stacks', (workflow) => { workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run += '\n./mvnw dependency:tree -Dincludes=com.fasterxml.jackson.core:*'; }],
     ['graph must use the selected service identity', (workflow) => { workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run = workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run.replace('"${{ matrix.service }}"', 'identity-profile-service'); }],
@@ -69,6 +73,10 @@ function fixtures() {
 }
 
 function freshnessFixtures() {
+  const noHttpRuntime = structuredClone(loadFreshness());
+  noHttpRuntime.jobs['repository-security'].steps.find(item => item.id === 'matrix-fixtures').run =
+    noHttpRuntime.jobs['repository-security'].steps.find(item => item.id === 'matrix-fixtures').run.replace(/node[^\n]*Test-ServiceHttpRuntime\.mjs\n?/, '');
+  assert.throws(() => validateFreshnessMatrixWorkflow(noHttpRuntime), undefined, 'freshness HTTP runtime evidence fixtures are mandatory');
   const mutations = [
     ['freshness graph must remain complete', (workflow) => { workflow.jobs['service-matrix'].steps.find(item => item.id === 'jackson-dependency-graph').run += '\n./mvnw dependency:tree -Dincludes=tools.jackson.core:*'; }],
     ['mutable freshness downloader', (workflow) => { workflow.jobs['security-freshness'].steps.find((item) => item.id === 'download-results').uses = 'actions/download-artifact@v8'; }],

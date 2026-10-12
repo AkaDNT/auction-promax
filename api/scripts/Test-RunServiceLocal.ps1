@@ -25,7 +25,7 @@ $runner = Join-Path $scriptsRoot 'Run-ServiceLocal.ps1'
 $httpVerifier = Join-Path $scriptsRoot 'Test-ServiceHttp.ps1'
 $targetKeys = @('AUCTION_DB_URL','AUCTION_DB_APP_USERNAME','AUCTION_DB_APP_PASSWORD','AUCTION_DB_MIGRATOR_USERNAME','AUCTION_DB_MIGRATOR_PASSWORD')
 $overrideKeys = @('SPRING_DATASOURCE_URL','SPRING_APPLICATION_JSON','SPRING_PROFILES_ACTIVE','JAVA_TOOL_OPTIONS','MAVEN_OPTS','BIDDING_DB_APP_PASSWORD','POSTGRES_ADMIN_PASSWORD','POSTGRES_PASSWORD','PGPASSWORD','PGPASSFILE','DATABASE_URL')
-$allChangedKeys = @($targetKeys + $overrideKeys + @('T04_MAVEN_MARKER','T04_EXPECT_CWD','T04_MAVEN_EXIT')) | Select-Object -Unique
+$allChangedKeys = @($targetKeys + $overrideKeys + @('T04_MAVEN_MARKER','T04_EXPECT_CWD','T04_MAVEN_EXIT','T04_NODE_PATH','T04_ARGV_CHILD')) | Select-Object -Unique
 $originalEnvironment = @{}
 foreach ($key in $allChangedKeys) { $originalEnvironment[$key] = [Environment]::GetEnvironmentVariable($key, 'Process') }
 $originalLocation = (Get-Location).Path
@@ -73,26 +73,9 @@ function Write-FakeWrapper {
     if ($runningOnWindows) {
         $content = @"
 @echo off
-if not "%T04_EXPECT_CWD%"=="%CD%" exit /b 81
-if not "%~1"=="-B" exit /b 82
-if not "%~2"=="spring-boot:run" exit /b 83
-if not "%~3"=="-Dspring-boot.run.profiles=local" exit /b 84
-if not "%~4"=="-Dspring-boot.run.arguments=--server.address=127.0.0.1 --server.port=9091" exit /b 85
-if "$ExpectedService"=="auction-service" (
-  if not "%AUCTION_DB_URL%"=="jdbc:postgresql://localhost:5432/auction_db" exit /b 86
-  if not "%AUCTION_DB_APP_USERNAME%"=="auction_app" exit /b 87
-  if not "%AUCTION_DB_APP_PASSWORD%"=="synthetic-auction-app-password" exit /b 88
-  if not "%AUCTION_DB_MIGRATOR_USERNAME%"=="auction_migrator" exit /b 89
-  if not "%AUCTION_DB_MIGRATOR_PASSWORD%"=="synthetic-auction-migrator-password" exit /b 90
-) else (
-  if defined AUCTION_DB_URL exit /b 91
-  if defined AUCTION_DB_APP_USERNAME exit /b 92
-  if defined AUCTION_DB_APP_PASSWORD exit /b 93
-  if defined AUCTION_DB_MIGRATOR_USERNAME exit /b 94
-  if defined AUCTION_DB_MIGRATOR_PASSWORD exit /b 95
-)
-echo PASS>"%T04_MAVEN_MARKER%"
-exit /b %T04_MAVEN_EXIT%
+@rem Match the real Maven wrapper's raw forwarding; CMD positional parameters split '='.
+"%T04_NODE_PATH%" "%T04_ARGV_CHILD%" "$ExpectedService" %*
+exit /b %errorlevel%
 "@
         [IO.File]::WriteAllText($Path, $content, [Text.Encoding]::ASCII)
         return
@@ -155,12 +138,42 @@ try {
     $env:T04_MAVEN_MARKER = $markerPath
     $env:T04_MAVEN_EXIT = '0'
     $env:T04_EXPECT_CWD = $servicePath
+    if ($runningOnWindows) {
+        $env:T04_NODE_PATH = (Get-Command node -CommandType Application -ErrorAction Stop).Source
+        $env:T04_ARGV_CHILD = Join-Path $testRoot 'maven-child.cjs'
+        $childSource = @'
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+try {
+  assert.equal(process.cwd().toLowerCase(), process.env.T04_EXPECT_CWD.toLowerCase());
+  assert.deepEqual(process.argv.slice(3), ['-B', 'spring-boot:run', '-Dspring-boot.run.profiles=local',
+    '-Dspring-boot.run.arguments=--server.address=127.0.0.1 --server.port=9091']);
+  const expected = {
+    AUCTION_DB_URL: 'jdbc:postgresql://localhost:5432/auction_db',
+    AUCTION_DB_APP_USERNAME: 'auction_app', AUCTION_DB_APP_PASSWORD: 'synthetic-auction-app-password',
+    AUCTION_DB_MIGRATOR_USERNAME: 'auction_migrator', AUCTION_DB_MIGRATOR_PASSWORD: 'synthetic-auction-migrator-password'
+  };
+  for (const [key, value] of Object.entries(expected)) {
+    assert.equal(process.env[key], process.argv[2] === 'auction-service' ? value : undefined);
+  }
+  fs.writeFileSync(process.env.T04_MAVEN_MARKER, 'PASS');
+  process.exit(Number(process.env.T04_MAVEN_EXIT));
+} catch {
+  // Never print assertion values: even fixtures must not model credential disclosure.
+  process.exit(81);
+}
+'@
+        [IO.File]::WriteAllText($env:T04_ARGV_CHILD, $childSource, [Text.Encoding]::ASCII)
+    }
 
     # Test T04 RED/GREEN boundary: a selected service receives only its own validated settings.
     foreach ($mode in @('absent','empty')) {
+        $expectedEnvironment = @{}
         foreach ($key in $targetKeys) {
             if ($mode -eq 'absent') { Remove-Item -LiteralPath "Env:$key" -ErrorAction SilentlyContinue }
             else { [Environment]::SetEnvironmentVariable($key, '', 'Process') }
+            # .NET Framework on PS5 represents this requested empty value as absent.
+            $expectedEnvironment[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
         }
         Reset-Marker
         $output = (& $runner -ServiceId 'auction-service' -ConfigurationPath $configPath -Port 9091 2>&1 | Out-String)
@@ -168,8 +181,7 @@ try {
         if ($output -match 'synthetic-(auction|migrator)-password') { throw 'Successful runner output leaked a synthetic credential' }
         foreach ($key in $targetKeys) {
             $actual = [Environment]::GetEnvironmentVariable($key, 'Process')
-            if ($mode -eq 'absent' -and $null -ne $actual) { throw 'Absent environment value was not restored' }
-            if ($mode -eq 'empty' -and $actual -cne '') { throw 'Empty environment value was not restored' }
+            if ($actual -cne $expectedEnvironment[$key]) { throw 'Actual prior environment value was not restored' }
         }
         if ((Get-Location).Path -cne $originalLocation) { throw 'Working location was not restored' }
         Write-Output "[PASS] restoreAbsentAndEmptyVariables ($mode)"
@@ -235,11 +247,11 @@ try {
     }
 
     Assert-RunnerRejected -Name 'rejectWrongServiceDatabase' -ExpectedCode 'SERVICE_LOCAL_DATABASE_MISMATCH' -Action {
-        Write-Configuration ($valid -replace 'auction_db', 'bidding_db')
+        Write-Configuration ($valid -creplace 'auction_db', 'bidding_db')
         & $runner -ServiceId 'auction-service' -ConfigurationPath $configPath -Port 9091
     }
     Assert-RunnerRejected -Name 'rejectCaseVariantDatabase' -ExpectedCode 'SERVICE_LOCAL_DATABASE_MISMATCH' -Action {
-        Write-Configuration ($valid -replace 'auction_db', 'AUCTION_DB')
+        Write-Configuration ($valid -creplace 'auction_db', 'AUCTION_DB')
         & $runner -ServiceId 'auction-service' -ConfigurationPath $configPath -Port 9091
     }
     Write-Configuration $valid
@@ -283,7 +295,11 @@ try {
     Remove-Item -LiteralPath $notIgnoredPath -Force
 
     if (-not $runningOnWindows) {
-        $caseVariantApiRoot = Join-Path $testRoot 'API'
+        # A different spelling of a child still belongs to the repository. Use a
+        # case-variant sibling of its ROOT to test a real containment escape.
+        $caseVariantRoot = Join-Path (Split-Path -Parent $testRoot) ((Split-Path -Leaf $testRoot).ToUpperInvariant())
+        if ($caseVariantRoot -ceq $testRoot) { throw 'Case containment fixture did not change the root' }
+        $caseVariantApiRoot = Join-Path $caseVariantRoot 'api'
         [void][IO.Directory]::CreateDirectory($caseVariantApiRoot)
         $caseVariantConfig = Join-Path $caseVariantApiRoot '.env.local'
         [IO.File]::WriteAllLines($caseVariantConfig, [string[]]$valid, [Text.Encoding]::UTF8)
@@ -295,7 +311,7 @@ try {
         [void][IO.Directory]::CreateDirectory($caseVariantLogDirectory)
         $caseVariantLogPath = Join-Path $caseVariantLogDirectory 'service-http.log'
         Assert-RunnerRejected -Name 'rejectCaseVariantHttpLogPathOnCaseSensitiveHost' -ExpectedCode 'SERVICE_HTTP_LOG_PATH_INVALID' -Action {
-            & $httpVerifier -ServiceId 'auction-service' -BaseUri 'http://127.0.0.1:0' -LogPath $caseVariantLogPath
+            & $httpVerifier -ServiceId 'auction-service' -BaseUri 'http://127.0.0.1:9091' -LogPath $caseVariantLogPath
         }
     }
 
@@ -313,4 +329,11 @@ try {
         throw 'Refusing to remove an unexpected service-local fixture path'
     }
     if (Test-Path -LiteralPath $fullTestRoot -PathType Container) { Remove-Item -LiteralPath $fullTestRoot -Recurse -Force }
+    if (-not $runningOnWindows -and (Get-Variable caseVariantRoot -ErrorAction SilentlyContinue)) {
+        $fullCaseRoot = [IO.Path]::GetFullPath($caseVariantRoot)
+        if ($fullCaseRoot -cne (Join-Path (Split-Path -Parent $fullTestRoot) ((Split-Path -Leaf $fullTestRoot).ToUpperInvariant()))) {
+            throw 'Refusing to remove an unexpected case fixture root'
+        }
+        if (Test-Path -LiteralPath $fullCaseRoot -PathType Container) { Remove-Item -LiteralPath $fullCaseRoot -Recurse -Force }
+    }
 }

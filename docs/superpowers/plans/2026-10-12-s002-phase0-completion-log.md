@@ -58,3 +58,36 @@ Independent T04 review reproduced the cause using synthetic argv only: CMD posit
 `docker info --format '{{.ServerVersion}}'` failed: local Docker daemon pipe does not exist and sandbox access to Docker config was denied. This is not a passing Docker/Failsafe result. Windows PowerShell tool host is 5.1; `pwsh.exe` resolves to a WindowsApps alias and no installation was found at the usual Program Files path. Earlier T04 ledger reported alias access failure and Restricted script execution. Runtime capability must be checked with ordinary supported invocations; no execution-policy bypass is authorized.
 
 Rollback uses reviewed reverts of local changes. No database reset/drop, source deletion, primary-checkout reset, merge, deployment or release has occurred. Dates, actual effort and missing evidence are not fabricated.
+
+## T04 continuation — runtime fixes and local topology proof
+
+The reviewed owner amendment was committed locally as `ea95d47`; preserved checkpoint `f7e5dbf` was fetched from its local nested repository and cherry-picked as `2e54415`. The original checkout and its two uncommitted files remain unchanged. Its attempted `Standard` preference workaround was not copied because the failure was in the fake batch observer, not proven production argument handling.
+
+### RED / GREEN and review corrections
+
+- Replaced the Windows fake wrapper's `%~3` interpretation with raw `%*` forwarding to a controlled Node executable that asserts actual argv and synthetic environment values. Credentials are never printed, even in assertion failures.
+- Empty-variable restoration now compares the actual prior state representable by the runtime; PS5's setter deletes a requested empty value. Unix containment fixtures use a truly distinct case-variant repository-root sibling, with explicitly bounded cleanup.
+- The first successful argv rerun exposed another fixture defect: case-insensitive `-replace 'auction_db'` also mutated uppercase config key names. `-creplace` changes only the database value. Both normal PS7 and PS5.1 runner harnesses then completed PASS with all applicable fixtures; Linux-only path assertions still require hosted proof.
+- Added real loopback HTTP responder tests. Before implementation, five wrong-typed JSON responses were incorrectly accepted; the sensitive actuator also had no live denial check. The verifier now requires boolean/integer success fields and integer problem status, refuses redirects, and fails if `/actuator/env` is accessible. HTTP runtime fixtures passed 8/8 separately on PS7 and PS5.1. A BOM in the existing fixed-code log was normalized in the test; no raw response is logged.
+- Added the HTTP fixture command to both existing owning workflows and fail-closed workflow mutation checks. Missing-command mutations were observed RED; contract implementation then passed all repository/negative/ownership checks.
+- Generated-service Docker smoke now runs this live verifier after readiness and before PASS, retaining a fixed failure code and existing exact-container/database/network cleanup. Its ignored fixed-code log is separate from the seven sanitized scan summaries. Identity's original smoke route remains preserved.
+- Independent review found the HTTP test child lacked a timeout. Added a bounded operational timeout, retained exact child handle and awaited closure before cleanup. Planning time limits remain removed; process safety timeouts remain intact. Follow-up review found no new Critical/Important issue; exact committed-SHA review and Linux/Docker execution remain pending.
+
+### Dedicated native cluster — owner decision and executed evidence
+
+Read-only old-cluster status found only the Identity/Auction pairs under the new allowlist. The revised verifier exited 1 at `Missing required .env.local value: BIDDING_DB_NAME`. Further read-only inventory confirmed the four legacy financial databases and twelve historical roles; each database had zero non-system tables. No bootstrap or mutation was attempted there.
+
+The owner explicitly selected a separate cluster: [isolated PostgreSQL decision](../../../api/docs/decisions/S002_ISOLATED_LOCAL_POSTGRES.md). Created a new private data directory, initialized with installed PostgreSQL **17.9**, UTF-8 and SCRAM authentication, then started it on loopback port **55432**. Kept the old cluster and primary ignored configuration intact. New admin and per-role passwords were locally generated and written only to ignored private files; no password is present in Git, command-line arguments or this log.
+
+Executed commands (full private logs retained under this plan's ignored workspace):
+
+| Command | Result |
+| --- | --- |
+| `initdb --pgdata <new-private-data-directory> --encoding=UTF8 --locale=C --username=apx_phase0_admin --pwfile=<private-file> --auth=scram-sha-256` | Exit 0; dedicated new cluster initialized |
+| `pg_ctl -D <new-private-data-directory> -l <private-log> -w start` | Exit 0; loopback-only instance started |
+| `pwsh -NoProfile -NonInteractive -File api/scripts/local-db-bootstrap.ps1` (first) | Exit 0; bootstrap and full isolation matrix PASS 8/8; `native-bootstrap-1.log` |
+| Same bootstrap command (second) | Exit 0; convergent rerun and full isolation matrix PASS 8/8; `native-bootstrap-2.log` |
+| `pwsh -NoProfile -NonInteractive -File api/scripts/local-db-status.ps1` | Exit 0; eight canonical databases and 24 least-privilege roles; `native-status.log` |
+| `pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Invoke-GitleaksScanning.ps1` | Exit 0; trusted worktree/history scan PASS, directory/history/false-positive counts all zero |
+
+Native evidence supplements, rather than substitutes for, canonical PostgreSQL **17.11** Testcontainers. No generated service destination was created locally. A new exact-candidate isolated hosted run is still required for actual Auction Maven/Failsafe, real container HTTP smoke and sanitized artifact evidence.
