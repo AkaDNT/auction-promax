@@ -1,6 +1,6 @@
 # S002 frozen technical candidate evidence
 
-Status: **OWNER_ACCEPTED**; protected publication and actual Phase 0 exit/handoff remain pending. This record covers roadmap Phase 0, not the earlier Spring remediation read-only probe labeled phase0.
+Status: **PUBLISHED_VERIFIED** for the technical foundation; actual Phase 0 exit/handoff and protected transition/closeout remain pending. This record covers roadmap Phase 0, not the earlier Spring remediation read-only probe labeled phase0.
 
 ## Frozen identity and scope
 
@@ -73,3 +73,13 @@ On 2026-10-12 the owner explicitly accepted PHASE0_TECHNICAL_CANDIDATE for froze
 In a separate question, the owner authorized PR24 merge into `migration/monorepo` at the exact public AkaDNT/auction-promax repository, conditional on reviewed/scanned decision-record documentation, unchanged frozen implementation and all required checks passing: `OWNER-DECISION-2026-10-12-PR24-CONDITIONAL-MERGE`. Changes after reviewed documentation candidate `472e208` are restricted to these factual decision records. No bypass or GitHub-setting change is authorized. Actual merge/check identities remain unknown until publication.
 
 Authenticated read-only target inspection confirmed default tip `54c72e67f84fee3e7fef3686b473840d9997dcc7`, protection enabled, strict `monorepo-required` and `supply-chain-verification` checks from the configured app, administrator enforcement enabled and zero required approving reviews. This is a protection readback, not a settings update or a merge success claim.
+
+## Actual protected technical publication
+
+After exact approval-record candidate `2251a0eab493195f5fa99ee4bcc57ba8c45e6173` passed its own review, trusted postcommit scan and required/all PR checks, the owner-authorized head-matched protected merge completed without administrator bypass or setting changes. [PR24](https://github.com/AkaDNT/auction-promax/pull/24) is MERGED at actual `0475661743c5da0114eba04810bf24f962a53b60`, tree `d74d07cc76d96c2a651438bc7a1d1e873b4791ca`, parents `54c72e67f84fee3e7fef3686b473840d9997dcc7` and `2251a0eab493195f5fa99ee4bcc57ba8c45e6173`. Default tip matched this actual merge at readback. The isolated task branch fast-forwarded to it; the primary dirty worktree was preserved.
+
+Actual-merge push [monorepo-required](https://github.com/AkaDNT/auction-promax/actions/runs/38259366261) and [supply-chain-verification](https://github.com/AkaDNT/auction-promax/actions/runs/38259366704) completed SUCCESS on that merge, with the configured check app identity verified. Full five-service postmerge sanitized readback preserved the actual 119/10, 19/6, 19/6, 19/6, 19/1 totals, COMMITTED source, smoke UP/linux-amd64, policy/execution PASS and four MEDIUM observations per service.
+
+The current-default [freshness run 38259532672](https://github.com/AkaDNT/auction-promax/actions/runs/38259532672) also passed on the same actual merge, all five committed services and both aggregation/release-policy gates; strict downloaded schema/identity/count/aggregate and Linux-fixture readback passed. An earlier scheduled run 38239202351 failed SECRET_SCAN_FAILED on old default `54c72e6`, with only an empty sanitized secret inventory; its specific finding is not established by that artifact. The historical failure remains retained and is not relabeled PASS.
+
+The actual merge has no frozen implementation delta outside the two approved documentation directories. The canonical matrix now passes PUBLISHED_VERIFIED technical publication and actual Git-tree/ancestor binding. Owner actual exit/handoff remains pending; [the handoff memo](../../../api/docs/decisions/PHASE_1_HANDOFF.md) is ready for that decision, without starting Phase 1 work or claiming a future transition merge.

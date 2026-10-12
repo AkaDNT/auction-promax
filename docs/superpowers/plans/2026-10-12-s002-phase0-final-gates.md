@@ -18,8 +18,8 @@ Inherited reconciliation must include service-template, authentication/authoriza
 - [x] Freeze reviewed implementation candidate; clean detached LF checkout with no previous build/install outputs. Fresh locked contracts/infra/web installs and complete independent checks. Shared download caches may be used and recorded. Final implementation is `8a6fd2e`; failed earlier candidates remain historical.
 - [x] Obtain actual all-five committed-source canonical hosted builds, registered Failsafe, graph gates, hardened live HTTP smoke and seven-file sanitized scans on that candidate. Verify run/execution/service bindings and actual finding counts. Run 38256927490/readback passed; residual MEDIUM observations remain visible.
 - [x] Repeat Identity live initial/replay/conflict/validation/denied actuator checks, scoped six-table persistence, supplied W3C trace/correlation and recorded/replayed/published/applied logs. Canonical tests supply concurrency/rollback/duplicate-delivery evidence; live HTTP replay does not substitute for duplicate delivery. Exact final checkout live proof passed.
-- [ ] Complete matrix/reconciliation, trusted introduced-range scanning, Markdown/whitespace and independent review. Present concrete frozen evidence for owner technical acceptance and separate merge permission.
-- [ ] After authorized protected publication, read actual merge parents/tree/default/checks. Rehearse affected changes if runtime applicability differs. Retain failed evidence and no cleanup/data deletion.
+- [x] Complete matrix/reconciliation, trusted introduced-range scanning, Markdown/whitespace and independent review. Present concrete frozen evidence for owner technical acceptance and separate merge permission. Both actual owner decisions were recorded and independently reviewed.
+- [x] After authorized protected publication, read actual merge parents/tree/default/checks. Rehearse affected changes if runtime applicability differs. Retain failed evidence and no cleanup/data deletion. PR24 actual `0475661`/tree `d74d07c` has unchanged frozen implementation; both actual-merge checks and default freshness passed.
 
 ## T07 transition after actual publication
 

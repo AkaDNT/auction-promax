@@ -1,6 +1,6 @@
 # Phase 0 exit matrix
 
-Status: **OWNER_ACCEPTED**. The owner accepted the frozen technical candidate; Sprint 002 and roadmap Phase 0 remain open pending protected publication and actual exit/handoff. Frozen candidate/results are recorded in the [exact evidence dossier](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md); historical increments remain in the [completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
+Status: **PUBLISHED_VERIFIED** for the technical foundation. Sprint 002 and roadmap Phase 0 remain open pending owner actual exit/handoff and protected transition publication. Frozen candidate/results are recorded in the [exact evidence dossier](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md); historical increments remain in the [completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
 
 ## Authority and interpretation
 
@@ -36,7 +36,7 @@ The [Sprint 001 incomplete-work record](../sprints/SPRINT_001.md) and [productio
 
 | Gap | Disposition | Owning scope and authority |
 | --- | --- | --- |
-| Service-template and revised database mapping | RESOLVED_PHASE0 technical proof | D03/D04/D05/D07/D10/D11/D12/E01/E02; final frozen rehearsal is verified; protected publication remains pending. |
+| Service-template and revised database mapping | RESOLVED_PHASE0 technical proof | D03/D04/D05/D07/D10/D11/D12/E01/E02; final frozen rehearsal is verified; protected technical publication is verified; actual exit/handoff remains pending. |
 | Authentication/authorization | OPEN_LATER_PHASE | Blueprint Phase 1 and ADR-003; technical allowlists are not Cognito/product authentication. |
 | Product functions | OPEN_LATER_PHASE | Blueprint Phases 2–7, ADR-026/027. Auction-item payment, escrow, payout and monetary wallet remain excluded V1 capabilities, not promised future delivery. |
 | Producer/consumer compatibility | DEFERRED_NO_PRODUCER_CONTRACT | Approved [consumer addendum](../../../docs/superpowers/specs/2026-09-27-s001-t09-phase0-consumer-gate-addendum.md); later producer contracts own this proof. No compatibility PASS. |
@@ -45,7 +45,7 @@ The [Sprint 001 incomplete-work record](../sprints/SPRINT_001.md) and [productio
 
 ## Acceptance and publication
 
-Owner technical acceptance: APPROVED, 2026-10-12, `OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE` for the exact frozen implementation/tree and stated evidence limits. Protected technical publication: PENDING. Actual Phase 0 exit/handoff confirmation: PENDING (T07). Technical matrix validation passes OWNER_ACCEPTED while Phase 0 remains open; `--require-exit` must fail until the verified publication record is complete. This record neither permits merge nor advances the authoritative phase.
+Owner technical acceptance: APPROVED, 2026-10-12, `OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE` for the exact frozen implementation/tree and stated evidence limits. Protected technical publication: VERIFIED through PR24, actual merge `0475661743c5da0114eba04810bf24f962a53b60`, tree `d74d07cc76d96c2a651438bc7a1d1e873b4791ca`, with both actual-merge push checks PASS. Actual Phase 0 exit/handoff confirmation: PENDING (T07). Technical matrix validation, including `--require-exit`, passes with the actual protected technical publication. Actual roadmap exit/handoff and current phase advancement remain separate T07 owner/publication gates. This record neither permits merge nor advances the authoritative phase.
 
 ## Machine-readable evidence
 
@@ -53,7 +53,7 @@ Owner technical acceptance: APPROVED, 2026-10-12, `OWNER-DECISION-2026-10-12-S00
 {
   "schemaVersion": 1,
   "phase": 0,
-  "status": "OWNER_ACCEPTED",
+  "status": "PUBLISHED_VERIFIED",
   "implementationRevision": "8a6fd2eca7a8ac0da27c98fe71bad051592a3673",
   "implementationTree": "63aa3ee5dd5cea3870e94bea92c28951a8a76026",
   "requirements": [
@@ -532,6 +532,28 @@ Owner technical acceptance: APPROVED, 2026-10-12, `OWNER-DECISION-2026-10-12-S00
     "revision": "8a6fd2eca7a8ac0da27c98fe71bad051592a3673",
     "tree": "63aa3ee5dd5cea3870e94bea92c28951a8a76026"
   },
-  "publication": null
+  "publication": {
+    "status": "PUBLISHED_VERIFIED",
+    "merge": "0475661743c5da0114eba04810bf24f962a53b60",
+    "tree": "d74d07cc76d96c2a651438bc7a1d1e873b4791ca",
+    "pr": "https://github.com/AkaDNT/auction-promax/pull/24",
+    "runtimeRevision": "8a6fd2eca7a8ac0da27c98fe71bad051592a3673",
+    "runtimeTree": "63aa3ee5dd5cea3870e94bea92c28951a8a76026",
+    "applicabilityReference": "docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md",
+    "checks": [
+      {
+        "name": "monorepo-required",
+        "conclusion": "SUCCESS",
+        "commit": "0475661743c5da0114eba04810bf24f962a53b60",
+        "runUrl": "https://github.com/AkaDNT/auction-promax/actions/runs/38259366261"
+      },
+      {
+        "name": "supply-chain-verification",
+        "conclusion": "SUCCESS",
+        "commit": "0475661743c5da0114eba04810bf24f962a53b60",
+        "runUrl": "https://github.com/AkaDNT/auction-promax/actions/runs/38259366704"
+      }
+    ]
+  }
 }
 ```

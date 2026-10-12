@@ -15,7 +15,7 @@
 - Execution method approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | EXECUTION_METHOD | OWNER-DECISION-2026-10-05-S002-EXECUTION | DIRECT_SEQUENTIAL_ISOLATED_WORKTREE
 - Activation approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-06 | SPRINT_ACTIVATION | OWNER-DECISION-2026-10-06-S002-ACTIVATION candidate 5524dace463be247cdbcf71ba88b894df1b3d20a
 
-Sprint objective is to complete the approved Phase 0 obligations through tasks T01–T07. Activation-record publication is verified; Sprint closeout publication remains pending. T01 activation was published through PR #19; T02 was published through PR #20; T03 technical acceptance and integrated freshness are complete. T04/T05 are technically verified; T06 has an owner-accepted frozen matrix awaiting protected publication. See the current completion audit for exact evidence.
+Sprint objective is to complete the approved Phase 0 obligations through tasks T01–T07. Activation-record publication is verified; Sprint closeout publication remains pending. T01 activation was published through PR #19; T02 was published through PR #20; T03 technical acceptance and integrated freshness are complete. T04/T05/T06 are actually published and verified through PR24; T07 actual exit/handoff remains in progress. See the current completion audit for exact evidence.
 
 Current Phase 0 foundation authority uses the revised [blueprint](../Auction_Platform_Final_Production_Architecture_Blueprint_and_Roadmap.md) and [ADR-026](../adr/ADR-026-marketplace-transaction-and-monetization-boundary.md)/[ADR-027](../adr/ADR-027-bidding-billing-and-listing-entitlement-ownership.md): Identity, Auction, Bidding, Billing and Realtime are technical service identities only. T02 templates and T03 isolated CI foundations are delivered; no product bidding/billing behavior is claimed. See [activation evidence](S002_REVIEW_EVIDENCE.md).
 
@@ -26,13 +26,13 @@ Current Phase 0 foundation authority uses the revised [blueprint](../Auction_Pla
 | T01 | Safe lifecycle validation and protected activation bookkeeping | DONE |
 | T02 | Deterministic service foundation templates | DONE |
 | T03 | Service matrix and artifact-security interfaces | DONE — technical acceptance |
-| T04 | First relational service reference | TECHNICALLY_VERIFIED — committed Auction source; protected publication pending |
-| T05 | Remaining service variants | TECHNICALLY_VERIFIED — all committed-source CI; protected publication pending |
-| T06 | Frozen-candidate review and publication preparation | OWNER_ACCEPTED — final frozen technical gates passed; conditional merge authorized; protected publication pending |
-| T07 | Phase 0 exit evidence and Phase 1 transition decision | PLANNED |
+| T04 | First relational service reference | DONE — reviewed Auction source published through PR24; actual-merge checks verified |
+| T05 | Remaining service variants | DONE — five committed services published through PR24; actual-merge checks/freshness verified |
+| T06 | Frozen-candidate review and publication preparation | DONE — owner accepted frozen candidate; protected PR24 publication and actual-merge checks verified |
+| T07 | Phase 0 exit evidence and Phase 1 transition decision | IN_PROGRESS — published technical matrix and handoff memo ready; actual exit/transition approval pending |
 
 No Phase 1 implementation is authorized by this sprint plan. Activation approval and each PR merge authorization are separate owner decisions.
 
 ## Current completion audit
 
-See [2026-10-12 completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md) and [frozen candidate evidence](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md). The owner removed time/capacity limits on 2026-10-12; quality, security, business decisions, publication and Phase 0 exit gates remain required. T04/T05 retain independently reviewed CI source delivery. The final frozen implementation `8a6fd2e` passed all-five committed-source CI, strict sanitized readback and clean local baseline/live sample trace. The canonical matrix is OWNER_ACCEPTED with actual candidate approval; protected publication remains null. T07 actual exit/transition remains planned.
+See [2026-10-12 completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md) and [frozen candidate evidence](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md). The owner removed time/capacity limits on 2026-10-12; quality, security, business decisions, publication and Phase 0 exit gates remain required. T04/T05 retain independently reviewed CI source delivery. The final frozen implementation `8a6fd2e` passed all-five committed-source CI, strict sanitized readback and clean local baseline/live sample trace. The canonical matrix is PUBLISHED_VERIFIED for actual PR24 technical publication; actual-merge checks and current-default freshness passed. T07 actual exit/transition remains in progress. Sprint publication status refers to pending closeout, not the already published technical foundation.
