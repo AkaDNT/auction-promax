@@ -1,0 +1,44 @@
+spring:
+  datasource:
+    url: ${BIDDING_DB_URL}
+    username: ${BIDDING_DB_APP_USERNAME}
+    password: ${BIDDING_DB_APP_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    clean-disabled: true
+    validate-on-migrate: true
+    url: ${BIDDING_DB_URL}
+    user: ${BIDDING_DB_MIGRATOR_USERNAME}
+    password: ${BIDDING_DB_MIGRATOR_PASSWORD}
+    default-schema: bidding
+    schemas: bidding
+    table: flyway_schema_history
+    placeholders:
+      runtimeRole: ${BIDDING_DB_APP_USERNAME}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db
+  tracing:
+    sampling:
+      probability: 1.0
+
+logging:
+  structured:
+    format:
+      console: ecs
+    ecs:
+      service:
+        name: bidding-service
+        environment: local
