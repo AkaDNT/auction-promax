@@ -1,6 +1,6 @@
 # Phase 0 exit matrix
 
-Status: **CANDIDATE_READY**. Sprint 002 and roadmap Phase 0 remain open pending owner technical acceptance, protected publication and actual exit/handoff. Frozen candidate/results are recorded in the [exact evidence dossier](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md); historical increments remain in the [completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
+Status: **OWNER_ACCEPTED**. The owner accepted the frozen technical candidate; Sprint 002 and roadmap Phase 0 remain open pending protected publication and actual exit/handoff. Frozen candidate/results are recorded in the [exact evidence dossier](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md); historical increments remain in the [completion log](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
 
 ## Authority and interpretation
 
@@ -45,7 +45,7 @@ The [Sprint 001 incomplete-work record](../sprints/SPRINT_001.md) and [productio
 
 ## Acceptance and publication
 
-Owner technical acceptance: PENDING. Protected technical publication: PENDING. Actual Phase 0 exit/handoff confirmation: PENDING (T07). Technical matrix validation passes CANDIDATE_READY while Phase 0 remains open; `--require-exit` must fail until the verified publication record is complete. This record neither permits merge nor advances the authoritative phase.
+Owner technical acceptance: APPROVED, 2026-10-12, `OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE` for the exact frozen implementation/tree and stated evidence limits. Protected technical publication: PENDING. Actual Phase 0 exit/handoff confirmation: PENDING (T07). Technical matrix validation passes OWNER_ACCEPTED while Phase 0 remains open; `--require-exit` must fail until the verified publication record is complete. This record neither permits merge nor advances the authoritative phase.
 
 ## Machine-readable evidence
 
@@ -53,7 +53,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
 {
   "schemaVersion": 1,
   "phase": 0,
-  "status": "CANDIDATE_READY",
+  "status": "OWNER_ACCEPTED",
   "implementationRevision": "8a6fd2eca7a8ac0da27c98fe71bad051592a3673",
   "implementationTree": "63aa3ee5dd5cea3870e94bea92c28951a8a76026",
   "requirements": [
@@ -72,7 +72,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "APPROVED_DECISION",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D02",
@@ -94,7 +94,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D03",
@@ -114,7 +114,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D04",
@@ -140,7 +140,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D05",
@@ -166,7 +166,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D06",
@@ -183,7 +183,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D07",
@@ -209,7 +209,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D08",
@@ -231,7 +231,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D09",
@@ -253,7 +253,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D10",
@@ -278,7 +278,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D11",
@@ -304,7 +304,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "D12",
@@ -330,7 +330,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "E01",
@@ -356,7 +356,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "E02",
@@ -382,7 +382,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     },
     {
       "requirementId": "E03",
@@ -399,7 +399,7 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
         }
       ],
       "result": "PASS",
-      "ownerAcceptanceReference": null
+      "ownerAcceptanceReference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE"
     }
   ],
   "services": [
@@ -524,7 +524,14 @@ Owner technical acceptance: PENDING. Protected technical publication: PENDING. A
       "UNKNOWN": 0
     }
   },
-  "ownerAcceptance": null,
+  "ownerAcceptance": {
+    "owner": "AkaDNT (Project Owner / Repository Owner)",
+    "date": "2026-10-12",
+    "scope": "PHASE0_TECHNICAL_CANDIDATE",
+    "reference": "OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE",
+    "revision": "8a6fd2eca7a8ac0da27c98fe71bad051592a3673",
+    "tree": "63aa3ee5dd5cea3870e94bea92c28951a8a76026"
+  },
   "publication": null
 }
 ```

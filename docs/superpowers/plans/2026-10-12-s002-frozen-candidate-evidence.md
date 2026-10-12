@@ -1,6 +1,6 @@
 # S002 frozen technical candidate evidence
 
-Status: **CANDIDATE_READY**; owner acceptance, protected publication and actual Phase 0 exit/handoff remain pending. This record covers roadmap Phase 0, not the earlier Spring remediation read-only probe labeled phase0.
+Status: **OWNER_ACCEPTED**; protected publication and actual Phase 0 exit/handoff remain pending. This record covers roadmap Phase 0, not the earlier Spring remediation read-only probe labeled phase0.
 
 ## Frozen identity and scope
 
@@ -65,3 +65,11 @@ Implementation applicability stays frozen to the exact candidate/tree. The subse
 Mandatory Phase 0 template/topology obligations are technically resolved by the results above. Authentication/authorization, product functions, producer contracts and production platform/recovery remain open in their blueprint phases. Historical S001 evidence is preserved rather than relabeled as current proof. Consumer compatibility remains deferred. A policy PASS is distinct from zero vulnerabilities, production readiness or release authorization.
 
 After technical readiness: present the concrete candidate/matrix for owner technical acceptance and separate PR24 merge permission. After actual protected publication and postmerge checks: obtain actual Phase 0 exit and Phase 1 handoff approval, publish the separate transition record with verified Git/check identities, and complete factual readback. No future merge SHA, approval or phase advance is invented.
+
+## Actual owner technical acceptance and conditional merge decision
+
+On 2026-10-12 the owner explicitly accepted PHASE0_TECHNICAL_CANDIDATE for frozen implementation `8a6fd2eca7a8ac0da27c98fe71bad051592a3673`, tree `63aa3ee5dd5cea3870e94bea92c28951a8a76026`, and the evidence limits/residuals above: `OWNER-DECISION-2026-10-12-S002-T06-TECHNICAL-ACCEPTANCE`. This does not accept vulnerability risk, confirm actual Phase 0 exit/handoff or authorize deployment/release.
+
+In a separate question, the owner authorized PR24 merge into `migration/monorepo` at the exact public AkaDNT/auction-promax repository, conditional on reviewed/scanned decision-record documentation, unchanged frozen implementation and all required checks passing: `OWNER-DECISION-2026-10-12-PR24-CONDITIONAL-MERGE`. Changes after reviewed documentation candidate `472e208` are restricted to these factual decision records. No bypass or GitHub-setting change is authorized. Actual merge/check identities remain unknown until publication.
+
+Authenticated read-only target inspection confirmed default tip `54c72e67f84fee3e7fef3686b473840d9997dcc7`, protection enabled, strict `monorepo-required` and `supply-chain-verification` checks from the configured app, administrator enforcement enabled and zero required approving reviews. This is a protection readback, not a settings update or a merge success claim.
