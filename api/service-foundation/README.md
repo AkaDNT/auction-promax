@@ -1,5 +1,7 @@
 # Service foundation source templates
 
+Boot 4 tracing uses the managed OpenTelemetry starter. Local profiles keep W3C propagation and disable OTLP trace, metric and log exporters individually until a collector is configured. The post-delivery tracing correction is a reviewed amendment of templates and existing committed source; original CI delivery files record their historical import, not the hashes of later amendments. Source generation remains CI-only for real services.
+
 This directory contains the closed registry and source templates used by `api/scripts/foundation/Generate-Service.mjs`. It is not a shared runtime library and does not deliver generated service directories.
 
 ## Prerequisites

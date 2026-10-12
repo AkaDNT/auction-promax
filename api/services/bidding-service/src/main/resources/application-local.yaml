@@ -21,6 +21,14 @@ spring:
       runtimeRole: ${BIDDING_DB_APP_USERNAME}
 
 management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  logging:
+    export:
+      otlp:
+        enabled: false
   endpoints:
     web:
       exposure:
@@ -31,6 +39,9 @@ management:
         readiness:
           include: readinessState,db
   tracing:
+    export:
+      otlp:
+        enabled: false
     sampling:
       probability: 1.0
 

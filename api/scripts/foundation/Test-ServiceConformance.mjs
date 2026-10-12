@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import YAML from '../../contracts/node_modules/yaml/dist/index.js';
 
 import { validateInventory } from './Generate-Service.mjs';
 import { validateTemplateConformance } from './ServiceTemplateConformance.mjs';
@@ -51,6 +52,21 @@ test('inventory permits same destination only for disjoint relational and gatewa
 
 test('the repository templates pass the reusable conformance validator', () => {
   assert.deepEqual(validateTemplateConformance(repositoryRoot).variants, ['relational', 'gateway']);
+});
+
+test('Boot 4 tracing is wired by its starter and local exporters are disabled without disabling propagation', async () => {
+  const locations = ['templates/relational', 'templates/gateway'];
+  for (const location of locations) {
+    const pom = await readFile(path.join(foundationRoot, location, 'pom.xml'), 'utf8');
+    assert.match(pom, /<artifactId>spring-boot-starter-opentelemetry<\/artifactId>/);
+    assert.doesNotMatch(pom, /<artifactId>(?:micrometer-tracing-bridge-otel|opentelemetry-exporter-otlp)<\/artifactId>/);
+    const config = YAML.parse(await readFile(path.join(foundationRoot, location, 'application-local.yaml'), 'utf8'));
+    assert.equal(config.management.tracing.export.otlp.enabled, false);
+    assert.equal(config.management.tracing.export.enabled, undefined);
+    assert.equal(config.management.otlp.metrics.export.enabled, false);
+    assert.equal(config.management.logging.export.otlp.enabled, false);
+    assert.equal(config.management.tracing.sampling.probability, 1);
+  }
 });
 
 test('technical exception advice uses the shared ResponseEntity<Object> return contract', async () => {
