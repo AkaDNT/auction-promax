@@ -2,7 +2,7 @@
 
 | Release | Audience | Roadmap phases | Outcome | Status |
 | ------- | -------- | -------------- | ------- | ------ |
-| R0 — Engineering Baseline | Developers and operators | Phase 0 | Reproducible engineering foundation, contracts, local data isolation, observability, outbox/inbox proof, and scans | ACTIVE |
+| R0 — Engineering Baseline | Developers and operators | Phase 0 | Reproducible engineering foundation, contracts, local data isolation, observability, outbox/inbox proof, and scans | COMPLETED — engineering baseline; no product release authorization |
 | R1 — Identity Walking Skeleton | Internal testers | Phase 1 | Cognito-authenticated user can manage an application profile | PLANNED |
 | R2 — Seller Auction Walking Skeleton | Internal sellers and viewers | Phases 2–3 | Seller auction creation, media, non-monetary listing entitlement/publication and durable lifecycle | PLANNED |
 | R3 — Bidding and Winner Handoff | Internal buyers and sellers | Phases 4–5 | Concurrent bids, deterministic final winner/result and authorized handoff; auction-item payment/delivery remain outside platform | PLANNED |
@@ -21,3 +21,5 @@ V1 release outcomes follow the [revised blueprint](Auction_Platform_Final_Produc
 - Local PostgreSQL uses isolated logical databases/users and rejects cross-database access by design.
 - A sample request and event traverse health/readiness, tracing, Problem Details, idempotency, outbox, and inbox skeletons.
 - SBOM, dependency, and image scans execute with High/Critical findings surfaced.
+
+R0 closure is evidenced by the [Phase 0 matrix](decisions/PHASE_0_EXIT_MATRIX.md) and [T07 transition](sprints/S002_REVIEW_EVIDENCE.md): PR24 technical publication and owner-approved PR25 transition, each with actual-merge required checks PASS. This factual closeout records their verified result; product releases and Phase 1 implementation remain separately gated.

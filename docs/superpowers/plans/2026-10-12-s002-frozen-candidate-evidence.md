@@ -1,6 +1,6 @@
 # S002 frozen technical candidate evidence
 
-Status: **PUBLISHED_VERIFIED** for the technical foundation; actual Phase 0 exit/handoff is owner-approved; protected transition/closeout remains pending. This record covers roadmap Phase 0, not the earlier Spring remediation read-only probe labeled phase0.
+Status: **PUBLISHED_VERIFIED** for the technical foundation; actual Phase 0 exit/handoff and protected PR25 transition/checks are verified. This factual closeout records Phase 0 closed/current Phase 1 with implementation not begun. This record covers roadmap Phase 0, not the earlier Spring remediation read-only probe labeled phase0.
 
 ## Frozen identity and scope
 

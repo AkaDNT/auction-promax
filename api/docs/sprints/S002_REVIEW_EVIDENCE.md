@@ -1,10 +1,10 @@
 # SPRINT-002 lifecycle and review evidence
 
-Status: TRANSITION_PENDING; T01/T02 published and T03 technically accepted. T04/T05/T06 have reviewed source/frozen evidence and actual protected PR24 publication, with actual-merge checks and current-default freshness verified. Owner actual exit/handoff approvals were received on 2026-10-12; protected transition/closeout publication remains pending and authoritative current phase stays 0. The older narrative below records activation chronology; current facts are in the [completion audit](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
+Status: COMPLETED; T01/T02 published and T03 technically accepted. T04/T05/T06 have reviewed source/frozen evidence and actual protected PR24 publication, with actual-merge checks and current-default freshness verified. Owner actual exit/handoff approvals were received on 2026-10-12; protected PR25 transition publication and actual-merge checks are verified. This factual closeout records current Phase 1 and completed Sprint 002; its protected publication/readback remains the final hosting gate. The older narrative below records activation chronology; current facts are in the [completion audit](../../../docs/superpowers/plans/2026-10-12-s002-phase0-completion-log.md).
 
 ## Lifecycle Evidence
 
-Current technical candidate: [frozen evidence](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md), implementation `8a6fd2eca7a8ac0da27c98fe71bad051592a3673`, tree `63aa3ee5dd5cea3870e94bea92c28951a8a76026`. [Phase 0 matrix](../decisions/PHASE_0_EXIT_MATRIX.md) is PUBLISHED_VERIFIED for actual PR24 technical publication; owner actual exit/handoff approvals are recorded below, while protected transition/closeout publication remains pending. Historical activation approval below does not substitute for those later decisions.
+Current technical candidate: [frozen evidence](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md), implementation `8a6fd2eca7a8ac0da27c98fe71bad051592a3673`, tree `63aa3ee5dd5cea3870e94bea92c28951a8a76026`. [Phase 0 matrix](../decisions/PHASE_0_EXIT_MATRIX.md) is PUBLISHED_VERIFIED for actual PR24 technical publication; owner actual exit/handoff approvals are recorded below, and protected transition publication/checks are verified below. Historical activation approval below does not substitute for those later decisions.
 
 - Evidence kind: PHASE0_EXIT_TRANSITION
 - Design approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | DESIGN | Owner-approved design decision recorded in the approved S002 service-foundation design.
@@ -78,11 +78,24 @@ Trusted local Gitleaks worktree/history scans passed on 2026-10-06: exit 0 and z
     "technicalTree": "d74d07cc76d96c2a651438bc7a1d1e873b4791ca"
   },
   "transitionPublication": {
-    "status": "PENDING_PROTECTED_PR",
-    "merge": null,
-    "tree": null,
+    "status": "PUBLISHED_VERIFIED",
+    "merge": "1e5bcd95506b4c57fa5d7367608270661e72aead",
+    "tree": "8166ffceba18a58327d7c75eda2908ca8f1c044d",
     "pr": "https://github.com/AkaDNT/auction-promax/pull/25",
-    "checks": []
+    "checks": [
+      {
+        "name": "monorepo-required",
+        "conclusion": "SUCCESS",
+        "commit": "1e5bcd95506b4c57fa5d7367608270661e72aead",
+        "runUrl": "https://github.com/AkaDNT/auction-promax/actions/runs/38269605016"
+      },
+      {
+        "name": "supply-chain-verification",
+        "conclusion": "SUCCESS",
+        "commit": "1e5bcd95506b4c57fa5d7367608270661e72aead",
+        "runUrl": "https://github.com/AkaDNT/auction-promax/actions/runs/38269605167"
+      }
+    ]
   },
   "consumerCompatibility": "DEFERRED_NO_PRODUCER_CONTRACT",
   "releasePolicy": "PASS",
@@ -90,4 +103,4 @@ Trusted local Gitleaks worktree/history scans passed on 2026-10-06: exit 0 and z
 }
 ```
 
-Owner explicitly confirmed ACTUAL_PHASE0_EXIT and PHASE1_HANDOFF for actual PR24 publication on 2026-10-12. Separately authorized conditional PR25 merge after review, secret scans and all required checks PASS. This does not authorize Phase 1 implementation, deployment, vulnerability risk acceptance or the separate factual closeout merge. Current phase remains 0 pending protected transition and closeout.
+Owner explicitly confirmed ACTUAL_PHASE0_EXIT and PHASE1_HANDOFF for actual PR24 publication on 2026-10-12. Separately authorized conditional PR25 merge after review, secret scans and all required checks PASS. This does not authorize Phase 1 implementation, deployment, vulnerability risk acceptance or the separate factual closeout merge. PR25 actual transition publication/checks are verified; this factual closeout records completed Sprint 002/current Phase 1 for protected publication. No future closeout merge identity is invented.
