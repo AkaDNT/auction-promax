@@ -4,6 +4,8 @@ Status: ACTIVATION_PUBLISHED_VERIFIED; T01/T02 published and T03 technically acc
 
 ## Lifecycle Evidence
 
+Current technical candidate: [frozen evidence](../../../docs/superpowers/plans/2026-10-12-s002-frozen-candidate-evidence.md), implementation `8a6fd2eca7a8ac0da27c98fe71bad051592a3673`, tree `63aa3ee5dd5cea3870e94bea92c28951a8a76026`. [Phase 0 matrix](../decisions/PHASE_0_EXIT_MATRIX.md) is CANDIDATE_READY; technical gates passed, but owner candidate acceptance, protected technical publication and actual exit/handoff remain pending. Activation approval below does not approve those later gates.
+
 - Evidence kind: SPRINT_ACTIVATION
 - Design approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | DESIGN | Owner-approved design decision recorded in the approved S002 service-foundation design.
 - Plan approval: APPROVED | AkaDNT (Project Owner / Repository Owner) | 2026-10-05 | IMPLEMENTATION_PLAN | OWNER-DECISION-2026-10-05-S002-EXECUTION
