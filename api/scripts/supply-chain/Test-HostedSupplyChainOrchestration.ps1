@@ -114,6 +114,26 @@ try {
     if ($gitleaksEvidence -notmatch '"findings":\[\]') { throw 'TEST_EMPTY_GITLEAKS_EVIDENCE_NOT_ARRAY' }
     Write-Host '[PASS] Empty sanitized inventories retain JSON-array shape'
 
+    $mediumFinding = $fixtureFinding.Replace('"severity":"HIGH"', '"severity":"MEDIUM"')
+    $falsePositive = @([ordered]@{ scanMode='git'; ruleId='fixture-rule'; repositoryRelativePath='fixtures/example.txt'; scannerFingerprint=($commit+':fixtures/example.txt:fixture-rule:1'); commitId=$commit; status='false-positive'; remediationReference='TEST-GL-001' })
+    foreach ($repositoryMode in @($false, $true)) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+        [System.IO.File]::WriteAllText($vulnerabilityInventory, $mediumFinding, [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText($containerInventory, $mediumFinding, [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText($gitleaksInventory, (ConvertTo-Json -InputObject $falsePositive -Depth 10 -Compress), [System.Text.UTF8Encoding]::new($false))
+        $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -RepositoryOnly:$repositoryMode -Adapters (New-Adapters) -NoExit
+        if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'PASS') { throw 'TEST_FALSE_POSITIVE_ORCHESTRATION_FAILED' }
+        $secretEvidence = Get-Content -LiteralPath (Join-Path $root 'gitleaks-inventory.json') -Raw | ConvertFrom-Json
+        if (@($secretEvidence.findings).Count -ne 1 -or $secretEvidence.findings[0].status -cne 'false-positive' -or $secretEvidence.findings[0].scannerFingerprint -cne $falsePositive[0].scannerFingerprint) { throw 'TEST_FALSE_POSITIVE_EVIDENCE_HIDDEN' }
+        $policyEvidence = Get-Content -LiteralPath (Join-Path $root 'policy-summary.json') -Raw | ConvertFrom-Json
+        $expectedMedium = if ($repositoryMode) { 1 } else { 2 }
+        if ($policyEvidence.counts.MEDIUM -ne $expectedMedium -or $policyEvidence.counts.HIGH -ne 0 -or $policyEvidence.counts.CRITICAL -ne 0 -or $policyEvidence.counts.UNKNOWN -ne 0 -or $policyEvidence.counts.LOW -ne 0) { throw 'TEST_FALSE_POSITIVE_POLLUTED_VULNERABILITY_COUNTS' }
+    }
+    Write-Host '[PASS] Visible false-positive secret evidence does not enter service or repository vulnerability counts'
+    [System.IO.File]::WriteAllText($vulnerabilityInventory, $emptyInventory, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($gitleaksInventory, $emptyInventory, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($containerInventory, $fixtureFinding, [System.Text.UTF8Encoding]::new($false))
+
     Remove-Item -LiteralPath $root -Recurse -Force
     $result = & $orchestrator -WorkflowName 'supply-chain' -CommitSha $commit -EvidenceRoot $root -Adapters (New-Adapters @{ container = { 'POLICY_BLOCKED' }; base = { 'REVIEW_REQUIRED' } }) -NoExit
     if ($result.executionState -ne 'PASS' -or $result.policyState -ne 'BLOCKED' -or $result.reviewState -ne 'REVIEW_REQUIRED') { throw 'TEST_COMBINED_POLICY_REVIEW_FAILED' }
