@@ -48,7 +48,7 @@ Template inputs are an allowlisted service identifier and its registered variant
 
 Generation must be deterministic, produce LF text, stay within the approved service destination and fail before writing if the destination already exists or input is invalid. Tests cover path traversal, unknown identifiers, inconsistent variants, existing destinations and repeat generation into separate empty destinations. No generated credentials, ignored local configuration, caches, binaries or scanner output enter Git.
 
-Keep the existing baseline versions: Java 21, Spring Boot 3.5.16 and Maven Wrapper 3.3.4 pinning Maven distribution 3.9.16. This clarifies the earlier shorthand "Maven Wrapper 3.9.16" against the committed wrapper properties and BUILD_VERSION_BASELINE; it changes no version or approved tooling behavior. Reuse committed trust/image pins and scanner contracts without substitution. Dependency additions must be minimal, justified and reviewed; no automatic upgrades or vulnerability bypasses.
+Keep Java 21 and Maven Wrapper 3.3.4 pinning Maven distribution 3.9.16. The original Boot 3.5.16 constraint is superseded by the separately approved and integrated [T03 Spring remediation](../plans/2026-10-10-s002-t03-spring-remediation-execution.md); current source foundations use Boot 4.0.8 and the reviewed framework/JSON/Tomcat pins in the [build baseline](../../../api/docs/runbooks/BUILD_VERSION_BASELINE.md). The earlier shorthand "Maven Wrapper 3.9.16" referred to the distribution rather than wrapper implementation. Reuse current committed trust/image pins and scanner contracts without substitution. Dependency additions remain minimal, justified and reviewed; no automatic upgrades or vulnerability bypasses.
 
 ## Technical behavior
 

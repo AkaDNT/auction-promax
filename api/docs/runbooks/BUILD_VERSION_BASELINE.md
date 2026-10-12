@@ -16,15 +16,17 @@ The workflows deliberately do not publish a container image. Amazon ECR is the a
 | Tool | Version/policy | Enforcement |
 | --- | --- | --- |
 | Java | 21 LTS | Maven Enforcer accepts `[21,22)` in `identity-profile-service/pom.xml`. |
-| Spring Boot | 3.5.16 | Exact Maven parent version. |
+| Spring Boot | 4.0.8 | Exact Maven parent in Identity and both approved service template variants; approved S002 remediation supersedes the historical 3.5.16 baseline. |
 | Maven | 3.9.16 | Exact Maven Wrapper distribution; Maven Enforcer accepts `[3.9.9,4.0.0)`. |
 | Node.js | 24.15.0 | `.nvmrc`, `engines`, `engine-strict=true`, and web toolchain check. |
 | npm | 11.12.1 | `packageManager`, `engines`, `engine-strict=true`, and web toolchain check. |
 | AWS CDK CLI | 2.1135.1 | Exact `infra/package.json` dev dependency and lockfile. |
-| AWS CDK library | 2.269.0 | Exact `aws-cdk-lib` dependency and lockfile. |
+| AWS CDK library | 2.273.0 | Exact `aws-cdk-lib` dependency and lockfile after approved S002 bundled-dependency remediation. |
 | CDK constructs | 10.8.1 | Exact `constructs` dependency and lockfile. |
 
 `aws-cdk` and `aws-cdk-lib` use independent version streams. Both are intentionally pinned exactly rather than with a range. The local project CLI is invoked through npm; a globally installed CDK is not required.
+
+S002's approved [Spring remediation record](../../../docs/superpowers/plans/2026-10-10-s002-t03-spring-remediation-execution.md) and [CDK remediation plan](../../../docs/superpowers/plans/2026-10-10-s002-t03-aws-cdk-remediation.md) supersede earlier framework/library pins. Current POMs use Jackson 3 BOM 3.1.7, remaining Jackson 2 BOM 2.21.7, springdoc 3.0.3 and the reviewed Tomcat 11.0.26 patch property. The committed service Dockerfile uses the approved Corretto 21.0.12 child digest; canonical relational integration tests retain PostgreSQL 17.11's approved digest. This records delivered pins rather than authorizing automatic updates. Native PostgreSQL 17.9 in the isolated local cluster is supplementary verification only.
 
 ## API clean baseline
 

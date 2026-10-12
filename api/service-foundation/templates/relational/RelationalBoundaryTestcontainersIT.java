@@ -97,6 +97,38 @@ class RelationalBoundaryTestcontainersIT {
     }
 
     @Test
+    void ownerIsNonLoginAndMigratorOwnsSchemaAndMigrationHistory() {
+        String owner = "__ENV_PREFIX___test_owner".toLowerCase(java.util.Locale.ROOT);
+        assertThat(jdbc.queryForObject(
+            "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = current_database()", String.class))
+            .isEqualTo(owner);
+        assertThat(jdbc.queryForObject("SELECT rolcanlogin FROM pg_roles WHERE rolname = ?", Boolean.class, owner))
+            .isFalse();
+        assertThat(jdbc.queryForObject(
+            "SELECT pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname = ?", String.class, "__SCHEMA_NAME__"))
+            .isEqualTo(MIGRATOR_USER);
+        assertThat(jdbc.queryForObject(
+            "SELECT tableowner FROM pg_tables WHERE schemaname = ? AND tablename = 'flyway_schema_history'",
+            String.class, "__SCHEMA_NAME__"))
+            .isEqualTo(MIGRATOR_USER);
+    }
+
+    @Test
+    void runtimeCannotReadOrModifyMigrationHistory() {
+        for (String sql : java.util.List.of(
+            "SELECT * FROM __SCHEMA_NAME__.flyway_schema_history",
+            "UPDATE __SCHEMA_NAME__.flyway_schema_history SET description = 'forbidden-runtime-write'",
+            "DELETE FROM __SCHEMA_NAME__.flyway_schema_history",
+            "INSERT INTO __SCHEMA_NAME__.flyway_schema_history "
+                + "(installed_rank, description, type, script, installed_by, execution_time, success) "
+                + "VALUES (9999, 'forbidden-runtime-write', 'SQL', 'V9999__forbidden.sql', 'test-only', 0, true)")) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.execute(sql))
+                .isInstanceOf(DataAccessException.class)
+                .satisfies(error -> assertThat(((SQLException) error.getCause()).getSQLState()).isEqualTo("42501"));
+        }
+    }
+
+    @Test
     void readinessIncludesDatabaseConnectivity() throws Exception {
         mockMvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk());
     }

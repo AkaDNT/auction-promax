@@ -98,6 +98,7 @@ jobs:
           node --test api/scripts/foundation/Test-GeneratedServiceConformanceFixtures.mjs
           pwsh -NoProfile -NonInteractive -File api/scripts/Test-RunServiceLocal.ps1
           node --test api/scripts/foundation/Test-ServiceHttpRuntime.mjs
+          node --test api/scripts/foundation/Test-ServiceSourceBundle.mjs
           node api/scripts/supply-chain/Test-ServiceArtifactPropagation.mjs
           node api/scripts/supply-chain/Test-ServiceSupplyChainEvidence.mjs
           node api/scripts/supply-chain/Test-ServiceMatrixWorkflow.mjs --fixtures
@@ -209,6 +210,13 @@ jobs:
         env:
           SERVICE_ID: ${{ matrix.service }}
         run: node api/scripts/foundation/Test-GeneratedServiceConformance.mjs --service "$SERVICE_ID"
+      - id: export-source
+        name: Export exact CI-generated source for reviewed delivery
+        if: steps.select-source.outputs.source_kind == 'ephemeral-generated'
+        env:
+          SERVICE_ID: ${{ matrix.service }}
+          EXECUTION_SHA: ${{ needs.classify-services.outputs.execution_sha }}
+        run: node api/scripts/foundation/Export-ServiceSource.mjs --service "$SERVICE_ID" --commit "$EXECUTION_SHA"
       - id: maven-verify
         name: Run standalone canonical Maven verification
         shell: bash
@@ -273,6 +281,15 @@ jobs:
         with:
           name: s002-service-evidence-${{ matrix.service }}
           path: ${{ runner.temp }}/s002-service-evidence
+          retention-days: 30
+          if-no-files-found: error
+      - id: upload-service-source
+        name: Upload only validated source bundle after service verification
+        if: steps.export-source.outcome == 'success' && steps.maven-verify.outcome == 'success' && steps.failsafe-execution.outcome == 'success' && steps.jackson-dependency-graph.outcome == 'success' && steps.run-hosted.outcome == 'success' && steps.validate-service-evidence.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: s002-service-source-${{ matrix.service }}
+          path: ${{ runner.temp }}/s002-service-source/${{ matrix.service }}/service-source.json
           retention-days: 30
           if-no-files-found: error
       - id: write-matrix-result

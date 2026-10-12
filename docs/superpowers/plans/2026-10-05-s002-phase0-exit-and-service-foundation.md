@@ -8,7 +8,7 @@
 
 **Architecture:** Repository-owned deterministic templates generate standalone relational or gateway projects. Preserve Identity and its sample flow; extend existing CI/security boundaries explicitly rather than creating shared business/runtime libraries. Lifecycle activation and final transition are separately protected, evidence-backed changes.
 
-**Tech Stack:** Existing Java 21, Spring Boot 3.5.16, Maven distribution 3.9.16, PostgreSQL 17, PowerShell 5.1/7, Node and GitHub Actions baselines; committed scanner/image trust pins.
+**Tech Stack:** Java 21, approved S002 Spring Boot 4.0.8 baseline, Maven distribution 3.9.16, PostgreSQL 17, PowerShell 5.1/7, Node and GitHub Actions baselines; current committed scanner/image trust pins. Historical Boot 3.5.16 was superseded by approved T03 remediation.
 
 **Spec:** [Approved design](../specs/2026-10-05-s002-service-foundation-design.md).
 
@@ -20,7 +20,7 @@ V1 architecture amendment (Project Owner instruction, 2026-10-05): [Blueprint](.
 
 - Baseline PR17 merge: `9a625b96e97cac9900046a89131184e2d4427402`; preserve primary edits and all private evidence.
 - Exactly five core services: identity-profile-service, auction-service, bidding-service, billing-service, realtime-gateway. Supporting Lambda workloads are later-phase obligations. These are technical foundations, not product bidding/billing implementation.
-- Java 21, Spring Boot 3.5.16, Maven Wrapper 3.3.4 and its pinned Maven distribution 3.9.16 remain unchanged; wrapper implementation and integrity metadata come from the existing reviewed wrapper, not a new download.
+- Java 21, approved Boot 4.0.8 and the reviewed T03 framework/JSON/Tomcat pins, Maven Wrapper 3.3.4 and its Maven distribution 3.9.16 remain fixed; wrapper implementation/integrity metadata come from the existing reviewed wrapper. Boot 3.5.16's historical constraint is superseded by the approved [T03 remediation execution](2026-10-10-s002-t03-spring-remediation-execution.md), not by this plan or source exporter.
 - Preserve Identity business/sample code, migrations and accepted contracts. No shared business library, cross-service runtime dependency or mandatory root reactor.
 - Gateway has no PostgreSQL/JPA/Flyway/Valkey adapter or invented datastore readiness. No Cognito/AWS/product functionality.
 - Dedicated native PostgreSQL supplements canonical Testcontainers. No reset/drop, credential output, registry publication, policy bypass, settings mutation or inferred merge permission.

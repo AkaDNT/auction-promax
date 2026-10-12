@@ -91,3 +91,35 @@ Executed commands (full private logs retained under this plan's ignored workspac
 | `pwsh -NoProfile -NonInteractive -File api/scripts/supply-chain/Invoke-GitleaksScanning.ps1` | Exit 0; trusted worktree/history scan PASS, directory/history/false-positive counts all zero |
 
 Native evidence supplements, rather than substitutes for, canonical PostgreSQL **17.11** Testcontainers. No generated service destination was created locally. A new exact-candidate isolated hosted run is still required for actual Auction Maven/Failsafe, real container HTTP smoke and sanitized artifact evidence.
+
+## PR #24 initial hosted technical proof and source-delivery ruling
+
+The initial push/draft-PR request was rejected by automatic approval review because explicit public-repository publication consent was missing. No alternate route was used. After the owner expressly authorized reviewed/secret-scanned candidates on `work/s002-phase0-completion`, draft PRs/CI at public `AkaDNT/auction-promax`, and kept merge separate, candidate `6f4e84828d979f25210df3b8c8cce3800fa23f2f` was pushed and [Draft PR #24](https://github.com/AkaDNT/auction-promax/pull/24) opened against `migration/monorepo`. Exact-SHA independent review found no Critical/Important issue before that publication. Private config/raw logs were not uploaded.
+
+PR [supply-chain run 38195223097](https://github.com/AkaDNT/auction-promax/actions/runs/38195223097) and push [run 38195220041](https://github.com/AkaDNT/auction-promax/actions/runs/38195220041) completed SUCCESS. PR metadata independently binds candidate head `6f4e848` to checked-out PR merge execution **`9d6e4849a2710db4e33fe0b16a8576d3e7439b87`**. Repository scans, all five service legs, aggregate and separate release-policy passed. The same candidate's Monorepo/API/Web PR and push workflows passed.
+
+Actual PR Maven log totals (zero failures/errors/skips in every row):
+
+| Service | Surefire | Registered Failsafe | Source provenance |
+| --- | ---: | ---: | --- |
+| Identity | 118 | 10 | Committed |
+| Auction | 19 | 4 | Ephemeral CI-generated |
+| Bidding | 19 | 4 | Ephemeral CI-generated |
+| Billing | 19 | 4 | Ephemeral CI-generated |
+| Realtime gateway | 19 | 1 | Ephemeral CI-generated, no database |
+
+The actual Linux repository fixture log confirms execution of both case-sensitive containment tests and completion of the runner harness. All service jobs passed their registered non-skipped Failsafe assertion, Spring/Jackson graph gate, actual artifact-aware scan and hardened container smoke. The generated-service smoke implementation at this exact revision runs the typed live HTTP verifier before writing PASS. Child stdout is suppressed by the existing orchestrator, so no direct `SERVICE_HTTP_PASS` log marker is claimed.
+
+Downloaded only five seven-file sanitized service artifacts, five isolated matrix-result artifacts and the sanitized repository artifact. Locally checked every service document against the committed strict schema, exact file set, identity and execution SHA, then ran the exact-five aggregate independently: `LOCAL_HOSTED_AGGREGATE_PASS services=5 policy=PASS`. Every service has dependency findings=2 and container findings=2; all four entries are MEDIUM, with CRITICAL/HIGH/UNKNOWN=0 and smoke `UP` on `linux/amd64`. Repository execution/policy are PASS. These findings remain carried rather than dispositioned or hidden.
+
+Offline validation does not claim the full JAR-binding validator ran locally: it requires the checked-out execution SHA and actual built JAR, which this local branch does not contain. That full validator ran successfully in each owning CI service job, on its real artifact. The local checks are strict sanitized schema/identity/count/set aggregation; no validator was weakened.
+
+T04 runtime-tooling technical proof is established for this candidate; T04 service-source delivery and protected publication are still open. The owner explicitly selected **CI generation → source export → review/import/commit**, retaining CI-only generation. See the [source delivery plan](2026-10-12-s002-ci-source-delivery.md). Temporary CI skeletons are not mislabeled as delivered committed services.
+
+The source exporter delta introduces a closed JSON bundle of exact approved source bytes/paths/modes/hashes and service/execution identity. It cannot export Identity, extra files, altered content even after rehashing, a forged revision or an existing/linked output; normal local CLI use is refused. A positive synthetic hosted CLI test also exposed a matching dirty-template/source revision claim, observed RED and corrected by checking tracked source inputs against HEAD. Current bundle/CLI suite is 26/26 PASS; combined generated conformance, registry, template (38/38), owning/root/hosted repository and negative workflow contracts passed. Source artifacts use their own exact JSON-only path and pinned upload only after Maven/Failsafe/graph/hosted evidence success; sanitized evidence upload behavior remains unchanged. Initial independent review found no Critical/Important finding and its CLI coverage suggestion was implemented. Exact-SHA review and real hosted exporter/source-artifact proof remain the next gates.
+
+The same delivery preparation reconciled current version documents with already-approved, integrated T03 remediation: build baseline now records Boot 4.0.8/CDK library 2.273.0; ADR-002 contains an explicit traceable supersession rather than rewriting its historical 3.5.x decision; active S002 plan/spec no longer demand the obsolete framework pin. Historical ADR/S001 closeout tests passed after the correction.
+
+Added two canonical relational Testcontainers acceptance tests for the existing role model: database owner is `NOLOGIN`, migrator owns schema and Flyway history, and runtime SELECT/INSERT/UPDATE/DELETE on migration history each fail with PostgreSQL SQLSTATE `42501`. These extend evidence for an existing invariant; no production code/schema/privilege change or runtime RED/GREEN result is claimed before the next hosted execution. Context7 primary Spring JDBC documentation confirmed the parameterized query API used. Template/source-bundle fixtures passed (34/34 combined, template 38/38); actual new Failsafe cases remain pending CI.
+
+Full native generator regression subsequently passed 40/40 using synthetic temporary roots and ordinary PowerShell publication. Registry export changed no generator semantics; no service was generated in the real repository. Source-export candidate whitespace, historical ADR/closeout, Identity preservation and changed-document links passed. Trusted Gitleaks worktree/history counts remained 0/0/0 before candidate review/publication.
