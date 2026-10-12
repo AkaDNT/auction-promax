@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "serviceId": "auction-service",
+  "repository": "AkaDNT/auction-promax",
+  "sourceCandidateSha": "87969288d62af90fd40987980530de631fbad982",
+  "executionSha": "f8063366d41c1672316499ae481b89c0a10ad222",
+  "runId": "38199242294",
+  "artifactId": "11724703331",
+  "artifactName": "s002-service-source-auction-service",
+  "artifactFileSha256": "e658f8a33d72a6fbc7d26846546c4d0b660abc6d135106f810f5d1d7d9533159",
+  "bundleSha256": "da9334d3cef9d67f07483c84e201223a460fe87971c9b95cd211f629aed7754d",
+  "origin": "isolated-ci-generated",
+  "files": [
+    {
+      "path": ".mvn/wrapper/maven-wrapper.properties",
+      "mode": 420,
+      "sha256": "488e1b3f2e641779d4636abf9390845f901e64607261bc3c0b0bfe4fe96e6706"
+    },
+    {
+      "path": "Dockerfile",
+      "mode": 420,
+      "sha256": "f7ffa478f6240e5077eb9c0c2447cad6f82ea8c6dd6bb2f91be9d098419430ce"
+    },
+    {
+      "path": "README.md",
+      "mode": 420,
+      "sha256": "e9b1e5fcec669074cfc11fe3eac5df1380e7cf3ee30887bdeb3134eba245a96c"
+    },
+    {
+      "path": "mvnw",
+      "mode": 493,
+      "sha256": "cae96cef89ebea3531221f4ae17c23cf8edf67d00eae8306d4186ae1bbed4d02"
+    },
+    {
+      "path": "mvnw.cmd",
+      "mode": 420,
+      "sha256": "584381858445e61a8ce6e70acd8b1845981812b8a6748b81aed5866689064586"
+    },
+    {
+      "path": "pom.xml",
+      "mode": 420,
+      "sha256": "b473150bfe8ef1ccb623b25f3c82bbe7b77f8d6bfefc577db1a63dc7ad558fa7"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/auctionservice/AuctionServiceApplication.java",
+      "mode": 420,
+      "sha256": "44f9bf8a4bd7ae4e1c2aef555fbaaf1be0be3e2e81935a66746e509af6ffc556"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/auctionservice/adapter/in/web/CorrelationIdFilter.java",
+      "mode": 420,
+      "sha256": "d216b9e8b7c0484cc8faa0b6cdfff501314dea9d354374bba3e3a83e9e670970"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/auctionservice/adapter/in/web/TechnicalProbeController.java",
+      "mode": 420,
+      "sha256": "873b929fe8425b126a580e5e4cfe6ed28fcc8a34e21a7eb0d3dd69607cdd4ba8"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/auctionservice/adapter/in/web/TechnicalProblemAdvice.java",
+      "mode": 420,
+      "sha256": "65f0cc93e65f0f4249a09e8e532e6738b53c61ce724228b1fc9752643bb05ee4"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/auctionservice/adapter/in/web/TechnicalValidationRequest.java",
+      "mode": 420,
+      "sha256": "9ea7cbcfded6d6505d987c0253ec3f3e931522637ec7a495eff0137f4beb3f48"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/auctionservice/adapter/in/web/TechnicalValidationResponse.java",
+      "mode": 420,
+      "sha256": "56c950ce234e37e01d3a71c7706114665d7fd7965e3126d332a1873f1289fcc9"
+    },
+    {
+      "path": "src/main/java/com/auctionpromax/auctionservice/configuration/TechnicalConfiguration.java",
+      "mode": 420,
+      "sha256": "ecb676cde6a03d3e5d2bc71aefde3653f718de1ec7bb29edf8e8836bf8a17831"
+    },
+    {
+      "path": "src/main/resources/application-local.yaml",
+      "mode": 420,
+      "sha256": "d9dc9956b32f31a3f9e383ac2086c8189ad07b0ccbcc04997e7591d30baa8db8"
+    },
+    {
+      "path": "src/main/resources/application.yaml",
+      "mode": 420,
+      "sha256": "2559020e2342933b8dcec02a89013b680e403771351d89c88600fc0ab2e22a20"
+    },
+    {
+      "path": "src/main/resources/db/migration/V1__create_technical_probe.sql",
+      "mode": 420,
+      "sha256": "7504b31d1720171ea45392431462eab0c49243839e918be454365cf5971410a7"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/auctionservice/RelationalBoundaryTestcontainersIT.java",
+      "mode": 420,
+      "sha256": "11eb0ffe700c2519371940c50139aa3e923021af6c384cf4edfe3d164be6fec0"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/auctionservice/StructuredLoggingTest.java",
+      "mode": 420,
+      "sha256": "208c1c7274518467d32f06fa49aa5878d8c5b1aba31c5d444bbe3060045faaf4"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/auctionservice/TechnicalHttpTest.java",
+      "mode": 420,
+      "sha256": "4ba68ff0956b6d6fe89a56e31a90bd76535553fae6d6ec4e4de65f09b4949fea"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/auctionservice/architecture/ArchitectureTest.java",
+      "mode": 420,
+      "sha256": "4afed2bbe7cb26bc4ac9f449c5948eb04dc9ed8f90b2aff60e1664590535145c"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/foundationfixtures/adapter/in/InvalidInboundDependency.java",
+      "mode": 420,
+      "sha256": "a487c6fa314e6317aa6ff74f6213d7eb653e65b81948e6850cf15173f122d547"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/foundationfixtures/application/FoundationApplicationFixture.java",
+      "mode": 420,
+      "sha256": "fe779e82a2e931eed32f15c70000dda94e08501717b6a2125bc9b4f73016f17b"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/foundationfixtures/application/InvalidAdapterDependency.java",
+      "mode": 420,
+      "sha256": "b20839c0eeb1577703e25668d2d3a40d4ac6653dfd980c808449820a7489a10f"
+    },
+    {
+      "path": "src/test/java/com/auctionpromax/foundationfixtures/application/InvalidFrameworkDependency.java",
+      "mode": 420,
+      "sha256": "4c9f7ecba3a43f5ce39f60874f1b318345deef4f9d2add2cae77f404538ed70b"
+    },
+    {
+      "path": "src/test/resources/db/testcontainers/bootstrap.sql",
+      "mode": 420,
+      "sha256": "f0335214c2a9126bfd25224073b2ff0a859baeba62010e7c389db3e593f0b2ba"
+    }
+  ]
+}
