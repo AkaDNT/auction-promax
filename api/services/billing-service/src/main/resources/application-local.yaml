@@ -1,0 +1,44 @@
+spring:
+  datasource:
+    url: ${BILLING_DB_URL}
+    username: ${BILLING_DB_APP_USERNAME}
+    password: ${BILLING_DB_APP_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    clean-disabled: true
+    validate-on-migrate: true
+    url: ${BILLING_DB_URL}
+    user: ${BILLING_DB_MIGRATOR_USERNAME}
+    password: ${BILLING_DB_MIGRATOR_PASSWORD}
+    default-schema: billing
+    schemas: billing
+    table: flyway_schema_history
+    placeholders:
+      runtimeRole: ${BILLING_DB_APP_USERNAME}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db
+  tracing:
+    sampling:
+      probability: 1.0
+
+logging:
+  structured:
+    format:
+      console: ecs
+    ecs:
+      service:
+        name: billing-service
+        environment: local
